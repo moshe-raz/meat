@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שקילות בשר ומלאי</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 10px; direction: rtl; }
+  h1 { text-align: center; color: #1F4E79; font-size: 22px; }
+  .nav { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; }
+  .nav button { padding: 10px 20px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; background: #ddd; }
+  .nav button.active { background: #2E75B6; color: white; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .meat-card { background: white; border-radius: 12px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  .meat-header { background: #2E75B6; color: white; padding: 10px; font-weight: bold; text-align: center; }
+  .meat-body { display: grid; grid-template-columns: 1fr 1fr; }
+  .section.stock { background: #f5f3ff; }
+  .stock .total { color: #5e35b1; }
+  .prep .total { font-size: 22px; }
+  .sub { font-size: 12px; color: #555; margin-top: 3px; line-height: 1.4; }
+  .section { flex: 1; padding: 12px; text-align: center; }
+  .section.prep { background: #f0f7ff; }
+  .section.close { background: #fff8f0; }
+  .section.sold { background: #f0fff0; }
+  .total { font-size: 28px; font-weight: bold; }
+  .prep .total { color: #2E7D32; }
+  .close .total { color: #E65100; }
+  .sold .total { color: #1565C0; }
+  .period { background: #f8f9fa; padding: 8px; text-align: center; font-size: 13px; }
+  .controls { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+  select, input { font-size: 16px; padding: 8px; margin: 4px; border-radius: 6px; border: 1px solid #ccc; }
+  button.btn { background: #2E75B6; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 4px; }
+  .inventory-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; margin-bottom: 6px; border-radius: 8px; }
+  .inventory-item input { width: 100px; text-align: center; }
+  .analysis { padding: 10px 12px; border-top: 1px solid #e5e8eb; font-size: 14px; display: grid; gap: 8px; }
+  .an-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  .an-label { font-weight: bold; min-width: 52px; }
+  .an-nums { color: #333; flex-basis: 100%; min-width: 0; line-height: 1.5; padding-inline-start: 4px; }
+  .an-row { padding-bottom: 6px; border-bottom: 1px dashed #eceff1; }
+  .pill { border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: bold; white-space: nowrap; }
+  .pill.ok { background: #e8f5e9; color: #1b5e20; }
+  .pill.warn { background: #fff3e0; color: #e65100; }
+  .pill.bad { background: #ffebee; color: #b71c1c; }
+  .pill.none { background: #eceff1; color: #546e7a; }
+  .pill.neg { background: #e3f2fd; color: #0d47a1; }
+  .processed { background: #fff3e0; }
+  #page-inventory .controls { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .inventory-item.selected { outline: 3px solid #2E75B6; }
+  .inventory-item.flash { animation: flash 0.8s; }
+  @keyframes flash { from { background: #c8e6c9; } }
+  #calcSteps { font-size: 13px; color: #555; min-height: 16px; margin-bottom: 6px; word-break: break-word; }
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2E75B6">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<h1>שקילות בשר ומלאי</h1>
+<div class="nav">
+  <button id="btnWeigh" class="active" onclick="showPage('weigh')">שקילות</button>
+  <button id="btnInv" onclick="showPage('inventory')">ספירת מלאי סוף חודש</button>
+</div>
+
+<!-- WEIGHING PAGE -->
+<div id="page-weigh" class="page active">
+  <div class="controls">
+    <input type="date" id="dateInput">
+    <select id="meatSelect">
+      <option value="entrecote">אנטריקוט</option>
+      <option value="shoulder">צלי כתף</option>
+      <option value="oven">אנטריקוט לתנור</option>
+      <option value="iron">איירון סטייק</option>
+    </select>
+    <select id="typeSelect">
+      <option value="prep">הכנות</option>
+      <option value="close">סגירה</option>
+      <option value="sold">נמכר</option>
+      <option value="recv">סחורה שנכנסה</option>
+    </select>
+    <input type="text" id="weightInput" placeholder="משקל" inputmode="decimal">
+    <div id="soldNote" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
+    <button class="btn" onclick="addWeight()">הוסף</button>
+    <br>
+    <div style="margin:6px 0; font-size:14px">פחת רגיל (קליפה): <input type="text" id="lossAllow" inputmode="decimal" style="width:60px;text-align:center"> %
+      <br>פחת בניקוי לאיירון: <input type="text" id="ironAllow" inputmode="decimal" style="width:60px;text-align:center"> %
+      <div style="color:#666;font-size:12px">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14% · עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד</div></div>
+    <button class="btn" style="background:#6c757d" onclick="deleteLast()">מחק אחרון</button>
+    <button class="btn" style="background:#28a745" onclick="exportToExcel()">ייצא לאקסל</button>
+    <button class="btn" style="background:#d32f2f" onclick="resetAll()">אפס הכל</button>
+  </div>
+
+  <div id="cards"></div>
+
+  <div id="historyList" style="background:white;padding:10px;border-radius:8px;max-height:200px;overflow:auto;margin-top:10px;"></div>
+</div>
+
+<!-- INVENTORY PAGE -->
+<div id="page-inventory" class="page">
+  <div class="controls">
+    <h3>ספירת מלאי סוף חודש</h3>
+    <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:10px 0;">
+      <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
+      <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
+      <div id="calcSteps" dir="ltr"></div>
+      <input type="text" id="calcInput" placeholder="משקל" style="width:170px; font-size:18px; text-align:center" inputmode="decimal" enterkeyhint="done">
+      <button class="btn" onclick="calcAdd()">הוסף לסכום</button>
+      <button class="btn" style="background:#ff9800" onclick="calcUndo()">בטל אחרון</button>
+      <button class="btn" style="background:#6c757d" onclick="calcClear()">נקה</button>
+      <div style="font-size:12px;color:#666;margin-top:4px">אפשר כמה משקלים בבת אחת עם רווח ביניהם, למשל: 30 15 14.742</div>
+    </div>
+    <button class="btn" onclick="saveInventory()">שמור מלאי</button>
+    <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
+  </div>
+  <div id="inventoryList"></div>
+</div>
+
+<script>
+const products = [
+  "צלי כתף","אנטריקוט","סינטה","סטייק עין","אנטריקוט לתנור",
+  "פילה מדומה","פילה בקר","שפייץ צאך","שייטל","צלעות",
+  "טחינה","אסאדו ללא עצם","שריר","אסאדו ע.ע","אוסובוקו",
+  "כתף","חזה",
+  "צלי כתף מעובד","אנטריקוט מעובד","סינטה מעובד","סטייק עין מעובד",
+  "אנטריקוט לתנור מעובד","פילה מדומה מעובד","פילה בקר מעובד",
+  "שפייץ צאך מעובד","שייטל מעובד","צלעות מעובד","טחינה מעובד",
+  "אסאדו ללא עצם מעובד","שריר מעובד","אסאדו ע.ע מעובד",
+  "אוסובוקו מעובד","כתף מעובד","חזה מעובד"
+];
+
+const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
+const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה' };
+let history = [];
+let inventory = {};
+
+document.getElementById('dateInput').valueAsDate = new Date();
+document.getElementById('dateInput').addEventListener('change', updateDisplay);
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById(page === 'weigh' ? 'btnWeigh' : 'btnInv').classList.add('active');
+  if (page === 'inventory') renderInventory();
+}
+
+function canEnterSold(dateStr) {
+  // Allow sold entry more freely - only block if date is in the future
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return d <= today;
+}
+
+// Iron steak is weighed only as "sold" (it comes out of the shoulder prep)
+function syncTypeForMeat() {
+  const isIron = document.getElementById('meatSelect').value === 'iron';
+  const typeSel = document.getElementById('typeSelect');
+  Array.from(typeSel.options).forEach(o => { o.disabled = isIron && o.value !== 'sold'; o.hidden = isIron && o.value !== 'sold'; });
+  if (isIron) typeSel.value = 'sold';
+}
+// Sales figures arrive the next working day: Thursday's on Friday, Friday's on Sunday.
+// So "sold" is recorded under the day the meat was sold, not the day you type it in.
+function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function prevWorkDay(d) {
+  const p = new Date(d); p.setDate(p.getDate() - 1);
+  if (p.getDay() === 6) p.setDate(p.getDate() - 1); // Saturday -> Friday
+  return p;
+}
+const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+function heDate(ds) { const d = new Date(ds + 'T00:00:00'); return 'יום ' + dayNames[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth()+1); }
+// Sold and close both belong to the previous work day (sales page and morning weigh-in come the day after)
+const backdated = t => t === 'sold' || t === 'close';
+let lastType = document.getElementById('typeSelect').value;
+let autoDate = true; // stops moving the date once you pick one yourself
+document.getElementById('dateInput').addEventListener('change', () => { autoDate = false; });
+function syncDateForType() {
+  const type = document.getElementById('typeSelect').value;
+  const dateEl = document.getElementById('dateInput');
+  if (type !== lastType) {
+    if (autoDate && backdated(type) && !backdated(lastType)) dateEl.value = ymd(prevWorkDay(new Date()));
+    else if (autoDate && !backdated(type) && backdated(lastType)) dateEl.value = ymd(new Date());
+    lastType = type;
+    updateDisplay();
+  }
+  const note = document.getElementById('soldNote');
+  const notes = {
+    sold: 'הנמכר יירשם למכירות של ',
+    close: 'שוקלים את כל המלאי (כולל ארגזים) לפני שמכניסים סחורה · נרשם כסגירה של ',
+    recv: 'סחורה שהגיעה ב',
+  };
+  if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value); note.hidden = false; }
+  else note.hidden = true;
+}
+document.getElementById('meatSelect').addEventListener('change', () => { syncTypeForMeat(); syncDateForType(); });
+document.getElementById('typeSelect').addEventListener('change', syncDateForType);
+document.getElementById('dateInput').addEventListener('change', syncDateForType);
+syncTypeForMeat();
+
+function addWeight() {
+  const meat = document.getElementById('meatSelect').value;
+  const type = document.getElementById('typeSelect').value;
+  const date = document.getElementById('dateInput').value;
+  const raw = document.getElementById('weightInput').value.trim().replace(',','.');
+  const weight = parseFloat(raw);
+  if (!date || isNaN(weight) || weight <= 0) { alert('נא למלא תאריך ומשקל'); return; }
+  if (meat === 'iron' && type !== 'sold') { alert('איירון סטייק נרשם רק בנמכר'); return; }
+  if (type !== 'prep' && !canEnterSold(date)) {
+    alert('אי אפשר לרשום לתאריך עתידי');
+    return;
+  }
+  if (type === 'sold' && date === ymd(new Date()) && !confirm('הנמכר של היום מגיע רק מחר. לרשום אותו בכל זאת לתאריך של היום?')) return;
+  if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
+  history.unshift({ date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: typeNames[type], weight: weight.toFixed(2) });
+  if (history.length > 5000) history.pop();
+  document.getElementById('weightInput').value = '';
+  updateDisplay();
+  renderHistory();
+  saveData();
+}
+
+// ---------- Stock model ----------
+// close  = all stock left (boxes + what came back), weighed the next morning, recorded under the day it closes
+// recv   = delivery that arrived (from the delivery note), recorded under the day it arrived
+// stock for a day = previous close + deliveries since
+// went   = stock − this close  (compared with sold; shoulder sold includes iron steak)
+const PK = ['entrecote','shoulder','oven'];
+const cardDefs = [['entrecote','אנטריקוט'],['shoulder','צלי כתף'],['oven','אנטריקוט לתנור']];
+const f2 = n => (Math.round(n * 100) / 100).toFixed(2);
+function shortDate(ds) { const d = new Date(ds + 'T00:00:00'); return dayNames[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth()+1); }
+function dm(ds) { const d = new Date(ds + 'T00:00:00'); return d.getDate() + '.' + (d.getMonth()+1); }
+
+function buildCards() {
+  document.getElementById('cards').innerHTML = cardDefs.map(([k, n]) => `
+  <div class="meat-card">
+    <div class="meat-header">${n}</div>
+    <div class="meat-body">
+      <div class="section stock"><div>מלאי ליום</div><div class="total" id="${k}-stock">0.00</div><div class="sub" id="${k}-stock-sub"></div></div>
+      <div class="section close"><div>סגירה</div><div class="total" id="${k}-close">0.00</div><div class="sub" id="${k}-close-sub"></div></div>
+      <div class="section sold"><div>נמכר${k === 'shoulder' ? ' (צלי בלבד)' : ''}</div><div class="total" id="${k}-sold">0.00</div><div class="sub" id="${k}-sold-sub"></div></div>
+      <div class="section prep"><div>הכנות</div><div class="total" id="${k}-prep">0.00</div><div class="sub">יצא לוויטרינה · לידיעה</div></div>
+    </div>
+    <div class="analysis" id="${k}-analysis"></div>
+    <div class="period">הכנות שבועי: <span id="${k}-week">0</span> | חודשי: <span id="${k}-month">0</span></div>
+  </div>`).join('');
+}
+
+function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, hasClose:false }; }
+function keyOf(h) { return Object.keys(names).find(k => names[k] === h.meat); }
+function typeOf(h) { return h.type === 'הכנות' ? 'prep' : h.type === 'סגירה' ? 'close' : h.type === 'סחורה' ? 'recv' : 'sold'; }
+
+function buildDays() {
+  const days = { entrecote:{}, shoulder:{}, oven:{} };
+  history.forEach(h => {
+    const orig = keyOf(h); if (!orig) return;
+    const t = typeOf(h), w = parseFloat(h.weight) || 0;
+    let k = orig;
+    if (orig === 'iron') { if (t !== 'sold') return; k = 'shoulder'; }
+    const d = days[k][h.date] || (days[k][h.date] = emptyDay());
+    d[t] += w;
+    if (t === 'close') d.hasClose = true;
+    if (orig === 'iron') d.iron += w;
+  });
+  return days;
+}
+
+function workdaysBetween(a, b) { // exclusive, skips Saturday
+  const out = [], d = new Date(a + 'T00:00:00'), end = new Date(b + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  while (d < end) { if (d.getDay() !== 6) out.push(ymd(d)); d.setDate(d.getDate() + 1); }
+  return out;
+}
+
+// One segment per pair of consecutive closes; days without a close are folded into the next one
+function segmentsFor(dd) {
+  const dates = Object.keys(dd).sort();
+  const closes = dates.filter(d => dd[d].hasClose);
+  const segs = [];
+  for (let i = 1; i < closes.length; i++) {
+    const c0 = closes[i-1], c1 = closes[i];
+    const s = { start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0 };
+    dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; } });
+    s.stock = s.open + s.recv;
+    s.went = s.stock - s.close;
+    s.missing = workdaysBetween(c0, c1);
+    segs.push(s);
+  }
+  return segs;
+}
+
+function stockFor(dd, date) {
+  const prev = Object.keys(dd).filter(d => d < date && dd[d].hasClose).sort().pop();
+  let recv = 0;
+  Object.keys(dd).forEach(d => { if ((!prev || d > prev) && d <= date) recv += dd[d].recv; });
+  return { prev, open: prev ? dd[prev].close : 0, recv, stock: (prev ? dd[prev].close : 0) + recv };
+}
+
+function updateDisplay() {
+  const sel = document.getElementById('dateInput').value;
+  if (!sel) return;
+  const days = buildDays();
+  PK.forEach(k => {
+    const dd = days[k], t = dd[sel] || emptyDay(), st = stockFor(dd, sel);
+    document.getElementById(k+'-stock').textContent = f2(st.stock);
+    document.getElementById(k+'-stock-sub').innerHTML = (st.prev
+      ? `סגירה ${shortDate(st.prev)}: ${f2(st.open)}`
+      : 'אין סגירה קודמת') + `<br>+ סחורה: ${f2(st.recv)}`;
+    document.getElementById(k+'-close').textContent = t.hasClose ? f2(t.close) : '—';
+    document.getElementById(k+'-close-sub').textContent = t.hasClose ? 'כולל ארגזים' : 'נשקלת בבוקר שאחרי';
+    document.getElementById(k+'-prep').textContent = f2(t.prep);
+    if (k === 'shoulder') {
+      document.getElementById(k+'-sold').textContent = f2(t.sold - t.iron);
+      document.getElementById(k+'-sold-sub').innerHTML = `איירון: ${f2(t.iron)}<br>כולל איירון: <b style="font-size:16px">${f2(t.sold)}</b>`;
+    } else {
+      document.getElementById(k+'-sold').textContent = f2(t.sold);
+      document.getElementById(k+'-sold-sub').textContent = '';
+    }
+  });
+  updatePeriodTotals();
+  updateAnalysis(days);
+}
+
+function updatePeriodTotals() {
+  const sel = document.getElementById('dateInput').value;
+  const now = sel ? new Date(sel + 'T00:00:00') : new Date();
+  const cm = now.getMonth(), cy = now.getFullYear();
+  const dow = now.getDay();
+  const sow = new Date(now); sow.setDate(now.getDate()-dow); sow.setHours(0,0,0,0);
+  const eow = new Date(sow); eow.setDate(sow.getDate()+5); eow.setHours(23,59,59,999);
+  const week = {entrecote:0,shoulder:0,oven:0}, month = {entrecote:0,shoulder:0,oven:0};
+  history.forEach(h => {
+    if (h.type !== 'הכנות') return;
+    const d = new Date(h.date+'T00:00:00');
+    const w = parseFloat(h.weight)||0;
+    let key = Object.keys(names).find(k => names[k]===h.meat);
+    if (!key || !(key in week)) return;
+    if (d.getMonth()===cm && d.getFullYear()===cy) month[key]+=w;
+    if (d>=sow && d<=eow) week[key]+=w;
+  });
+  ['entrecote','shoulder','oven'].forEach(k => {
+    document.getElementById(k+'-week').textContent = week[k].toFixed(1);
+    document.getElementById(k+'-month').textContent = month[k].toFixed(1);
+  });
+}
+
+// ---------- Loss analysis ----------
+let lossAllow = 5;   // regular trim waste, % of what went
+let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of the raw shoulder used
+function loadAllow() {
+  try {
+    const v = parseFloat(localStorage.getItem('lossAllow')); if (!isNaN(v)) lossAllow = v;
+    const w = parseFloat(localStorage.getItem('ironAllow')); if (!isNaN(w)) ironAllow = w;
+  } catch(e) {}
+  [['lossAllow', () => lossAllow, v => lossAllow = v], ['ironAllow', () => ironAllow, v => ironAllow = v]].forEach(([id, get, set]) => {
+    const el = document.getElementById(id);
+    el.value = get();
+    el.addEventListener('input', () => {
+      const v = parseFloat(el.value.replace(',', '.'));
+      if (!isNaN(v) && v >= 0 && v < 100) { set(v); try { localStorage.setItem(id, v); } catch(e) {} updateAnalysis(buildDays()); }
+    });
+  });
+}
+
+// Expected trim in kg: iron needs raw = iron / (1 − ironAllow%); the rest of what went gets the regular %
+function expectedWaste(x) {
+  const r = ironAllow / 100;
+  const ironRaw = x.iron > 0 ? x.iron / (1 - r) : 0;
+  return (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * lossAllow / 100;
+}
+
+function judge(x) {
+  const gap = x.went - x.sold;
+  const pct = x.went > 0 ? gap / x.went * 100 : 0;
+  const exp = expectedWaste(x);
+  const nums = `הלך ${f2(x.went)} · נמכר ${f2(x.sold)} ק״ג<br>פער ${f2(gap)} ק״ג · פחת צפוי עד ${f2(exp)}`;
+  if (x.sold <= 0) return { cls:'none', text:'ממתין לנמכר', nums:`הלך ${f2(x.went)} ק״ג<br>הנמכר מגיע ביום העבודה הבא` };
+  if (gap < 0) return { cls:'neg', text:`נמכר יותר ב־${f2(-gap)}`, nums: nums + '<br>בדוק שקילות' };
+  const p = pct.toFixed(1) + '%';
+  if (gap <= exp) return { cls:'ok', text:'תקין ' + p, nums };
+  if (gap <= exp * 2) return { cls:'warn', text:'לבדוק ' + p, nums };
+  return { cls:'bad', text:'חשד ' + p, nums };
+}
+
+// Sum segments; a segment whose sold isn't in yet is left out so it doesn't look like loss
+function aggregate(segs) {
+  const a = { went:0, sold:0, iron:0, recv:0, prep:0, n:0, waiting:0, missing:[] };
+  segs.forEach(s => {
+    a.missing.push(...s.missing);
+    if (s.sold <= 0) { a.waiting++; return; }
+    a.went += s.went; a.sold += s.sold; a.iron += s.iron; a.recv += s.recv; a.prep += s.prep; a.n += 1 + s.missing.length;
+  });
+  return a;
+}
+
+function missingText(list) {
+  if (!list.length) return '';
+  return ' · חסרה סגירה: ' + list.slice(0, 4).map(dm).join(', ') + (list.length > 4 ? ` ועוד ${list.length - 4}` : '');
+}
+
+function updateAnalysis(days) {
+  const sel = document.getElementById('dateInput').value;
+  if (!sel) return;
+  const d0 = new Date(sel + 'T00:00:00');
+  const sow = new Date(d0); sow.setDate(d0.getDate() - d0.getDay());
+  const eow = new Date(sow); eow.setDate(sow.getDate() + 6);
+  const ws = ymd(sow), we = ymd(eow), mo = sel.slice(0, 7);
+  PK.forEach(k => {
+    const dd = days[k], segs = segmentsFor(dd);
+    const row = (label, cls, text, nums) => `<div class="an-row"><span class="an-label">${label}</span><span class="pill ${cls}">${text}</span><span class="an-nums">${nums}</span></div>`;
+    let html = '';
+    // Day
+    const seg = segs.find(s => s.end === sel);
+    if (seg) {
+      const j = judge(seg);
+      const span = seg.missing.length ? `<br>מחושב יחד מ־${dm(seg.start)} · חסרה סגירה: ${seg.missing.map(dm).join(', ')}` : '';
+      html += row('יום', j.cls, j.text, j.nums + span);
+    } else if (dd[sel] && dd[sel].hasClose) {
+      html += row('יום', 'none', 'אין סגירה קודמת', 'צריך סגירה של יום עבודה קודם כדי לחשב');
+    } else {
+      const st = stockFor(dd, sel);
+      html += row('יום', 'none', 'ממתין לסגירה', `מלאי ${f2(st.stock)} ק״ג<br>הסגירה נשקלת בבוקר שאחרי`);
+    }
+    // Week / month
+    [['שבוע', s => s.end >= ws && s.end <= we], ['חודש', s => s.end.slice(0, 7) === mo]].forEach(([label, inP]) => {
+      const a = aggregate(segs.filter(inP));
+      if (!a.n) { html += row(label, 'none', a.waiting ? 'ממתין לנמכר' : 'אין נתונים', a.waiting ? '' : 'צריך לפחות שתי סגירות'); return; }
+      const j = judge(a);
+      html += row(label, j.cls, j.text, j.nums + `<br>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}` + (a.waiting ? ' · יום אחרון ממתין לנמכר' : '') + missingText(a.missing));
+    });
+    if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · הפחת הצפוי כולל ניקוי לאיירון</div>';
+    document.getElementById(k + '-analysis').innerHTML = html;
+  });
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  if (!history.length) { el.innerHTML = '<div style="color:#999;text-align:center">אין שקילות</div>'; return; }
+  el.innerHTML = history.slice(0,30).map(h => `<div style="padding:4px 0;border-bottom:1px solid #eee;font-size:13px">${h.date} ${h.time} — ${h.meat} (${h.type}): <b>${h.weight}</b></div>`).join('');
+}
+
+function deleteLast() {
+  if (!history.length) return;
+  history.shift();
+  updateDisplay(); renderHistory(); saveData();
+}
+
+function resetAll() {
+  if (!confirm('לאפס הכל?')) return;
+  history = [];
+  updateDisplay(); renderHistory(); saveData();
+}
+
+function exportToExcel() {
+  if (typeof XLSX === 'undefined') { alert('טוען ספרייה...'); return; }
+  if (!history.length) { alert('אין נתונים'); return; }
+  const wb = XLSX.utils.book_new();
+  wb.Workbook = { Views: [{ RTL: true }] };
+  const r2 = n => Math.round(n * 100) / 100;
+  const days = buildDays();
+  const segs = {}; PK.forEach(k => segs[k] = segmentsFor(days[k]));
+  const dates = [...new Set(history.map(h => h.date))].sort();
+  const weekStart = ds => { const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() - d.getDay()); return ymd(d); };
+  const addSheet = (rows, name, widths) => {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = widths.map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  };
+  const went = (k, date) => { const s = segs[k].find(x => x.end === date); return s ? r2(s.went) : ''; };
+
+  // --- Daily ---
+  const head = ['תאריך','יום'];
+  const plain = n => [n+' הכנות', n+' סחורה', n+' מלאי ליום', n+' סגירה', n+' הלך', n+' נמכר', n+' הכנות מצטבר שבועי', n+' נמכר מצטבר שבועי', n+' נמכר מצטבר חודשי'];
+  head.push(...plain('אנטריקוט'));
+  head.push('צלי כתף הכנות','צלי כתף סחורה','צלי כתף מלאי ליום','צלי כתף סגירה','צלי כתף הלך','צלי כתף נמכר','איירון סטייק נמכר','צלי כתף נמכר כולל איירון',
+            'צלי כתף הכנות מצטבר שבועי','צלי כתף נמכר מצטבר שבועי','צלי כתף כולל איירון מצטבר שבועי','צלי כתף נמכר מצטבר חודשי','צלי כתף כולל איירון מצטבר חודשי');
+  head.push(...plain('אנטריקוט לתנור'));
+  const daily = [head];
+  const zero = () => ({ ePrep:0, eSold:0, sPrep:0, sSold:0, sAll:0, oPrep:0, oSold:0 });
+  let wk = zero(), mon = zero(), curWeek = null, curMonth = null;
+  dates.forEach(date => {
+    if (weekStart(date) !== curWeek) { if (curWeek !== null) daily.push([]); curWeek = weekStart(date); wk = zero(); }
+    if (date.slice(0, 7) !== curMonth) { curMonth = date.slice(0, 7); mon = zero(); }
+    const g = k => days[k][date] || emptyDay();
+    const e = g('entrecote'), sh = g('shoulder'), o = g('oven');
+    const inc = { ePrep:e.prep, eSold:e.sold, sPrep:sh.prep, sSold:sh.sold - sh.iron, sAll:sh.sold, oPrep:o.prep, oSold:o.sold };
+    Object.keys(inc).forEach(x => { wk[x] += inc[x]; mon[x] += inc[x]; });
+    const base = (k, x) => [r2(x.prep), r2(x.recv), r2(stockFor(days[k], date).stock), x.hasClose ? r2(x.close) : '', went(k, date)];
+    daily.push([
+      date, dayNames[new Date(date + 'T00:00:00').getDay()],
+      ...base('entrecote', e), r2(e.sold), r2(wk.ePrep), r2(wk.eSold), r2(mon.eSold),
+      ...base('shoulder', sh), r2(sh.sold - sh.iron), r2(sh.iron), r2(sh.sold), r2(wk.sPrep), r2(wk.sSold), r2(wk.sAll), r2(mon.sSold), r2(mon.sAll),
+      ...base('oven', o), r2(o.sold), r2(wk.oPrep), r2(wk.oSold), r2(mon.oSold)
+    ]);
+  });
+  addSheet(daily, 'יומי', [11,7].concat(Array(head.length - 2).fill(11)));
+
+  // --- Weekly & monthly check ---
+  const periodSheet = (title, keyOfDate, labelOf) => {
+    const rows = [[title,'מוצר','הכנות','סחורה','הלך','נמכר','מתוכו איירון','פער ק״ג','פער %','פחת צפוי ק״ג','מצב','ימים','חסרה סגירה']];
+    [...new Set(dates.map(keyOfDate))].forEach(p => {
+      PK.forEach(k => {
+        const a = aggregate(segs[k].filter(s => keyOfDate(s.end) === p));
+        let prep = 0, recv = 0;
+        Object.keys(days[k]).forEach(d => { if (keyOfDate(d) === p) { prep += days[k][d].prep; recv += days[k][d].recv; } });
+        if (!a.n && !prep && !recv) return;
+        const name = names[k] + (k === 'shoulder' ? ' (נמכר כולל איירון)' : '');
+        if (!a.n) { rows.push([labelOf(p), name, r2(prep), r2(recv), '', '', '', '', '', '', a.waiting ? 'ממתין לנמכר' : 'חסרות סגירות', '', a.missing.map(dm).join(', ')]); return; }
+        const gap = a.went - a.sold;
+        rows.push([labelOf(p), name, r2(prep), r2(recv), r2(a.went), r2(a.sold), r2(a.iron), r2(gap), a.went > 0 ? r2(gap / a.went * 100) : '', r2(expectedWaste(a)), judge(a).text, a.n, a.missing.map(dm).join(', ')]);
+      });
+      rows.push([]);
+    });
+    return rows;
+  };
+  addSheet(periodSheet('שבוע', weekStart, w => { const e = new Date(w + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(w) + '–' + dm(ymd(e)); }), 'שבועי', [12,26,9,9,9,9,11,9,8,12,14,6,18]);
+  addSheet(periodSheet('חודש', d => d.slice(0, 7), m => m.slice(5) + '/' + m.slice(0, 4)), 'חודשי', [9,26,9,9,9,9,11,9,8,12,14,6,18]);
+
+  // --- Each close-to-close check ---
+  const lossRows = [['מסגירה של','עד סגירה של','מוצר','סגירה קודמת','סחורה','מלאי','סגירה','הלך','נמכר','מתוכו איירון','פער ק״ג','פער %','פחת צפוי ק״ג','מצב','חסרה סגירה']];
+  const all = [];
+  PK.forEach(k => segs[k].forEach(s => all.push([k, s])));
+  all.sort((a, b) => a[1].end < b[1].end ? -1 : a[1].end > b[1].end ? 1 : PK.indexOf(a[0]) - PK.indexOf(b[0]));
+  all.forEach(([k, s]) => {
+    const gap = s.went - s.sold;
+    lossRows.push([s.start, s.end, names[k] + (k === 'shoulder' ? ' (כולל איירון)' : ''), r2(s.open), r2(s.recv), r2(s.stock), r2(s.close), r2(s.went), r2(s.sold), r2(s.iron), r2(gap), s.went > 0 ? r2(gap / s.went * 100) : '', r2(expectedWaste(s)), judge(s).text, s.missing.map(dm).join(', ')]);
+  });
+  addSheet(lossRows, 'פחת יומי', [11,11,22,10,9,9,9,9,9,11,9,8,12,14,16]);
+
+  // --- Every weighing ---
+  const hist = [['תאריך','שעה','סוג','קטגוריה','משקל'], ...history.slice().reverse().map(h => [h.date, h.time, h.meat, h.type, parseFloat(h.weight)])];
+  addSheet(hist, 'היסטוריה', [11,7,16,9,9]);
+
+  XLSX.writeFile(wb, 'שקילות_בשר_' + ymd(new Date()) + '.xlsx');
+}
+
+let selectedProduct = null;
+let inventorySteps = {}; // product -> list of numbers added, for display and undo
+
+function invValue(p) { return Math.round((parseFloat(inventory[p]) || 0) * 1000) / 1000; }
+function fmt(n) { return n.toFixed(2); }
+
+function persistInventory() {
+  try {
+    localStorage.setItem('inventoryData', JSON.stringify(inventory));
+    localStorage.setItem('inventorySteps', JSON.stringify(inventorySteps));
+  } catch(e) {}
+}
+
+function renderInventory() {
+  const el = document.getElementById('inventoryList');
+  el.innerHTML = products.map((p,i) => {
+    let cls = p.includes('מעובד') ? 'inventory-item processed' : 'inventory-item';
+    if (p === selectedProduct) cls += ' selected';
+    return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
+      <span>${p}</span>
+      <span class="inv-val" style="font-weight:bold; color:#2E75B6">${fmt(invValue(p))} ק״ג</span>
+    </div>`;
+  }).join('');
+}
+
+// Update one row in place, so the list never shows a stale number
+function refreshRow(product, flash) {
+  const i = products.indexOf(product);
+  const row = document.querySelector(`#inventoryList [data-idx="${i}"]`);
+  if (!row) { renderInventory(); return; }
+  row.querySelector('.inv-val').textContent = fmt(invValue(product)) + ' ק״ג';
+  if (flash) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+}
+
+function refreshCalc() {
+  const p = selectedProduct;
+  document.getElementById('calcCurrent').textContent = fmt(invValue(p));
+  const steps = inventorySteps[p] || [];
+  document.getElementById('calcSteps').textContent = steps.length ? steps.join(' + ') + ' = ' + fmt(invValue(p)) : '';
+}
+
+function selectProduct(i) {
+  selectedProduct = products[i];
+  document.getElementById('calcPanel').style.display = 'block';
+  document.getElementById('calcProductName').textContent = selectedProduct;
+  document.querySelectorAll('#inventoryList .inventory-item').forEach(r => r.classList.toggle('selected', r.dataset.idx == i));
+  refreshCalc();
+  const input = document.getElementById('calcInput');
+  input.value = '';
+  input.focus();
+}
+
+// Accepts one number or several: "30 15 14.742", "30+15+14.742", "30;15", "14,742"
+function parseNumbers(raw) {
+  return raw.replace(/,/g, '.').split(/[\s+;]+/).filter(Boolean).map(Number);
+}
+
+function calcAdd() {
+  if (!selectedProduct) { alert('בחר מוצר מהרשימה'); return; }
+  const input = document.getElementById('calcInput');
+  const nums = parseNumbers(input.value.trim());
+  if (!nums.length) return;
+  if (nums.some(n => isNaN(n) || n <= 0)) { alert('מספר לא תקין'); return; }
+  let total = invValue(selectedProduct);
+  nums.forEach(n => total += n);
+  inventory[selectedProduct] = String(Math.round(total * 1000) / 1000);
+  inventorySteps[selectedProduct] = (inventorySteps[selectedProduct] || []).concat(nums);
+  input.value = '';
+  input.focus();
+  persistInventory();
+  refreshCalc();
+  refreshRow(selectedProduct, true);
+}
+
+function calcUndo() {
+  if (!selectedProduct) return;
+  const steps = inventorySteps[selectedProduct] || [];
+  if (!steps.length) return;
+  const last = steps.pop();
+  inventory[selectedProduct] = String(Math.max(0, Math.round((invValue(selectedProduct) - last) * 1000) / 1000));
+  persistInventory();
+  refreshCalc();
+  refreshRow(selectedProduct, true);
+}
+
+function calcClear() {
+  if (!selectedProduct) return;
+  if (invValue(selectedProduct) && !confirm('לאפס את ' + selectedProduct + '?')) return;
+  inventory[selectedProduct] = '0';
+  inventorySteps[selectedProduct] = [];
+  persistInventory();
+  refreshCalc();
+  refreshRow(selectedProduct, true);
+}
+
+document.getElementById('calcInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); calcAdd(); }
+});
+
+function saveInventory(silent) {
+  persistInventory();
+  if (!silent) alert('מלאי נשמר');
+}
+
+function exportInventory() {
+  if (typeof XLSX === 'undefined') { alert('טוען...'); return; }
+  saveInventory(true);
+  const rows = [['מוצר','משקל (ק״ג)','פירוט'], ...products.map(p => [p, invValue(p), (inventorySteps[p]||[]).join(' + ')])];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'מלאי');
+  XLSX.writeFile(wb, 'מלאי_סוף_חודש.xlsx');
+}
+
+function saveData() { try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) {} }
+function loadData() {
+  try {
+    const s = localStorage.getItem('meatWeighing');
+    if (s) { history = JSON.parse(s).history || []; }
+    const inv = localStorage.getItem('inventoryData');
+    if (inv) inventory = JSON.parse(inv);
+    const st = localStorage.getItem('inventorySteps');
+    if (st) inventorySteps = JSON.parse(st);
+  } catch(e){}
+  updateDisplay(); renderHistory();
+}
+buildCards();
+loadAllow();
+loadData();
+
+// Service worker: always fetch the latest version when online, so code updates reach the phone
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(() => {});
+}
+</script>
+</body>
+</html>
