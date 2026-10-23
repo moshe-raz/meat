@@ -130,6 +130,7 @@
   <div class="controls">
     <h3>ספירת מלאי סוף חודש</h3>
     <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button></div>
+    <div style="margin:0 0 10px;font-size:15px">ספירה לחודש: <input type="month" id="invMonth" style="font-size:15px" onchange="setInvMonth(this.value)"></div>
     <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:10px 0;">
       <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
       <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
@@ -188,7 +189,7 @@ function showPage(page) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.getElementById(page === 'weigh' ? 'btnWeigh' : 'btnInv').classList.add('active');
-  if (page === 'inventory') renderInventory();
+  if (page === 'inventory') { renderInventory(); if (branch.url) syncNow(); }
 }
 
 function canEnterSold(dateStr) {
@@ -608,17 +609,23 @@ function exportToExcel() {
 }
 
 let selectedProduct = null;
-let inventorySteps = {}; // product -> list of numbers added, for display and undo
-
-function invValue(p) { return Math.round((parseFloat(inventory[p]) || 0) * 1000) / 1000; }
+// Every counted weight is its own record, so counts from several phones of a branch add up
+// { id, month:'2026-10', product, w, dev, cat, ord }
+let invEvents = [];
 function fmt(n) { return n.toFixed(2); }
-
-function persistInventory() {
-  try {
-    localStorage.setItem('inventoryData', JSON.stringify(inventory));
-    localStorage.setItem('inventorySteps', JSON.stringify(inventorySteps));
-  } catch(e) {}
+function defaultInvMonth() { // the first week of a month still counts as the end of the previous month
+  const d = new Date(); if (d.getDate() <= 7) d.setMonth(d.getMonth() - 1, 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
+let invMonth = defaultInvMonth();
+function catOf(p) {
+  if (beefProducts.includes(p)) return p.includes('מעובד') ? 'בקר מעובד' : 'בקר';
+  const g = poultryGroups.concat(lambGroups).find(([, items]) => items.includes(p));
+  return g ? g[0] : '';
+}
+function invOf(p) { return invEvents.filter(e => e.month === invMonth && e.product === p).sort((a, b) => createdAt(a.id) - createdAt(b.id)); }
+function invValue(p) { return Math.round(invOf(p).reduce((a, e) => a + e.w, 0) * 1000) / 1000; }
+function persistInventory() { try { localStorage.setItem('invEvents', JSON.stringify(invEvents)); } catch(e) {} }
 
 function invRow(p) {
   const i = products.indexOf(p);
@@ -636,6 +643,7 @@ function renderInventory() {
   el.innerHTML = invTab === 'beef' ? beefProducts.map(invRow).join('')
     : invTab === 'lamb' ? groups(lambGroups)
     : groups(poultryGroups);
+  const m = document.getElementById('invMonth'); if (m && m.value !== invMonth) m.value = invMonth;
 }
 
 function setInvTab(t) {
@@ -643,6 +651,14 @@ function setInvTab(t) {
   document.getElementById('tabBeef').classList.toggle('active', t === 'beef');
   document.getElementById('tabChicken').classList.toggle('active', t === 'chicken');
   document.getElementById('tabLamb').classList.toggle('active', t === 'lamb');
+  selectedProduct = null;
+  document.getElementById('calcPanel').style.display = 'none';
+  renderInventory();
+}
+
+function setInvMonth(v) {
+  if (!/^\d{4}-\d{2}$/.test(v)) return;
+  invMonth = v;
   selectedProduct = null;
   document.getElementById('calcPanel').style.display = 'none';
   renderInventory();
@@ -659,8 +675,9 @@ function refreshRow(product, flash) {
 
 function refreshCalc() {
   const p = selectedProduct;
+  if (!p) return;
   document.getElementById('calcCurrent').textContent = fmt(invValue(p));
-  const steps = inventorySteps[p] || [];
+  const steps = invOf(p).map(e => e.w);
   document.getElementById('calcSteps').textContent = steps.length ? steps.join(' + ') + ' = ' + fmt(invValue(p)) : '';
 }
 
@@ -686,34 +703,38 @@ function calcAdd() {
   const nums = parseNumbers(input.value.trim());
   if (!nums.length) return;
   if (nums.some(n => isNaN(n) || n <= 0)) { alert('מספר לא תקין'); return; }
-  let total = invValue(selectedProduct);
-  nums.forEach(n => total += n);
-  inventory[selectedProduct] = String(Math.round(total * 1000) / 1000);
-  inventorySteps[selectedProduct] = (inventorySteps[selectedProduct] || []).concat(nums);
+  const p = selectedProduct, cat = catOf(p), ord = products.indexOf(p);
+  const added = nums.map(n => ({ id: newId(), month: invMonth, product: p, w: n, dev: myDev, cat, ord }));
+  invEvents.push(...added);
   input.value = '';
   input.focus();
   persistInventory();
+  queueOps(added.map(e => ({ op: 'invAdd', e })));
   refreshCalc();
-  refreshRow(selectedProduct, true);
+  refreshRow(p, true);
 }
 
 function calcUndo() {
   if (!selectedProduct) return;
-  const steps = inventorySteps[selectedProduct] || [];
-  if (!steps.length) return;
-  const last = steps.pop();
-  inventory[selectedProduct] = String(Math.max(0, Math.round((invValue(selectedProduct) - last) * 1000) / 1000));
+  const mine = invOf(selectedProduct).filter(e => e.dev === myDev);
+  if (!mine.length) { if (invOf(selectedProduct).length) alert('אפשר לבטל רק שקילה שנרשמה בטלפון הזה'); return; }
+  const last = mine[mine.length - 1];
+  invEvents = invEvents.filter(e => e.id !== last.id);
   persistInventory();
+  queueOps([{ op: 'invDel', id: last.id }]);
   refreshCalc();
   refreshRow(selectedProduct, true);
 }
 
 function calcClear() {
   if (!selectedProduct) return;
-  if (invValue(selectedProduct) && !confirm('לאפס את ' + selectedProduct + '?')) return;
-  inventory[selectedProduct] = '0';
-  inventorySteps[selectedProduct] = [];
+  const all = invOf(selectedProduct);
+  if (!all.length) return;
+  if (!confirm('לאפס את ' + selectedProduct + ' לחודש הזה? זה מוחק גם ספירות של טלפונים אחרים בסניף.')) return;
+  const ids = new Set(all.map(e => e.id));
+  invEvents = invEvents.filter(e => !ids.has(e.id));
   persistInventory();
+  queueOps([...ids].map(id => ({ op: 'invDel', id })));
   refreshCalc();
   refreshRow(selectedProduct, true);
 }
@@ -722,15 +743,38 @@ document.getElementById('calcInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); calcAdd(); }
 });
 
+// Counts from the other phones of the branch; same rules as for weighings
+function mergeRemoteInv(list) {
+  const remote = new Map(list.map(e => [e.id, e]));
+  const pending = new Set(syncQueue.filter(o => o.op === 'invAdd').map(o => o.e.id));
+  let changed = false;
+  invEvents = invEvents.filter(e => {
+    const r = remote.get(e.id);
+    if (r && r.deleted) { changed = true; return false; }
+    if (!r && e.dev !== myDev && !pending.has(e.id)) { changed = true; return false; }
+    return true;
+  });
+  const local = new Set(invEvents.map(e => e.id));
+  list.forEach(r => {
+    if (r.deleted || local.has(r.id)) return;
+    invEvents.push({ id: r.id, month: r.month, product: r.product, w: Number(r.w) || 0, dev: r.dev || 'other', cat: r.cat, ord: Number(r.ord) });
+    changed = true;
+  });
+  if (changed) {
+    persistInventory();
+    if (document.getElementById('page-inventory').classList.contains('active')) { renderInventory(); refreshCalc(); }
+  }
+}
+
 function saveInventory(silent) {
   persistInventory();
-  if (!silent) alert('מלאי נשמר');
+  if (!silent) alert('מלאי נשמר' + (branch.url ? ' · נשלח גם לגיליון של החברה' : ''));
 }
 
 function exportInventory() {
   if (typeof XLSX === 'undefined') { alert('טוען...'); return; }
   saveInventory(true);
-  const row = p => [p, invValue(p), (inventorySteps[p]||[]).join(' + ')];
+  const row = p => [p, invValue(p), invOf(p).map(e => e.w).join(' + ')];
   const beefRows = [['מוצר','משקל (ק״ג)','פירוט'], ...beefProducts.map(row)];
   const poultryRows = [['מוצר','משקל (ק״ג)','פירוט']];
   poultryGroups.forEach(([g, items], n) => { if (n) poultryRows.push([]); poultryRows.push([g]); items.forEach(p => poultryRows.push(row(p))); });
@@ -738,13 +782,13 @@ function exportInventory() {
   lambGroups.forEach(([g, items], n) => { if (n) lambRows.push([]); lambRows.push([g]); items.forEach(p => lambRows.push(row(p))); });
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
-  addBranchSheet(wb);
+  addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)]]);
   [[beefRows, 'בקר'], [poultryRows, 'עוף'], [lambRows, 'כבש']].forEach(([rows, name]) => {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, ws, name);
   });
-  XLSX.writeFile(wb, 'מלאי_סוף_חודש_' + branchFilePart() + ymd(new Date()) + '.xlsx');
+  XLSX.writeFile(wb, 'מלאי_' + branchFilePart() + invMonth + '.xlsx');
 }
 
 function saveData() { try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) {} }
@@ -755,10 +799,19 @@ function loadData() {
     let added = false;
     history.forEach(h => { if (!h.id) { h.id = newId(); added = true; } if (!h.dev) { h.dev = myDev; added = true; } });
     if (added) saveData();
-    const inv = localStorage.getItem('inventoryData');
-    if (inv) inventory = JSON.parse(inv);
-    const st = localStorage.getItem('inventorySteps');
-    if (st) inventorySteps = JSON.parse(st);
+    const ev = localStorage.getItem('invEvents');
+    if (ev) invEvents = JSON.parse(ev);
+    else { // first run of this version: turn the old per-product totals into records for the current count month
+      const inv = JSON.parse(localStorage.getItem('inventoryData') || '{}'), st = JSON.parse(localStorage.getItem('inventorySteps') || '{}');
+      Object.keys(inv).forEach(p => {
+        if (!products.includes(p)) return;
+        const total = parseFloat(inv[p]) || 0, steps = (st[p] || []).map(Number).filter(n => n > 0);
+        const sum = steps.reduce((a, n) => a + n, 0);
+        const ws = steps.length && Math.abs(sum - total) < 0.01 ? steps : (total > 0 ? [total] : []);
+        ws.forEach(w => invEvents.push({ id: newId(), month: invMonth, product: p, w, dev: myDev, cat: catOf(p), ord: products.indexOf(p) }));
+      });
+      persistInventory();
+    }
   } catch(e){}
   updateDisplay(); renderHistory();
 }
@@ -821,15 +874,15 @@ function saveBranch() {
   branch = { name, manager: document.getElementById('brManager').value.trim(), area: document.getElementById('brArea').value.trim(), url, key };
   try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) {}
   // On a new connection, send everything already on the phone (the sheet ignores duplicates)
-  if (newConn) { syncQueue = []; queueOps(history.slice().reverse().map(entry => ({ op:'add', entry }))); }
+  if (newConn) { syncQueue = []; queueOps(history.slice().reverse().map(entry => ({ op:'add', entry })).concat(invEvents.map(e => ({ op:'invAdd', e })))); }
   renderBranch();
   closeBranch();
   renderSync();
   syncNow();
 }
-function addBranchSheet(wb) {
+function addBranchSheet(wb, extra) {
   const ws = XLSX.utils.aoa_to_sheet([
-    ['סניף', branch.name], ['מנהל סניף', branch.manager], ['מנהל אזור', branch.area],
+    ['סניף', branch.name], ['מנהל סניף', branch.manager], ['מנהל אזור', branch.area], ...(extra || []),
     ['תאריך ייצוא', new Date().toLocaleDateString('he-IL') + ' ' + new Date().toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' })]
   ]);
   ws['!cols'] = [{ wch: 14 }, { wch: 28 }];
@@ -907,6 +960,7 @@ async function syncNow() {
       if (!data.ok) { syncError = data.error === 'bad key' ? 'קוד החברה שגוי · בדוק בפרטי הסניף' : 'הגיליון החזיר שגיאה'; break; }
       syncQueue.splice(0, batch.length); saveQueue();
       if (last && Array.isArray(data.entries)) { mergeRemote(data.entries); lastPull = new Date(); }
+      if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv);
     } while (syncQueue.length);
   } catch(e) {
     syncError = 'אין חיבור לגיליון כרגע';
