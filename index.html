@@ -102,6 +102,8 @@
       <option value="close">סגירה</option>
       <option value="sold">נמכר</option>
       <option value="recv">סחורה שנכנסה</option>
+      <option value="xfer">העברה לאנטריקוט</option>
+      <option value="xfer2">העברה לתנור</option>
     </select>
     <input type="text" id="weightInput" placeholder="משקל" inputmode="decimal">
     <div id="soldNote" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
@@ -167,7 +169,7 @@ const products = beefProducts.concat(poultryProducts); // one list, so every pro
 let invTab = 'beef';
 
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
-const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה' };
+const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה', xfer:'העברה לאנטריקוט', xfer2:'העברה לתנור' };
 let history = [];
 let inventory = {};
 
@@ -194,9 +196,14 @@ function canEnterSold(dateStr) {
 function syncTypeForMeat() {
   const isIron = document.getElementById('meatSelect').value === 'iron';
   const typeSel = document.getElementById('typeSelect');
-  Array.from(typeSel.options).forEach(o => { o.disabled = isIron && o.value !== 'sold'; o.hidden = isIron && o.value !== 'sold'; });
-  if (isIron) typeSel.value = 'sold';
   const meat = document.getElementById('meatSelect').value;
+  // iron steak: sold only · transfer to entrecote: only from entrecote for the oven
+  Array.from(typeSel.options).forEach(o => {
+    const off = (isIron && o.value !== 'sold') || (o.value === 'xfer' && meat !== 'oven') || (o.value === 'xfer2' && meat !== 'entrecote');
+    o.disabled = off; o.hidden = off;
+  });
+  if (isIron) typeSel.value = 'sold';
+  else if ((typeSel.value === 'xfer' && meat !== 'oven') || (typeSel.value === 'xfer2' && meat !== 'entrecote')) typeSel.value = 'prep';
   document.getElementById('ironAllowRow').hidden = !(meat === 'shoulder' || meat === 'iron');
 }
 // Sales figures arrive the next working day: Thursday's on Friday, Friday's on Sunday.
@@ -228,6 +235,8 @@ function syncDateForType() {
     sold: 'הנמכר יירשם למכירות של ',
     close: 'שוקלים את כל המלאי (כולל ארגזים) לפני שמכניסים סחורה · נרשם כסגירה של ',
     recv: 'סחורה שהגיעה ב',
+    xfer: 'יורד מאנטריקוט לתנור ונוסף לאנטריקוט · ',
+    xfer2: 'יורד מאנטריקוט ונוסף לאנטריקוט לתנור · ',
   };
   if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value); note.hidden = false; }
   else note.hidden = true;
@@ -245,13 +254,15 @@ function addWeight() {
   const weight = parseFloat(raw);
   if (!date || isNaN(weight) || weight <= 0) { alert('נא למלא תאריך ומשקל'); return; }
   if (meat === 'iron' && type !== 'sold') { alert('איירון סטייק נרשם רק בנמכר'); return; }
+  if (type === 'xfer' && meat !== 'oven') { alert('העברה לאנטריקוט נרשמת רק מאנטריקוט לתנור'); return; }
+  if (type === 'xfer2' && meat !== 'entrecote') { alert('העברה לתנור נרשמת רק מאנטריקוט'); return; }
   if (type !== 'prep' && !canEnterSold(date)) {
     alert('אי אפשר לרשום לתאריך עתידי');
     return;
   }
   if (type === 'sold' && date === ymd(new Date()) && !confirm('הנמכר של היום מגיע רק מחר. לרשום אותו בכל זאת לתאריך של היום?')) return;
   if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
-  const entry = { id: newId(), date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: typeNames[type], weight: weight.toFixed(2) };
+  const entry = { id: newId(), dev: myDev, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: typeNames[type], weight: weight.toFixed(2) };
   history.unshift(entry);
   queueOps([{ op:'add', entry }]);
   if (history.length > 5000) history.pop();
@@ -287,9 +298,9 @@ function buildCards() {
   </div>`).join('');
 }
 
-function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, hasClose:false }; }
+function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, xfer:0, hasClose:false }; }
 function keyOf(h) { return Object.keys(names).find(k => names[k] === h.meat); }
-function typeOf(h) { return h.type === 'הכנות' ? 'prep' : h.type === 'סגירה' ? 'close' : h.type === 'סחורה' ? 'recv' : 'sold'; }
+function typeOf(h) { return h.type === 'הכנות' ? 'prep' : h.type === 'סגירה' ? 'close' : h.type === 'סחורה' ? 'recv' : h.type === 'העברה לאנטריקוט' ? 'xfer' : h.type === 'העברה לתנור' ? 'xfer2' : 'sold'; }
 
 function buildDays() {
   const days = { entrecote:{}, shoulder:{}, oven:{} };
@@ -298,6 +309,13 @@ function buildDays() {
     const t = typeOf(h), w = parseFloat(h.weight) || 0;
     let k = orig;
     if (orig === 'iron') { if (t !== 'sold') return; k = 'shoulder'; }
+    if (t === 'xfer' || t === 'xfer2') { // meat moved between entrecote and oven entrecote: leaves one stock, joins the other
+      const [from, to] = t === 'xfer' ? ['oven', 'entrecote'] : ['entrecote', 'oven'];
+      if (orig !== from) return;
+      (days[from][h.date] || (days[from][h.date] = emptyDay())).xfer -= w;
+      (days[to][h.date] || (days[to][h.date] = emptyDay())).xfer += w;
+      return;
+    }
     const d = days[k][h.date] || (days[k][h.date] = emptyDay());
     d[t] += w;
     if (t === 'close') d.hasClose = true;
@@ -321,8 +339,9 @@ function segmentsFor(dd, k) {
   for (let i = 1; i < closes.length; i++) {
     const c0 = closes[i-1], c1 = closes[i];
     const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0 };
-    dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; } });
-    s.stock = s.open + s.recv;
+    s.xfer = 0;
+    dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; } });
+    s.stock = s.open + s.recv + s.xfer;
     s.went = s.stock - s.close;
     s.missing = workdaysBetween(c0, c1);
     segs.push(s);
@@ -333,8 +352,9 @@ function segmentsFor(dd, k) {
 function stockFor(dd, date) {
   const prev = Object.keys(dd).filter(d => d < date && dd[d].hasClose).sort().pop();
   let recv = 0;
-  Object.keys(dd).forEach(d => { if ((!prev || d > prev) && d <= date) recv += dd[d].recv; });
-  return { prev, open: prev ? dd[prev].close : 0, recv, stock: (prev ? dd[prev].close : 0) + recv };
+  let xfer = 0;
+  Object.keys(dd).forEach(d => { if ((!prev || d > prev) && d <= date) { recv += dd[d].recv; xfer += dd[d].xfer; } });
+  return { prev, open: prev ? dd[prev].close : 0, recv, xfer, stock: (prev ? dd[prev].close : 0) + recv + xfer };
 }
 
 function updateDisplay() {
@@ -346,7 +366,8 @@ function updateDisplay() {
     document.getElementById(k+'-stock').textContent = f2(st.stock);
     document.getElementById(k+'-stock-sub').innerHTML = (st.prev
       ? `סגירה ${shortDate(st.prev)}: ${f2(st.open)}`
-      : 'אין סגירה קודמת') + `<br>+ סחורה: ${f2(st.recv)}`;
+      : 'אין סגירה קודמת') + `<br>+ סחורה: ${f2(st.recv)}`
+      + (st.xfer ? `<br>${st.xfer > 0 ? '+ העברות שנכנסו' : '− העברות שיצאו'}: ${f2(Math.abs(st.xfer))}` : '');
     document.getElementById(k+'-close').textContent = t.hasClose ? f2(t.close) : '—';
     document.getElementById(k+'-close-sub').textContent = t.hasClose ? 'כולל ארגזים' : 'נשקלת בבוקר שאחרי';
     document.getElementById(k+'-prep').textContent = f2(t.prep);
@@ -486,18 +507,21 @@ function updateAnalysis(days) {
 function renderHistory() {
   const el = document.getElementById('historyList');
   if (!history.length) { el.innerHTML = '<div style="color:#999;text-align:center">אין שקילות</div>'; return; }
-  el.innerHTML = history.slice(0,30).map(h => `<div style="padding:4px 0;border-bottom:1px solid #eee;font-size:13px">${h.date} ${h.time} — ${h.meat} (${h.type}): <b>${h.weight}</b></div>`).join('');
+  el.innerHTML = history.slice(0,30).map(h => `<div style="padding:4px 0;border-bottom:1px solid #eee;font-size:13px">${h.date} ${h.time} — ${h.meat} (${h.type}): <b>${h.weight}</b>${h.dev && h.dev !== myDev ? ' <span style="color:#1565C0;font-size:12px">· טלפון אחר</span>' : ''}</div>`).join('');
 }
 
 function deleteLast() {
-  if (!history.length) return;
-  const removed = history.shift();
+  // removes the latest weighing made on this phone (never one another phone recorded)
+  let idx = -1;
+  history.forEach((h, i) => { if ((!h.dev || h.dev === myDev) && (idx < 0 || createdAt(h.id) > createdAt(history[idx].id))) idx = i; });
+  if (idx < 0) { alert('אין שקילה שנרשמה בטלפון הזה'); return; }
+  const removed = history.splice(idx, 1)[0];
   if (removed.id) queueOps([{ op:'del', id: removed.id }]);
   updateDisplay(); renderHistory(); saveData();
 }
 
 function resetAll() {
-  if (!confirm('לאפס הכל?')) return;
+  if (!confirm(branch.url ? 'לאפס את הנתונים בטלפון הזה? השקילות שבגיליון של החברה לא נמחקות ויחזרו בסנכרון הבא.' : 'לאפס הכל?')) return;
   history = [];
   updateDisplay(); renderHistory(); saveData();
 }
@@ -526,7 +550,7 @@ function exportToExcel() {
     const isSh = k === 'shoulder';
     const head = isSh
       ? ['תאריך','יום','הכנות','סחורה','מלאי ליום','סגירה','הלך','נמכר צלי','איירון','נמכר כולל איירון','פער','מצב','הכנות שבועי','נמכר צלי שבועי','כולל איירון שבועי','נמכר צלי חודשי','כולל איירון חודשי','הערה']
-      : ['תאריך','יום','הכנות','סחורה','מלאי ליום','סגירה','הלך','נמכר','פער','מצב','הכנות שבועי','נמכר שבועי','נמכר חודשי','הערה'];
+      : ['תאריך','יום','הכנות','סחורה','העברות (+נכנס −יצא)','מלאי ליום','סגירה','הלך','נמכר','פער','מצב','הכנות שבועי','נמכר שבועי','נמכר חודשי','הערה'];
     const rows = [head];
     let wk = { prep:0, sold:0, all:0 }, mon = { sold:0, all:0 }, curWeek = null, curMonth = null;
     dates.forEach(date => {
@@ -539,12 +563,13 @@ function exportToExcel() {
       const gap = seg ? r2(seg.went - seg.sold) : '';
       const status = seg ? judge(seg).text : (x.hasClose ? '' : (x.sold || x.recv || x.prep ? 'חסרה סגירה' : ''));
       const note = seg && seg.missing.length ? 'מחושב יחד מ־' + dm(seg.start) : '';
-      const base = [shortD(date), dayShort(date), r2(x.prep), r2(x.recv), r2(stockFor(days[k], date).stock), x.hasClose ? r2(x.close) : '', seg ? r2(seg.went) : ''];
+      const xf = isSh ? [] : [r2(x.xfer)];
+      const base = [shortD(date), dayShort(date), r2(x.prep), r2(x.recv), ...xf, r2(stockFor(days[k], date).stock), x.hasClose ? r2(x.close) : '', seg ? r2(seg.went) : ''];
       rows.push(isSh
         ? [...base, r2(own), r2(x.iron), r2(x.sold), gap, status, r2(wk.prep), r2(wk.sold), r2(wk.all), r2(mon.sold), r2(mon.all), note]
         : [...base, r2(x.sold), gap, status, r2(wk.prep), r2(wk.sold), r2(mon.sold), note]);
     });
-    addSheet(rows, names[k], isSh ? [8,6,7,7,9,7,7,8,7,9,6,12,9,9,9,9,9,16] : [8,6,7,7,9,7,7,7,6,12,9,9,9,16]);
+    addSheet(rows, names[k], isSh ? [8,6,7,7,9,7,7,8,7,9,6,12,9,9,9,9,9,16] : [8,6,7,7,13,9,7,7,7,6,12,9,9,9,16]);
   });
 
   // --- Weekly & monthly check ---
@@ -717,7 +742,7 @@ function loadData() {
     const s = localStorage.getItem('meatWeighing');
     if (s) { history = JSON.parse(s).history || []; }
     let added = false;
-    history.forEach(h => { if (!h.id) { h.id = newId(); added = true; } });
+    history.forEach(h => { if (!h.id) { h.id = newId(); added = true; } if (!h.dev) { h.dev = myDev; added = true; } });
     if (added) saveData();
     const inv = localStorage.getItem('inventoryData');
     if (inv) inventory = JSON.parse(inv);
@@ -783,7 +808,33 @@ function branchFilePart() {
 
 // ---------- Sync to the company sheet ----------
 // Every weighing gets an id; changes wait in a queue on the phone and are sent when there is internet.
-function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7).padEnd(5, '0'); }
+function createdAt(id) { return parseInt(String(id).slice(0, -5), 36) || 0; }
+let myDev = '';
+try { myDev = localStorage.getItem('deviceId') || ''; if (!myDev) { myDev = 'd' + newId(); localStorage.setItem('deviceId', myDev); } } catch(e) { myDev = 'd' + newId(); }
+function sortHistory() {
+  history.sort((a, b) => createdAt(b.id) - createdAt(a.id)); // newest recorded first, from any phone
+}
+// Bring in what other phones of the branch recorded, and drop what was deleted on any phone.
+// Weighings made on this phone are kept until the sheet says they were deleted.
+function mergeRemote(entries) {
+  const remote = new Map(entries.map(e => [e.id, e]));
+  const pending = new Set(syncQueue.filter(o => o.op === 'add').map(o => o.entry.id));
+  let changed = false;
+  history = history.filter(h => {
+    const r = remote.get(h.id);
+    if (r && r.deleted) { changed = true; return false; }
+    if (!r && h.dev && h.dev !== myDev && !pending.has(h.id)) { changed = true; return false; }
+    return true;
+  });
+  const local = new Set(history.map(h => h.id));
+  entries.forEach(r => {
+    if (r.deleted || local.has(r.id)) return;
+    history.push({ id: r.id, date: r.date, time: r.time, meat: r.meat, type: r.type, weight: (Number(r.weight) || 0).toFixed(2), dev: r.dev || 'other' });
+    changed = true;
+  });
+  if (changed) { sortHistory(); saveData(); updateDisplay(); renderHistory(); }
+}
 let syncQueue = [], syncing = false, syncError = '';
 try { syncQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]'); } catch(e) {}
 function saveQueue() { try { localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); } catch(e) {} }
@@ -799,31 +850,37 @@ function renderSync() {
   if (syncing) { el.style.color = '#1565C0'; el.textContent = 'שולח לגיליון של החברה…'; return; }
   if (syncError) { el.style.color = '#c62828'; el.textContent = syncError + (syncQueue.length ? ` · ממתינות ${syncQueue.length} שקילות` : ''); return; }
   if (syncQueue.length) { el.style.color = '#e65100'; el.textContent = `ממתינות ${syncQueue.length} שקילות לשליחה · יישלחו כשיהיה אינטרנט`; return; }
-  el.style.color = '#2e7d32'; el.textContent = '✓ הכול נשלח לגיליון של החברה';
+  el.style.color = '#2e7d32';
+  el.textContent = '✓ מסונכרן עם הגיליון של החברה' + (lastPull ? ' · עודכן ' + lastPull.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' }) : '');
 }
+// Sends what is waiting, and with the last batch brings back the whole branch from the sheet
 async function syncNow() {
-  if (!branch.url || syncing || !syncQueue.length) { renderSync(); return; }
+  if (!branch.url || syncing) { renderSync(); return; }
   if (navigator.onLine === false) { syncError = ''; renderSync(); return; }
   syncing = true; syncError = ''; renderSync();
   try {
-    while (syncQueue.length) {
+    do {
       const batch = syncQueue.slice(0, 200);
+      const last = batch.length === syncQueue.length;
       const res = await fetch(branch.url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
-        body: JSON.stringify({ key: branch.key, branch: { name: branch.name, manager: branch.manager, area: branch.area }, ops: batch })
+        body: JSON.stringify({ key: branch.key, dev: myDev, pull: last, branch: { name: branch.name, manager: branch.manager, area: branch.area }, ops: batch })
       });
       const data = await res.json();
       if (!data.ok) { syncError = data.error === 'bad key' ? 'קוד החברה שגוי · בדוק בפרטי הסניף' : 'הגיליון החזיר שגיאה'; break; }
       syncQueue.splice(0, batch.length); saveQueue();
-    }
+      if (last && Array.isArray(data.entries)) { mergeRemote(data.entries); lastPull = new Date(); }
+    } while (syncQueue.length);
   } catch(e) {
     syncError = 'אין חיבור לגיליון כרגע';
   }
   syncing = false; renderSync();
 }
+let lastPull = null;
 window.addEventListener('online', syncNow);
-setInterval(() => { if (syncQueue.length) syncNow(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
+setInterval(syncNow, 60000);
 
 buildCards();
 loadBranch();
