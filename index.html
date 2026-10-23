@@ -64,6 +64,26 @@
   .inventory-item.selected { outline: 3px solid #2E75B6; }
   .inventory-item.flash { animation: flash 0.8s; }
   @keyframes flash { from { background: #c8e6c9; } }
+  body.mgr-mode .entry-only, body.mgr-mode .branch-bar, body.mgr-mode #syncStatus { display: none !important; }
+  body:not(.mgr-mode) .mgr-only { display: none !important; }
+  .mgr-entry { border-top: 1px solid #e5e8eb; margin-top: 14px; padding-top: 10px; font-size: 14px; color: #555; }
+  .mgr-entry button { background: #fff; color: #1F4E79; border: 2px solid #1F4E79; border-radius: 8px; padding: 8px 16px; font-size: 15px; cursor: pointer; margin-top: 4px; }
+  .mgr-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
+  .mgr-pick { background: #fff; border-radius: 12px; padding: 8px; margin-bottom: 12px; text-align: center; font-size: 15px; }
+  .mgr-pick select { font-weight: bold; min-width: 160px; }
+  .alert-box { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  .alert-box h3 { margin: 0; padding: 10px; background: #cc0000; color: #fff; font-size: 16px; text-align: center; }
+  .alert-box.clear h3 { background: #2e7d32; }
+  .alert-row { display: block; width: 100%; text-align: right; background: none; border: none; border-bottom: 1px solid #f1d4d4; padding: 10px 12px; font-size: 14px; cursor: pointer; color: #b71c1c; }
+  .alert-row b { color: #000; }
+  .alert-row:last-child { border-bottom: none; }
+  .br-card { background: #fff; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); cursor: pointer; overflow: hidden; }
+  .br-card-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #eef4fb; }
+  .br-card-head b { font-size: 17px; color: #1F4E79; }
+  .br-card-head span { font-size: 13px; color: #555; }
+  .br-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px 8px; padding: 10px 12px; font-size: 13px; align-items: center; }
+  .br-grid .h { color: #777; font-size: 12px; }
+  .br-grid .pill { text-align: center; }
   #calcSteps { font-size: 13px; color: #555; min-height: 16px; margin-bottom: 6px; word-break: break-word; }
 </style>
 <link rel="manifest" href="manifest.json">
@@ -74,35 +94,53 @@
 <h1>שקילות בשר ומלאי</h1>
 <div class="branch-bar"><span id="branchText"></span><button type="button" class="link-btn" onclick="openBranch()">עריכת פרטי סניף</button></div>
 <div id="syncStatus" style="text-align:center;font-size:13px;margin:-6px 0 10px" hidden></div>
+<div class="mgr-bar mgr-only"><span id="mgrText"></span><button type="button" class="link-btn" onclick="mgrRefresh()">רענון</button><button type="button" class="link-btn" onclick="mgrExit()">יציאה</button></div>
+<div id="mgrLogin" class="controls" hidden>
+  <h3 style="margin-top:0">כניסה למנהל אזור</h3>
+  <div style="font-size:14px;color:#555">את הכתובת ואת הקוד האישי שלך מקבלים מהחברה. רואים את כל הסניפים שלך, רק לצפייה.</div>
+  <label class="br-row">כתובת חיבור<input type="url" id="mgUrl" autocomplete="off" dir="ltr" placeholder="https://script.google.com/..."></label>
+  <label class="br-row">קוד מנהל אזור<input type="text" id="mgCode" autocomplete="off" dir="ltr"></label>
+  <div id="mgrMsg" style="color:#c62828;font-size:13px;min-height:16px"></div>
+  <button class="btn" id="mgrGo" onclick="mgrLogin()">כניסה</button>
+  <button class="btn" style="background:#6c757d" onclick="closeMgrLogin()">חזרה</button>
+</div>
 <div id="branchPanel" class="controls" hidden>
   <h3 style="margin-top:0" id="brTitle">פרטי סניף</h3>
   <div style="font-size:14px;color:#555" id="brIntro">הפרטים נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל</div>
   <label class="br-row">שם הסניף<input type="text" id="brName" autocomplete="off"></label>
   <label class="br-row">שם מנהל המחלקה<input type="text" id="brManager" autocomplete="off"></label>
   <label class="br-row">שם מנהל האזור<input type="text" id="brArea" autocomplete="off"></label>
+  <label class="br-row">השם שלך<input type="text" id="brWorker" autocomplete="off" placeholder="מי רושם בטלפון הזה"></label>
   <div style="font-size:13px;color:#555;margin-top:12px">חיבור לגיליון של החברה (מקבלים ממנהל האזור · אפשר להשאיר ריק)</div>
   <label class="br-row">כתובת חיבור<input type="url" id="brUrl" autocomplete="off" dir="ltr" placeholder="https://script.google.com/..."></label>
   <label class="br-row">קוד חברה<input type="text" id="brKey" autocomplete="off" dir="ltr"></label>
   <div id="branchMsg" style="color:#c62828;font-size:13px;min-height:16px"></div>
   <button class="btn" id="branchSave" onclick="saveBranch()">שמור</button>
   <button class="btn" id="branchCancel" style="background:#6c757d" onclick="skipBranch()">ביטול</button>
+  <div class="mgr-entry">מנהל אזור?<br><button type="button" onclick="openMgrLogin()">כניסה למנהל אזור</button></div>
 </div>
 <div class="nav">
+  <button id="btnMgr" class="mgr-only" onclick="showPage('mgr')">סניפים</button>
   <button id="btnWeigh" class="active" onclick="showPage('weigh')">שקילות</button>
   <button id="btnInv" onclick="showPage('inventory')">ספירת מלאי סוף חודש</button>
 </div>
+
+<div id="mgrBranchPick" class="mgr-pick mgr-only" hidden>סניף: <select id="mgrBranchSel" onchange="mgrOpen(this.value)"></select> <span id="mgrBranchMgr" style="font-size:13px;color:#555"></span></div>
+
+<!-- AREA MANAGER: all his branches -->
+<div id="page-mgr" class="page"><div id="mgrAlerts"></div><div id="mgrList"></div></div>
 
 <!-- WEIGHING PAGE -->
 <div id="page-weigh" class="page active">
   <div class="controls">
     <input type="date" id="dateInput">
-    <select id="meatSelect">
+    <select id="meatSelect" class="entry-only">
       <option value="entrecote">אנטריקוט</option>
       <option value="shoulder">צלי כתף</option>
       <option value="oven">אנטריקוט לתנור</option>
       <option value="iron">איירון סטייק</option>
     </select>
-    <select id="typeSelect">
+    <select id="typeSelect" class="entry-only">
       <option value="prep">הכנות</option>
       <option value="close">סגירה</option>
       <option value="sold">נמכר</option>
@@ -110,17 +148,17 @@
       <option value="xfer">העברה לאנטריקוט</option>
       <option value="xfer2">העברה לתנור</option>
     </select>
-    <input type="text" id="weightInput" placeholder="משקל" inputmode="decimal">
-    <div id="soldNote" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
-    <button class="btn" onclick="addWeight()">הוסף</button>
-    <br>
-    <div style="margin:6px 0; font-size:14px"><span id="lossAllowLabel">פחת רגיל (קליפה)</span>: <input type="text" id="lossAllow" inputmode="decimal" style="width:60px;text-align:center"> %
+    <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal">
+    <div id="soldNote" class="entry-only" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
+    <button class="btn entry-only" onclick="addWeight()">הוסף</button>
+    <div id="workerLine" class="entry-only" style="font-size:13px;color:#555;margin:4px 0"></div>
+    <div class="entry-only" style="margin:6px 0; font-size:14px"><span id="lossAllowLabel">פחת רגיל (קליפה)</span>: <input type="text" id="lossAllow" inputmode="decimal" style="width:60px;text-align:center"> %
       <div id="ironAllowRow">פחת בניקוי לאיירון (רק צלי כתף): <input type="text" id="ironAllow" inputmode="decimal" style="width:60px;text-align:center"> %
         <div style="color:#666;font-size:12px">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14%</div></div>
       <div style="color:#666;font-size:12px">עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div></div>
-    <button class="btn" style="background:#6c757d" onclick="deleteLast()">מחק אחרון</button>
+    <button class="btn entry-only" style="background:#6c757d" onclick="deleteLast()">מחק אחרון</button>
     <button class="btn" style="background:#28a745" onclick="exportToExcel()">ייצא לאקסל</button>
-    <button class="btn" style="background:#d32f2f" onclick="resetAll()">אפס הכל</button>
+    <button class="btn entry-only" style="background:#d32f2f" onclick="resetAll()">אפס הכל</button>
   </div>
 
   <div id="cards"></div>
@@ -139,13 +177,13 @@
       <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
       <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
       <div id="calcSteps" dir="ltr"></div>
-      <input type="text" id="calcInput" placeholder="משקל" style="width:170px; font-size:18px; text-align:center" inputmode="decimal" enterkeyhint="done">
-      <button class="btn" onclick="calcAdd()">הוסף לסכום</button>
-      <button class="btn" style="background:#ff9800" onclick="calcUndo()">בטל אחרון</button>
-      <button class="btn" style="background:#6c757d" onclick="calcClear()">נקה</button>
-      <div style="font-size:12px;color:#666;margin-top:4px">אפשר כמה משקלים בבת אחת עם רווח ביניהם, למשל: 30 15 14.742</div>
+      <input type="text" id="calcInput" class="entry-only" placeholder="משקל" style="width:170px; font-size:18px; text-align:center" inputmode="decimal" enterkeyhint="done">
+      <button class="btn entry-only" onclick="calcAdd()">הוסף לסכום</button>
+      <button class="btn entry-only" style="background:#ff9800" onclick="calcUndo()">בטל אחרון</button>
+      <button class="btn entry-only" style="background:#6c757d" onclick="calcClear()">נקה</button>
+      <div class="entry-only" style="font-size:12px;color:#666;margin-top:4px">אפשר כמה משקלים בבת אחת עם רווח ביניהם, למשל: 30 15 14.742</div>
     </div>
-    <button class="btn" onclick="saveInventory()">שמור מלאי</button>
+    <button class="btn entry-only" onclick="saveInventory()">שמור מלאי</button>
     <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
   </div>
   <div id="inventoryList"></div>
@@ -153,15 +191,15 @@
 
 <script>
 const beefProducts = [
-  "בשר לטחינה","אנטריקוט","סינטה","דנוור","סטייק עין","אנטריקוט לתנור","צלי כתף","פילה מדומה","אסאדו ללא עצם","כתף בקר","אונטריב","שריר","חזה בקר","בשר ראש","אוסובוקו","אסאדו ע.ע","צוואר ע.ע","צלעות ע.ע","אנטריקוט ע.ע","שייטל","שפיץ צאך","פילה בקר","אצבעות אנטריקוט","כבד בקר","ריאות","שקדי בקר","זנב בקר","לב בקר","לשון","עצמות","עצם מוח","גידים",
-  "בשר לטחינה מעובד","אנטריקוט מעובד","סינטה מעובד","דנוור מעובד","סטייק עין מעובד","אנטריקוט לתנור מעובד","צלי כתף מעובד","פילה מדומה מעובד","אסאדו ללא עצם מעובד","כתף בקר מעובד","אונטריב מעובד","שריר מעובד","חזה בקר מעובד","בשר ראש מעובד","אוסובוקו מעובד","אסאדו ע.ע מעובד","צוואר ע.ע מעובד","צלעות ע.ע מעובד","אנטריקוט ע.ע מעובד","שייטל מעובד","שפיץ צאך מעובד","פילה בקר מעובד","אצבעות אנטריקוט מעובד","לשון מעובד"
+  "בשר לטחינה","אנטריקוט","סינטה","דנוור","סטייק עין","אנטריקוט לתנור","צלי כתף","פילה מדומה","אסאדו ללא עצם","כתף בקר","אונטריב","שריר","חזה בקר","בשר ראש","אוסובוקו","אסאדו ע.ע","צוואר ע.ע","צלעות ע.ע","אנטריקוט ע.ע","שייטל","שפיץ צאך","פילה בקר","אצבעות אנטריקוט","כבד בקר","ריאות","שקדי בקר","אשכי בקר","זנב בקר","לב בקר","לשון","עצמות","עצם מוח","גידים",
+  "בשר לטחינה מעובד","אנטריקוט מעובד","סינטה מעובד","דנוור מעובד","סטייק עין מעובד","אנטריקוט לתנור מעובד","צלי כתף מעובד","פילה מדומה מעובד","אסאדו ללא עצם מעובד","כתף בקר מעובד","אונטריב מעובד","שריר מעובד","חזה בקר מעובד","בשר ראש מעובד","אוסובוקו מעובד","אסאדו ע.ע מעובד","צוואר ע.ע מעובד","צלעות ע.ע מעובד","אנטריקוט ע.ע מעובד","שייטל מעובד","שפיץ צאך מעובד","פילה בקר מעובד","אצבעות אנטריקוט מעובד","לשון מעובד","גידים מעובד"
 ];
 const poultryGroups = [
   ['עוף', ["חזה עוף","שניצל","עוף שלם","עוף צעיר","כרעיים","כרעיים מקוצב","יריכיים","שוקיים","כרעיים ללא גב","יריכיים ללא גב",
            "כנפיים","שוקיית","כנפית","פרגית","מעורב ירושלמי","מעורב ישראלי","רצועות חזה","דואט למרק",
-           "קורקבן עוף","לבבות עוף","כבד עוף","גרון עוף"]],
+           "קורקבן עוף","לבבות עוף","כבד עוף","טחול עוף","גרון עוף"]],
   ['הודו', ["הודו שלם","גרון הודו","חזה הודו","ירך הודו","שוקיים הודו","כנפיים הודו","שווארמה הודו","רצועות שווראמה",
-            "קורקבן הודו","לבבות הודו","כבד הודו"]],
+            "קורקבן הודו","לבבות הודו","כבד הודו","טחול הודו","אשכי הודו"]],
   ['ארוזים', ["כרעיים ארוז","שוקיים ארוז","חזה ארוז","שניצל ארוז","פרגית ארוז"]]
 ];
 const poultryProducts = poultryGroups.flatMap(g => g[1]);
@@ -178,6 +216,9 @@ let invTab = 'beef';
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
 const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה', xfer:'העברה לאנטריקוט', xfer2:'העברה לתנור' };
 let history = [];
+// Area manager mode: read only, shows his branches from the company sheet; nothing is saved or sent
+let mgrMode = false;
+try { mgrMode = localStorage.getItem('appMode') === 'manager'; } catch(e) {}
 
 document.getElementById('dateInput').valueAsDate = new Date();
 document.getElementById('dateInput').addEventListener('change', updateDisplay);
@@ -186,7 +227,8 @@ function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  document.getElementById(page === 'weigh' ? 'btnWeigh' : 'btnInv').classList.add('active');
+  document.getElementById({ weigh:'btnWeigh', inventory:'btnInv', mgr:'btnMgr' }[page]).classList.add('active');
+  document.getElementById('mgrBranchPick').hidden = !mgrMode || page === 'mgr';
   if (page === 'inventory') { renderInventory(); if (branch.url) syncNow(); }
 }
 
@@ -268,7 +310,7 @@ function addWeight() {
   }
   if (type === 'sold' && date === ymd(new Date()) && !confirm('הנמכר של היום מגיע רק מחר. לרשום אותו בכל זאת לתאריך של היום?')) return;
   if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
-  const entry = { id: newId(), dev: myDev, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: typeNames[type], weight: weight.toFixed(2) };
+  const entry = { id: newId(), dev: myDev, by: worker, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: typeNames[type], weight: weight.toFixed(2) };
   history.unshift(entry);
   queueOps([{ op:'add', entry }]);
   if (history.length > 5000) history.pop();
@@ -415,7 +457,8 @@ function updatePeriodTotals() {
 // ---------- Loss analysis ----------
 const lossAllow = { entrecote:0, shoulder:5, oven:5 }; // regular trim waste per product, % of what went
 let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of the raw shoulder used
-const SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
+let SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
+let WARN_X = 2;    // up to this many times the expected waste = check, above = suspicion
 const allowKey = () => { const m = document.getElementById('meatSelect').value; return m === 'iron' ? 'shoulder' : m; };
 function syncAllowField() {
   const k = allowKey();
@@ -455,7 +498,7 @@ function judge(x) {
   if (gap < 0 && -gap > Math.max(0, x.went) * SCALE_TOL / 100) return { cls:'neg', text:`נמכר יותר ב־${f2(-gap)}`, nums: nums + '<br>בדוק שקילות' };
   const p = pct.toFixed(1) + '%';
   if (gap <= exp) return { cls:'ok', text:'תקין ' + p, nums };
-  if (gap <= exp * 2) return { cls:'warn', text:'לבדוק ' + p, nums };
+  if (gap <= exp * WARN_X) return { cls:'warn', text:'לבדוק ' + p, nums };
   return { cls:'bad', text:'חשד ' + p, nums };
 }
 
@@ -513,7 +556,20 @@ function updateAnalysis(days) {
 function renderHistory() {
   const el = document.getElementById('historyList');
   if (!history.length) { el.innerHTML = '<div style="color:#999;text-align:center">אין שקילות</div>'; return; }
-  el.innerHTML = history.slice(0,30).map(h => `<div style="padding:4px 0;border-bottom:1px solid #eee;font-size:13px">${h.date} ${h.time} — ${h.meat} (${h.type}): <b>${h.weight}</b>${h.dev && h.dev !== myDev ? ' <span style="color:#1565C0;font-size:12px">· טלפון אחר</span>' : ''}</div>`).join('');
+  el.innerHTML = history.slice(0,30).map(h => `<div style="padding:4px 0;border-bottom:1px solid #eee;font-size:13px">${h.date} ${h.time} — ${h.meat} (${h.type}): <b>${h.weight}</b>${whoTag(h)}</div>`).join('');
+}
+// Shows who recorded a weighing, unless it is the person using this phone now
+function whoTag(h) {
+  const other = h.dev && h.dev !== myDev;
+  if (h.by && (other || h.by !== worker)) return ` <span style="color:#1565C0;font-size:12px">· ${esc(h.by)}</span>`;
+  return other ? ' <span style="color:#1565C0;font-size:12px">· טלפון אחר</span>' : '';
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function renderWorker() {
+  const el = document.getElementById('workerLine');
+  el.innerHTML = worker
+    ? `רושם: <b>${esc(worker)}</b> · <button type="button" class="link-btn" onclick="openBranch(false, true)">החלף</button>`
+    : `<button type="button" class="link-btn" onclick="openBranch(false, true)">הוסף את השם שלך</button> כדי שיראו מי רשם`;
 }
 
 function deleteLast() {
@@ -600,8 +656,8 @@ function exportToExcel() {
   addSheet(periodSheet('חודש', d => d.slice(0, 7), m => m.slice(5) + '/' + m.slice(0, 4)), 'חודשי', [9,26,9,9,9,9,11,9,8,12,14,6,18]);
 
   // --- Every weighing ---
-  const hist = [['תאריך','שעה','סוג','קטגוריה','משקל'], ...history.slice().reverse().map(h => [h.date, h.time, h.meat, h.type, parseFloat(h.weight)])];
-  addSheet(hist, 'היסטוריה', [11,7,16,9,9]);
+  const hist = [['תאריך','שעה','סוג','קטגוריה','משקל','עובד'], ...history.slice().reverse().map(h => [h.date, h.time, h.meat, h.type, parseFloat(h.weight), h.by || ''])];
+  addSheet(hist, 'היסטוריה', [11,7,16,9,9,12]);
 
   XLSX.writeFile(wb, 'שקילות_בשר_' + branchFilePart() + ymd(new Date()) + '.xlsx');
 }
@@ -623,7 +679,7 @@ function catOf(p) {
 }
 function invOf(p) { return invEvents.filter(e => e.month === invMonth && e.product === p).sort((a, b) => createdAt(a.id) - createdAt(b.id)); }
 function invValue(p) { return Math.round(invOf(p).reduce((a, e) => a + e.w, 0) * 1000) / 1000; }
-function persistInventory() { try { localStorage.setItem('invEvents', JSON.stringify(invEvents)); } catch(e) {} }
+function persistInventory() { if (mgrMode) return; try { localStorage.setItem('invEvents', JSON.stringify(invEvents)); } catch(e) {} }
 
 function invRow(p) {
   const i = products.indexOf(p);
@@ -715,7 +771,7 @@ function calcAdd() {
   if (!nums.length) return;
   if (nums.some(n => isNaN(n) || n <= 0)) { alert('מספר לא תקין'); return; }
   const p = selectedProduct, cat = catOf(p), ord = products.indexOf(p);
-  const added = nums.map(n => ({ id: newId(), month: invMonth, product: p, w: n, dev: myDev, cat, ord }));
+  const added = nums.map(n => ({ id: newId(), month: invMonth, product: p, w: n, dev: myDev, by: worker, cat, ord }));
   invEvents.push(...added);
   input.value = '';
   input.focus();
@@ -769,7 +825,7 @@ function mergeRemoteInv(list) {
   list.forEach(r => {
     if (r.deleted || local.has(r.id)) return;
     const prod = r.product;
-    invEvents.push({ id: r.id, month: r.month, product: prod, w: Number(r.w) || 0, dev: r.dev || 'other', cat: products.includes(prod) ? catOf(prod) : r.cat, ord: products.includes(prod) ? products.indexOf(prod) : Number(r.ord) });
+    invEvents.push({ id: r.id, month: r.month, product: prod, w: Number(r.w) || 0, dev: r.dev || 'other', by: r.by || '', cat: products.includes(prod) ? catOf(prod) : r.cat, ord: products.includes(prod) ? products.indexOf(prod) : Number(r.ord) });
     changed = true;
   });
   if (changed) {
@@ -804,7 +860,7 @@ function exportInventory() {
   XLSX.writeFile(wb, 'מלאי_' + branchFilePart() + invMonth + '.xlsx');
 }
 
-function saveData() { try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) {} }
+function saveData() { if (mgrMode) return; try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) {} }
 function loadData() {
   try {
     const s = localStorage.getItem('meatWeighing');
@@ -819,13 +875,15 @@ function loadData() {
 }
 // ---------- Branch details ----------
 let branch = { name:'', manager:'', area:'', url:'', key:'' };
+let worker = ''; // the person recording on this phone; kept only on this phone
+try { worker = localStorage.getItem('workerName') || ''; } catch(e) {}
 function loadBranch() {
   try { const b = JSON.parse(localStorage.getItem('branchInfo') || 'null'); if (b) branch = Object.assign(branch, b); } catch(e) {}
   branch.url = cleanUrl(branch.url); branch.key = cleanKey(branch.key);
-  renderBranch();
+  renderBranch(); renderWorker();
   let skipped = false;
   try { skipped = localStorage.getItem('branchSkipped') === '1'; } catch(e) {}
-  if (!branch.name && !skipped) openBranch(true); // first open: branch details come before anything else
+  if (!branch.name && !skipped && !mgrMode) openBranch(true); // first open: branch details come before anything else
 }
 function renderBranch() {
   const parts = [];
@@ -834,12 +892,13 @@ function renderBranch() {
   if (branch.area) parts.push('מנהל אזור: ' + branch.area);
   document.getElementById('branchText').textContent = parts.length ? parts.join(' · ') : 'לא הוזנו פרטי סניף';
 }
-function openBranch(first) {
+function openBranch(first, focusWorker) {
   document.getElementById('brName').value = branch.name;
   document.getElementById('brManager').value = branch.manager;
   document.getElementById('brArea').value = branch.area;
   document.getElementById('brUrl').value = branch.url || '';
   document.getElementById('brKey').value = branch.key || '';
+  document.getElementById('brWorker').value = worker;
   document.getElementById('branchMsg').textContent = '';
   document.getElementById('brTitle').textContent = first ? 'ברוכים הבאים' : 'פרטי סניף';
   document.getElementById('brIntro').textContent = first
@@ -850,7 +909,7 @@ function openBranch(first) {
   document.body.classList.add('setup-mode');
   document.getElementById('branchPanel').hidden = false;
   window.scrollTo(0, 0);
-  document.getElementById('brName').focus();
+  document.getElementById(focusWorker ? 'brWorker' : 'brName').focus();
 }
 // Leave the details screen and land on the weighing screen
 function cleanUrl(s) { return String(s || '').replace(/[^\x21-\x7E]/g, ''); }
@@ -867,6 +926,11 @@ function skipBranch() {
 }
 function saveBranch() {
   const name = document.getElementById('brName').value.trim();
+  const w = document.getElementById('brWorker').value.trim();
+  if (!name && w && !document.getElementById('brUrl').value.trim()) { // only the worker's name: save it without branch details
+    worker = w; try { localStorage.setItem('workerName', worker); } catch(e) {}
+    renderWorker(); renderHistory(); closeBranch(); return;
+  }
   if (!name) { document.getElementById('branchMsg').textContent = 'צריך למלא לפחות את שם הסניף'; return; }
   // copying from WhatsApp often adds invisible direction marks or spaces; strip them
   const url = cleanUrl(document.getElementById('brUrl').value), key = cleanKey(document.getElementById('brKey').value);
@@ -875,6 +939,9 @@ function saveBranch() {
   const newConn = url && (url !== branch.url || key !== branch.key);
   branch = { name, manager: document.getElementById('brManager').value.trim(), area: document.getElementById('brArea').value.trim(), url, key };
   try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) {}
+  worker = document.getElementById('brWorker').value.trim();
+  try { localStorage.setItem('workerName', worker); } catch(e) {}
+  renderWorker(); renderHistory();
   // On a new connection, send everything already on the phone (the sheet ignores duplicates)
   if (newConn) { syncQueue = []; queueOps(history.slice().reverse().map(entry => ({ op:'add', entry })).concat(invEvents.map(e => ({ op:'invAdd', e })))); }
   renderBranch();
@@ -894,6 +961,170 @@ function branchFilePart() {
   const n = (branch.name || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
   return n ? n + '_' : '';
 }
+
+// ---------- Area manager ----------
+// He logs in with the sheet address and his own code (tab "מנהלי אזור" in the sheet) and sees only his branches.
+let mgr = null, mgrBranch = '';
+function openMgrLogin() {
+  let info = {};
+  try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
+  document.getElementById('mgUrl').value = info.url || branch.url || '';
+  document.getElementById('mgCode').value = '';
+  document.getElementById('mgrMsg').textContent = '';
+  document.getElementById('branchPanel').hidden = true;
+  document.getElementById('mgrLogin').hidden = false;
+  document.body.classList.add('setup-mode');
+  window.scrollTo(0, 0);
+}
+function closeMgrLogin() {
+  document.getElementById('mgrLogin').hidden = true;
+  document.getElementById('branchPanel').hidden = false;
+}
+async function mgrFetch(url, code) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'manager', mcode: code }) });
+  try { return JSON.parse(await res.text()); } catch(e) { return { ok: false, error: 'no answer', status: res.status }; }
+}
+function mgrError(d) {
+  if (d.error === 'bad manager code') return 'קוד מנהל אזור שגוי';
+  if (d.error === 'bad key') return 'הגיליון עדיין לא מכיר כניסת מנהל אזור · צריך לעדכן בו את הקוד';
+  if (d.error === 'no answer') return `הכתובת לא החזירה תשובה מהגיליון (${d.status}) · בדוק את הכתובת`;
+  return 'הגיליון החזיר שגיאה';
+}
+async function mgrLogin() {
+  const url = cleanUrl(document.getElementById('mgUrl').value), code = cleanKey(document.getElementById('mgCode').value);
+  const msg = document.getElementById('mgrMsg');
+  if (!/^https:\/\/script\.google\.com\//.test(url)) { msg.textContent = 'כתובת החיבור צריכה להתחיל ב־https://script.google.com/'; return; }
+  if (!code) { msg.textContent = 'חסר קוד מנהל אזור'; return; }
+  msg.style.color = '#1565C0'; msg.textContent = 'מתחבר…';
+  let d;
+  try { d = await mgrFetch(url, code); } catch(e) { msg.style.color = '#c62828'; msg.textContent = 'אין חיבור לגיליון כרגע'; return; }
+  msg.style.color = '#c62828';
+  if (!d.ok) { msg.textContent = mgrError(d); return; }
+  try {
+    localStorage.setItem('mgrInfo', JSON.stringify({ url, code }));
+    localStorage.setItem('appMode', 'manager');
+  } catch(e) {}
+  mgrMode = true;
+  mgrStore(d);
+  enterMgr(d);
+}
+function mgrStore(d) { d.at = Date.now(); try { localStorage.setItem('mgrCache', JSON.stringify(d)); } catch(e) {} }
+function startMgr() {
+  if (!mgrMode) return;
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem('mgrCache') || 'null'); } catch(e) {}
+  if (d) enterMgr(d);
+  mgrRefresh();
+}
+async function mgrRefresh() {
+  let info = {};
+  try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
+  if (!info.url) return;
+  document.getElementById('mgrText').textContent = (mgr ? 'מנהל אזור: ' + mgr.name + ' · ' : '') + 'מעדכן…';
+  try {
+    const d = await mgrFetch(info.url, info.code);
+    if (!d.ok) { if (d.error === 'bad manager code') { alert('הקוד שלך כבר לא פעיל · פנה לחברה'); mgrExit(true); } else renderMgrBar(mgrError(d)); return; }
+    mgrStore(d); enterMgr(d);
+  } catch(e) { renderMgrBar('אין חיבור · מוצג המידע מהעדכון האחרון'); }
+}
+function mgrExit(silent) {
+  if (!silent && !confirm('לצאת ממצב מנהל אזור?')) return;
+  try {
+    localStorage.removeItem('appMode'); localStorage.removeItem('mgrCache');
+    const info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); localStorage.setItem('mgrInfo', JSON.stringify({ url: info.url || '' }));
+  } catch(e) {}
+  location.reload();
+}
+function renderMgrBar(note) {
+  if (!mgr) return;
+  const t = mgr.at ? new Date(mgr.at) : null;
+  document.getElementById('mgrText').textContent = 'מנהל אזור: ' + mgr.name + ' · ' + mgr.branches.length + ' סניפים'
+    + (note ? ' · ' + note : t ? ' · עודכן ' + t.toLocaleDateString('he-IL', { day:'numeric', month:'numeric' }) + ' ' + t.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' }) : '');
+}
+function enterMgr(d) {
+  const first = !mgr;
+  mgr = d;
+  d.branches.forEach(b => {
+    b.entries.forEach(h => { h.weight = (Number(h.weight) || 0).toFixed(2); h.dev = h.dev || 'other'; });
+    b.entries.sort((x, y) => (y.date + y.time).localeCompare(x.date + x.time) || createdAt(y.id) - createdAt(x.id)); // newest day first
+    b.inv.forEach(e => { e.w = Number(e.w) || 0; if (products.includes(e.product)) { e.cat = catOf(e.product); e.ord = products.indexOf(e.product); } });
+  });
+  const s = d.settings || {};
+  if (s.loss) PK.forEach(k => { if (isFinite(s.loss[k])) lossAllow[k] = Number(s.loss[k]); });
+  if (isFinite(s.iron)) ironAllow = Number(s.iron);
+  if (isFinite(s.tol)) SCALE_TOL = Number(s.tol);
+  if (Number(s.warnX) > 0) WARN_X = Number(s.warnX);
+  document.body.classList.remove('setup-mode');
+  document.body.classList.add('mgr-mode');
+  document.getElementById('branchPanel').hidden = true;
+  document.getElementById('mgrLogin').hidden = true;
+  document.getElementById('btnWeigh').textContent = 'פחת ושקילות';
+  document.getElementById('btnInv').textContent = 'ספירות מלאי';
+  document.getElementById('mgrBranchSel').innerHTML = d.branches.map(b => `<option value="${esc(b.name)}">${esc(b.name)}</option>`).join('');
+  renderMgrBar();
+  renderMgr();
+  const keep = d.branches.find(b => b.name === mgrBranch);
+  if (keep || d.branches.length) mgrOpen((keep || d.branches[0]).name, null, !first);
+  if (first) showPage('mgr');
+  else if (document.getElementById('page-inventory').classList.contains('active')) renderInventory();
+}
+// Loss segments of one branch, with the same calculation as the branch's own phone
+function mgrSegs(b) {
+  const saved = history; history = b.entries;
+  const days = buildDays(); history = saved;
+  const out = {}; PK.forEach(k => out[k] = segmentsFor(days[k], k));
+  return out;
+}
+function weekStartOf(ds) { const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() - d.getDay()); return ymd(d); }
+function weekLabel(ws) { const e = new Date(ws + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(ws) + ' עד ' + dm(ymd(e)); }
+function renderMgr() {
+  const all = mgr.branches.map(b => ({ b, segs: mgrSegs(b) }));
+  const ends = all.flatMap(x => PK.flatMap(k => x.segs[k].map(s => s.end)));
+  const lastWeek = ends.map(weekStartOf).sort().pop(), lastMonth = ends.map(e => e.slice(0, 7)).sort().pop();
+  const inWeek = s => weekStartOf(s.end) === lastWeek, inMonth = s => s.end.slice(0, 7) === lastMonth;
+  const lastEnd = (segs, inP) => segs.filter(inP).map(s => s.end).sort().pop();
+  const pname = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור' };
+  // red alerts: latest week and latest month, every branch
+  const alerts = [];
+  all.forEach(({ b, segs }, i) => PK.forEach(k => [['שבוע ' + (lastWeek ? weekLabel(lastWeek) : ''), inWeek], ['חודש ' + (lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''), inMonth]].forEach(([label, inP]) => {
+    const a = aggregate(segs[k].filter(inP));
+    if (!a.n) return;
+    const j = judge(a);
+    if (j.cls === 'bad') alerts.push(`<button type="button" class="alert-row" onclick="mgrOpenAt(${i}, '${lastEnd(segs[k], inP)}')">🔴 <b>${esc(b.name)}</b> · ${pname[k]} · ${label} · ${j.text} · פער ${f2(a.went - a.sold)} ק״ג ←</button>`);
+  })));
+  document.getElementById('mgrAlerts').innerHTML = alerts.length
+    ? `<div class="alert-box"><h3>התראות · ${alerts.length}</h3>${alerts.join('')}</div>`
+    : `<div class="alert-box clear"><h3>✓ אין חשדות השבוע והחודש</h3></div>`;
+  // one card per branch: this week and this month for the three products
+  document.getElementById('mgrList').innerHTML = all.map(({ b, segs }, i) => {
+    const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judge(a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
+    const end = PK.map(k => lastEnd(segs[k], inWeek)).filter(Boolean).sort().pop();
+    return `<div class="br-card" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">
+      <div class="br-card-head"><b>${esc(b.name)}</b><span>${b.manager ? 'מנהל מחלקה: ' + esc(b.manager) + ' · ' : ''}פתח ←</span></div>
+      <div class="br-grid"><span></span><span class="h">שבוע ${lastWeek ? weekLabel(lastWeek) : ''}</span><span class="h">חודש ${lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''}</span>
+      ${PK.map(k => `<span>${pname[k]}</span>${cell(k, inWeek)}${cell(k, inMonth)}`).join('')}</div></div>`;
+  }).join('') || '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
+}
+function mgrOpenAt(i, date) { mgrOpen(mgr.branches[i].name, date); }
+// Shows one branch in the weighing and stock count screens (read only)
+function mgrOpen(name, date, stay) {
+  const b = mgr && mgr.branches.find(x => x.name === name);
+  if (!b) return;
+  mgrBranch = name;
+  history = b.entries.slice();
+  invEvents = b.inv.slice();
+  branch.name = b.name; branch.manager = b.manager; branch.area = mgr.name; // for the Excel files
+  document.getElementById('mgrBranchSel').value = name;
+  document.getElementById('mgrBranchMgr').textContent = b.manager ? 'מנהל מחלקה: ' + b.manager : '';
+  const lastClose = history.filter(h => h.type === 'סגירה').map(h => h.date).sort().pop();
+  if (date || !stay) { document.getElementById('dateInput').value = date || lastClose || ymd(new Date()); autoDate = false; }
+  selectedProduct = null;
+  document.getElementById('calcPanel').style.display = 'none';
+  updateDisplay(); renderHistory();
+  if (!stay) { showPage(document.getElementById('page-inventory').classList.contains('active') ? 'inventory' : 'weigh'); window.scrollTo(0, 0); }
+  else if (document.getElementById('page-inventory').classList.contains('active')) renderInventory();
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && mgrMode && mgr && Date.now() - (mgr.at || 0) > 5 * 60000) mgrRefresh(); });
 
 // ---------- Sync to the company sheet ----------
 // Every weighing gets an id; changes wait in a queue on the phone and are sent when there is internet.
@@ -919,7 +1150,7 @@ function mergeRemote(entries) {
   const local = new Set(history.map(h => h.id));
   entries.forEach(r => {
     if (r.deleted || local.has(r.id)) return;
-    history.push({ id: r.id, date: r.date, time: r.time, meat: r.meat, type: r.type, weight: (Number(r.weight) || 0).toFixed(2), dev: r.dev || 'other' });
+    history.push({ id: r.id, date: r.date, time: r.time, meat: r.meat, type: r.type, weight: (Number(r.weight) || 0).toFixed(2), dev: r.dev || 'other', by: r.by || '' });
     changed = true;
   });
   if (changed) { sortHistory(); saveData(); updateDisplay(); renderHistory(); }
@@ -928,13 +1159,13 @@ let syncQueue = [], syncing = false, syncError = '';
 try { syncQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]'); } catch(e) {}
 function saveQueue() { try { localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); } catch(e) {} }
 function queueOps(ops) {
-  if (!branch.url) return;
+  if (!branch.url || mgrMode) return;
   syncQueue.push(...ops); saveQueue(); renderSync();
   setTimeout(syncNow, 300);
 }
 function renderSync() {
   const el = document.getElementById('syncStatus');
-  if (!branch.url) { el.hidden = true; return; }
+  if (!branch.url || mgrMode) { el.hidden = true; return; }
   el.hidden = false;
   if (syncing) { el.style.color = '#1565C0'; el.textContent = 'שולח לגיליון של החברה…'; return; }
   if (syncError) { el.style.color = '#c62828'; el.textContent = syncError + (syncQueue.length ? ` · ממתינות ${syncQueue.length} שקילות` : ''); return; }
@@ -944,6 +1175,7 @@ function renderSync() {
 }
 // Sends what is waiting, and with the last batch brings back the whole branch from the sheet
 async function syncNow() {
+  if (mgrMode) return;
   if (!branch.url || syncing) { renderSync(); return; }
   if (navigator.onLine === false) { syncError = ''; renderSync(); return; }
   syncing = true; syncError = ''; renderSync();
@@ -980,6 +1212,7 @@ loadAllow();
 loadData();
 renderSync();
 syncNow();
+startMgr();
 
 // Service worker: always fetch the latest version when online, so code updates reach the phone
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
