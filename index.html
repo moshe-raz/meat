@@ -48,7 +48,7 @@
   .branch-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
   body.setup-mode .nav, body.setup-mode .page, body.setup-mode .branch-bar, body.setup-mode #syncStatus { display: none !important; }
   body.setup-mode #branchPanel { max-width: 460px; margin: 0 auto 15px; }
-  .link-btn { background: none; border: none; color: #2E75B6; text-decoration: underline; font-size: 14px; cursor: pointer; padding: 2px; }
+  .link-btn { background: none; border: none; color: #2E75B6; text-decoration: underline; font-size: 14px; cursor: pointer; padding: 8px 6px; }
   .br-row { display: flex; flex-direction: column; max-width: 320px; margin: 8px auto; text-align: right; font-size: 14px; gap: 2px; }
   .br-row input { margin: 0; width: 100%; }
   .inv-tabs { display: flex; gap: 8px; justify-content: center; margin: 4px 0 12px; }
@@ -60,7 +60,10 @@
   .inv-totals div { background: #eef4fb; border-radius: 8px; padding: 6px 4px; font-size: 12px; color: #1F4E79; }
   .inv-totals b { display: block; font-size: 17px; color: #1F4E79; }
   .processed { background: #fff3e0; }
-  #page-inventory .controls { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  input[readonly] { background: #eceff1; color: #555; border-style: dashed; }
+  #calcPanel { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15); text-align: center; }
+  body.mgr-mode .nav { gap: 6px; }
+  body.mgr-mode .nav button { flex: 1; padding: 10px 4px; white-space: nowrap; font-size: 15px; }
   .inventory-item.selected { outline: 3px solid #2E75B6; }
   .inventory-item.flash { animation: flash 0.8s; }
   @keyframes flash { from { background: #c8e6c9; } }
@@ -155,7 +158,8 @@
     <div class="entry-only" style="margin:6px 0; font-size:14px"><span id="lossAllowLabel">פחת רגיל (קליפה)</span>: <input type="text" id="lossAllow" inputmode="decimal" style="width:60px;text-align:center"> %
       <div id="ironAllowRow">פחת בניקוי לאיירון (רק צלי כתף): <input type="text" id="ironAllow" inputmode="decimal" style="width:60px;text-align:center"> %
         <div style="color:#666;font-size:12px">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14%</div></div>
-      <div style="color:#666;font-size:12px">עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div></div>
+      <div style="color:#666;font-size:12px">עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div>
+      <div id="allowNote" style="color:#1565C0;font-size:12px" hidden>האחוזים נקבעים בגיליון של החברה (לשונית "הגדרות")</div></div>
     <button class="btn entry-only" style="background:#6c757d" onclick="deleteLast()">מחק אחרון</button>
     <button class="btn" style="background:#28a745" onclick="exportToExcel()">ייצא לאקסל</button>
     <button class="btn entry-only" style="background:#d32f2f" onclick="resetAll()">אפס הכל</button>
@@ -173,7 +177,10 @@
     <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button></div>
     <div style="margin:0 0 10px;font-size:15px">ספירה לחודש: <input type="month" id="invMonth" style="font-size:15px" onchange="setInvMonth(this.value)"></div>
     <div id="invTotals" class="inv-totals"></div>
-    <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:10px 0;">
+    <button class="btn entry-only" onclick="saveInventory()">שמור מלאי</button>
+    <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
+  </div>
+  <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:0 0 10px;">
       <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
       <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
       <div id="calcSteps" dir="ltr"></div>
@@ -182,9 +189,6 @@
       <button class="btn entry-only" style="background:#ff9800" onclick="calcUndo()">בטל אחרון</button>
       <button class="btn entry-only" style="background:#6c757d" onclick="calcClear()">נקה</button>
       <div class="entry-only" style="font-size:12px;color:#666;margin-top:4px">אפשר כמה משקלים בבת אחת עם רווח ביניהם, למשל: 30 15 14.742</div>
-    </div>
-    <button class="btn entry-only" onclick="saveInventory()">שמור מלאי</button>
-    <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
   </div>
   <div id="inventoryList"></div>
 </div>
@@ -220,7 +224,8 @@ let history = [];
 let mgrMode = false;
 try { mgrMode = localStorage.getItem('appMode') === 'manager'; } catch(e) {}
 
-document.getElementById('dateInput').valueAsDate = new Date();
+document.getElementById('dateInput').value = ymd(new Date()); // local date (valueAsDate would give yesterday before 03:00)
+document.getElementById('dateInput').max = ymd(new Date());
 document.getElementById('dateInput').addEventListener('change', updateDisplay);
 
 function showPage(page) {
@@ -286,7 +291,7 @@ function syncDateForType() {
     xfer: 'יורד מאנטריקוט לתנור ונוסף לאנטריקוט · ',
     xfer2: 'יורד מאנטריקוט ונוסף לאנטריקוט לתנור · ',
   };
-  if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value); note.hidden = false; }
+  if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value) + (type === 'sold' ? ' · לא נמכר כלום? רושמים 0' : ''); note.hidden = false; }
   else note.hidden = true;
 }
 document.getElementById('meatSelect').addEventListener('change', () => { syncTypeForMeat(); syncDateForType(); });
@@ -299,12 +304,14 @@ function addWeight() {
   const type = document.getElementById('typeSelect').value;
   const date = document.getElementById('dateInput').value;
   const raw = document.getElementById('weightInput').value.trim().replace(',','.');
+  if (!date || !/^\d+(\.\d+)?$/.test(raw)) { alert('נא למלא תאריך ומשקל (מספר בלבד, למשל 12.5)'); return; }
   const weight = parseFloat(raw);
-  if (!date || isNaN(weight) || weight <= 0) { alert('נא למלא תאריך ומשקל'); return; }
+  if (weight <= 0 && type !== 'sold') { alert('המשקל צריך להיות גדול מ־0'); return; }
+  if (weight > 500) { alert('משקל גדול מדי · בדוק את המספר'); return; }
   if (meat === 'iron' && type !== 'sold') { alert('איירון סטייק נרשם רק בנמכר'); return; }
   if (type === 'xfer' && meat !== 'oven') { alert('העברה לאנטריקוט נרשמת רק מאנטריקוט לתנור'); return; }
   if (type === 'xfer2' && meat !== 'entrecote') { alert('העברה לתנור נרשמת רק מאנטריקוט'); return; }
-  if (type !== 'prep' && !canEnterSold(date)) {
+  if (!canEnterSold(date)) {
     alert('אי אפשר לרשום לתאריך עתידי');
     return;
   }
@@ -348,13 +355,15 @@ function buildCards() {
 
 function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, xfer:0, hasClose:false }; }
 function keyOf(h) { return Object.keys(names).find(k => names[k] === h.meat); }
-function typeOf(h) { return h.type === 'הכנות' ? 'prep' : h.type === 'סגירה' ? 'close' : h.type === 'סחורה' ? 'recv' : h.type === 'העברה לאנטריקוט' ? 'xfer' : h.type === 'העברה לתנור' ? 'xfer2' : 'sold'; }
+const TYPE_KEYS = { 'הכנות':'prep', 'סגירה':'close', 'נמכר':'sold', 'סחורה':'recv', 'העברה לאנטריקוט':'xfer', 'העברה לתנור':'xfer2' };
+function typeOf(h) { return TYPE_KEYS[h.type] || null; } // anything else is ignored, like in the sheet
 
 function buildDays() {
   const days = { entrecote:{}, shoulder:{}, oven:{} };
   history.forEach(h => {
     const orig = keyOf(h); if (!orig) return;
     const t = typeOf(h), w = parseFloat(h.weight) || 0;
+    if (!t) return;
     let k = orig;
     if (orig === 'iron') { if (t !== 'sold') return; k = 'shoulder'; }
     if (t === 'xfer' || t === 'xfer2') { // meat moved between entrecote and oven entrecote: leaves one stock, joins the other
@@ -368,6 +377,7 @@ function buildDays() {
     d[t] += w;
     if (t === 'close') d.hasClose = true;
     if (orig === 'iron') d.iron += w;
+    if (t === 'sold' && orig !== 'iron') d.hasSold = true; // the product's own sales line for that day is in
   });
   return days;
 }
@@ -386,7 +396,7 @@ function segmentsFor(dd, k) {
   const segs = [];
   for (let i = 1; i < closes.length; i++) {
     const c0 = closes[i-1], c1 = closes[i];
-    const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0 };
+    const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0, pending: !dd[c1].hasSold };
     s.xfer = 0;
     dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; } });
     s.stock = s.open + s.recv + s.xfer;
@@ -437,7 +447,7 @@ function updatePeriodTotals() {
   const cm = now.getMonth(), cy = now.getFullYear();
   const dow = now.getDay();
   const sow = new Date(now); sow.setDate(now.getDate()-dow); sow.setHours(0,0,0,0);
-  const eow = new Date(sow); eow.setDate(sow.getDate()+5); eow.setHours(23,59,59,999);
+  const eow = new Date(sow); eow.setDate(sow.getDate()+6); eow.setHours(23,59,59,999);
   const week = {entrecote:0,shoulder:0,oven:0}, month = {entrecote:0,shoulder:0,oven:0};
   history.forEach(h => {
     if (h.type !== 'הכנות') return;
@@ -460,10 +470,24 @@ let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of t
 let SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
 let WARN_X = 2;    // up to this many times the expected waste = check, above = suspicion
 const allowKey = () => { const m = document.getElementById('meatSelect').value; return m === 'iron' ? 'shoulder' : m; };
+let sheetRules = false; // connected branches use the company's percentages from the sheet
 function syncAllowField() {
   const k = allowKey();
   document.getElementById('lossAllowLabel').textContent = 'פחת רגיל ל' + names[k];
   document.getElementById('lossAllow').value = lossAllow[k];
+  document.getElementById('ironAllow').value = ironAllow;
+  document.getElementById('lossAllow').readOnly = document.getElementById('ironAllow').readOnly = sheetRules;
+  document.getElementById('allowNote').hidden = !sheetRules;
+}
+function applySheetSettings(s) {
+  if (!s || !s.loss) return;
+  const save = (id, v) => { try { localStorage.setItem(id, v); } catch(e) {} };
+  PK.forEach(k => { if (isFinite(s.loss[k])) { lossAllow[k] = Number(s.loss[k]); save('lossAllow_' + k, lossAllow[k]); } });
+  if (isFinite(s.iron)) { ironAllow = Number(s.iron); save('ironAllow', ironAllow); }
+  if (isFinite(s.tol)) { SCALE_TOL = Number(s.tol); save('scaleTol', SCALE_TOL); }
+  if (Number(s.warnX) > 0) { WARN_X = Number(s.warnX); save('warnX', WARN_X); }
+  sheetRules = true; save('sheetRules', '1');
+  syncAllowField(); updateAnalysis(buildDays());
 }
 function loadAllow() {
   try {
@@ -474,8 +498,16 @@ function loadAllow() {
   const num = el => { const v = parseFloat(el.value.replace(',', '.')); return !isNaN(v) && v >= 0 && v < 100 ? v : null; };
   const la = document.getElementById('lossAllow'), ia = document.getElementById('ironAllow');
   ia.value = ironAllow;
-  la.addEventListener('input', () => { const v = num(la); if (v !== null) { const k = allowKey(); lossAllow[k] = v; save('lossAllow_' + k, v); updateAnalysis(buildDays()); } });
-  ia.addEventListener('input', () => { const v = num(ia); if (v !== null) { ironAllow = v; save('ironAllow', v); updateAnalysis(buildDays()); } });
+  try {
+    const t = parseFloat(localStorage.getItem('scaleTol')); if (!isNaN(t)) SCALE_TOL = t;
+    const x = parseFloat(localStorage.getItem('warnX')); if (x > 0) WARN_X = x;
+    sheetRules = localStorage.getItem('sheetRules') === '1';
+  } catch(e) {}
+  la.addEventListener('input', () => { if (sheetRules) return; const v = num(la); if (v !== null) { const k = allowKey(); lossAllow[k] = v; save('lossAllow_' + k, v); updateAnalysis(buildDays()); } });
+  ia.addEventListener('input', () => { if (sheetRules) return; const v = num(ia); if (v !== null) { ironAllow = v; save('ironAllow', v); updateAnalysis(buildDays()); } });
+  // leaving a field with a bad value puts back the value actually used
+  la.addEventListener('blur', () => { la.value = lossAllow[allowKey()]; });
+  ia.addEventListener('blur', () => { ia.value = ironAllow; });
   document.getElementById('meatSelect').addEventListener('change', syncAllowField);
   syncAllowField();
 }
@@ -490,16 +522,18 @@ function expectedWaste(x) {
 }
 
 function judge(x) {
-  const gap = x.went - x.sold;
+  // compared in whole grams so numbers that look equal on screen are treated as equal
+  const r2 = n => Math.round(n * 100) / 100;
+  const gap = r2(r2(x.went) - r2(x.sold));
   const pct = x.went > 0 ? gap / x.went * 100 : 0;
-  const exp = expectedWaste(x);
+  const exp = r2(expectedWaste(x));
   const nums = `הלך ${f2(x.went)} · נמכר ${f2(x.sold)} ק״ג<br>פער ${f2(gap)} ק״ג · פחת צפוי עד ${f2(exp)}`;
-  if (x.sold <= 0) return { cls:'none', text:'ממתין לנמכר', nums:`הלך ${f2(x.went)} ק״ג<br>הנמכר מגיע ביום העבודה הבא` };
-  if (gap < 0 && -gap > Math.max(0, x.went) * SCALE_TOL / 100) return { cls:'neg', text:`נמכר יותר ב־${f2(-gap)}`, nums: nums + '<br>בדוק שקילות' };
+  if (x.pending) return { cls:'none', text:'ממתין לנמכר', nums:`הלך ${f2(x.went)} ק״ג<br>הנמכר של ${x.end ? dm(x.end) : 'היום האחרון'} עוד לא נרשם` };
+  if (gap < 0 && -gap > r2(Math.max(0, x.went) * SCALE_TOL / 100)) return { cls:'neg', text:`נמכר יותר ב־${f2(-gap)}`, nums: nums + '<br>בדוק שקילות', gap, exp };
   const p = pct.toFixed(1) + '%';
-  if (gap <= exp) return { cls:'ok', text:'תקין ' + p, nums };
-  if (gap <= exp * WARN_X) return { cls:'warn', text:'לבדוק ' + p, nums };
-  return { cls:'bad', text:'חשד ' + p, nums };
+  if (gap <= exp) return { cls:'ok', text:'תקין ' + p, nums, gap, exp };
+  if (gap <= exp * WARN_X) return { cls:'warn', text:'לבדוק ' + p, nums, gap, exp };
+  return { cls:'bad', text:'חשד ' + p, nums, gap, exp };
 }
 
 // Sum segments; a segment whose sold isn't in yet is left out so it doesn't look like loss
@@ -507,7 +541,7 @@ function aggregate(segs) {
   const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, n:0, waiting:0, missing:[] };
   segs.forEach(s => {
     a.missing.push(...s.missing);
-    if (s.sold <= 0) { a.waiting++; return; }
+    if (s.pending) { a.waiting++; return; }
     a.went += s.went; a.sold += s.sold; a.iron += s.iron; a.recv += s.recv; a.prep += s.prep; a.n += 1 + s.missing.length;
   });
   return a;
@@ -577,6 +611,8 @@ function deleteLast() {
   let idx = -1;
   history.forEach((h, i) => { if ((!h.dev || h.dev === myDev) && (idx < 0 || createdAt(h.id) > createdAt(history[idx].id))) idx = i; });
   if (idx < 0) { alert('אין שקילה שנרשמה בטלפון הזה'); return; }
+  const h = history[idx];
+  if (!confirm(`למחוק את השקילה האחרונה שנרשמה בטלפון הזה?\n${h.date} ${h.time} · ${h.meat} (${h.type}) · ${h.weight} ק״ג`)) return;
   const removed = history.splice(idx, 1)[0];
   if (removed.id) queueOps([{ op:'del', id: removed.id }]);
   updateDisplay(); renderHistory(); saveData();
@@ -622,7 +658,7 @@ function exportToExcel() {
       const own = x.sold - x.iron;
       wk.prep += x.prep; wk.sold += own; wk.all += x.sold; mon.sold += own; mon.all += x.sold;
       const seg = segs[k].find(s => s.end === date);
-      const gap = seg ? r2(seg.went - seg.sold) : '';
+      const gap = seg ? r2(r2(seg.went) - r2(seg.sold)) : '';
       const status = seg ? judge(seg).text : (x.hasClose ? '' : (x.sold || x.recv || x.prep ? 'חסרה סגירה' : ''));
       const note = seg && seg.missing.length ? 'מחושב יחד מ־' + dm(seg.start) : '';
       const xf = isSh ? [] : [r2(x.xfer)];
@@ -645,8 +681,8 @@ function exportToExcel() {
         if (!a.n && !prep && !recv) return;
         const name = names[k] + (k === 'shoulder' ? ' (נמכר כולל איירון)' : '');
         if (!a.n) { rows.push([labelOf(p), name, r2(prep), r2(recv), '', '', '', '', '', '', a.waiting ? 'ממתין לנמכר' : 'חסרות סגירות', '', a.missing.map(dm).join(', ')]); return; }
-        const gap = a.went - a.sold;
-        rows.push([labelOf(p), name, r2(prep), r2(recv), r2(a.went), r2(a.sold), k === 'shoulder' ? r2(a.iron) : '', r2(gap), a.went > 0 ? r2(gap / a.went * 100) : '', r2(expectedWaste(a)), judge(a).text, a.n, a.missing.map(dm).join(', ')]);
+        const j = judge(a), gap = j.gap;
+        rows.push([labelOf(p), name, r2(prep), r2(recv), r2(a.went), r2(a.sold), k === 'shoulder' ? r2(a.iron) : '', gap, a.went > 0 ? r2(gap / a.went * 100) : '', j.exp, j.text, a.n, a.missing.map(dm).join(', ')]);
       });
       rows.push([]);
     });
@@ -656,7 +692,7 @@ function exportToExcel() {
   addSheet(periodSheet('חודש', d => d.slice(0, 7), m => m.slice(5) + '/' + m.slice(0, 4)), 'חודשי', [9,26,9,9,9,9,11,9,8,12,14,6,18]);
 
   // --- Every weighing ---
-  const hist = [['תאריך','שעה','סוג','קטגוריה','משקל','עובד'], ...history.slice().reverse().map(h => [h.date, h.time, h.meat, h.type, parseFloat(h.weight), h.by || ''])];
+  const hist = [['תאריך','שעה','מוצר','סוג שקילה','משקל','עובד'], ...history.slice().reverse().map(h => [h.date, h.time, h.meat, h.type, parseFloat(h.weight), h.by || ''])];
   addSheet(hist, 'היסטוריה', [11,7,16,9,9,12]);
 
   XLSX.writeFile(wb, 'שקילות_בשר_' + branchFilePart() + ymd(new Date()) + '.xlsx');
@@ -666,7 +702,7 @@ let selectedProduct = null;
 // Every counted weight is its own record, so counts from several phones of a branch add up
 // { id, month:'2026-10', product, w, dev, cat, ord }
 let invEvents = [];
-function fmt(n) { return n.toFixed(2); }
+function fmt(n) { const s = (Math.round(n * 1000) / 1000).toFixed(3); return s.endsWith('0') ? s.slice(0, -1) : s; } // 59.742 stays 59.742, 30 shows 30.00
 function defaultInvMonth() { // the first week of a month still counts as the end of the previous month
   const d = new Date(); if (d.getDate() <= 7) d.setMonth(d.getMonth() - 1, 1);
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -745,7 +781,7 @@ function refreshCalc() {
   if (!p) return;
   document.getElementById('calcCurrent').textContent = fmt(invValue(p));
   const steps = invOf(p).map(e => e.w);
-  document.getElementById('calcSteps').textContent = steps.length ? steps.join(' + ') + ' = ' + fmt(invValue(p)) : '';
+  document.getElementById('calcSteps').textContent = steps.length > 1 ? steps.join(' + ') + ' = ' + fmt(invValue(p)) : '';
 }
 
 function selectProduct(i) {
@@ -811,19 +847,20 @@ document.getElementById('calcInput').addEventListener('keydown', e => {
 });
 
 // Counts from the other phones of the branch; same rules as for weighings
-function mergeRemoteInv(list) {
+function mergeRemoteInv(list, since) {
   const remote = new Map(list.map(e => [e.id, e]));
   const pending = new Set(syncQueue.filter(o => o.op === 'invAdd').map(o => o.e.id));
+  const deleting = new Set(syncQueue.filter(o => o.op === 'invDel').map(o => o.id));
   let changed = false;
   invEvents = invEvents.filter(e => {
     const r = remote.get(e.id);
     if (r && r.deleted) { changed = true; return false; }
-    if (!r && e.dev !== myDev && !pending.has(e.id)) { changed = true; return false; }
+    if (!r && e.dev !== myDev && !pending.has(e.id) && (!since || e.month >= since)) { changed = true; return false; }
     return true;
   });
   const local = new Set(invEvents.map(e => e.id));
   list.forEach(r => {
-    if (r.deleted || local.has(r.id)) return;
+    if (r.deleted || local.has(r.id) || deleting.has(r.id)) return;
     const prod = r.product;
     invEvents.push({ id: r.id, month: r.month, product: prod, w: Number(r.w) || 0, dev: r.dev || 'other', by: r.by || '', cat: products.includes(prod) ? catOf(prod) : r.cat, ord: products.includes(prod) ? products.indexOf(prod) : Number(r.ord) });
     changed = true;
@@ -850,7 +887,7 @@ function exportInventory() {
   lambGroups.forEach(([g, items], n) => { if (n) lambRows.push([]); lambRows.push([g]); items.forEach(p => lambRows.push(row(p))); });
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
-  const t = invTotals(), r3 = n => Math.round(n * 100) / 100;
+  const t = invTotals(), r3 = n => Math.round(n * 1000) / 1000;
   addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)], ['סה״כ בקר וכבש (ק״ג)', r3(t.meat)], ['סה״כ עוף והודו (ק״ג)', r3(t.poultry)], ['סה״כ כולל (ק״ג)', r3(t.all)]]);
   [[beefRows, 'בקר'], [lambRows, 'כבש'], [poultryRows, 'עוף']].forEach(([rows, name]) => {
     const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -879,7 +916,7 @@ let worker = ''; // the person recording on this phone; kept only on this phone
 try { worker = localStorage.getItem('workerName') || ''; } catch(e) {}
 function loadBranch() {
   try { const b = JSON.parse(localStorage.getItem('branchInfo') || 'null'); if (b) branch = Object.assign(branch, b); } catch(e) {}
-  branch.url = cleanUrl(branch.url); branch.key = cleanKey(branch.key);
+  branch.url = cleanUrl(branch.url); branch.key = cleanKey(branch.key); branch.name = cleanName(branch.name);
   renderBranch(); renderWorker();
   let skipped = false;
   try { skipped = localStorage.getItem('branchSkipped') === '1'; } catch(e) {}
@@ -892,7 +929,9 @@ function renderBranch() {
   if (branch.area) parts.push('מנהל אזור: ' + branch.area);
   document.getElementById('branchText').textContent = parts.length ? parts.join(' · ') : 'לא הוזנו פרטי סניף';
 }
+let returnPage = 'weigh';
 function openBranch(first, focusWorker) {
+  const cur = document.querySelector('.page.active'); returnPage = cur && cur.id !== 'page-mgr' ? cur.id.replace('page-', '') : 'weigh';
   document.getElementById('brName').value = branch.name;
   document.getElementById('brManager').value = branch.manager;
   document.getElementById('brArea').value = branch.area;
@@ -912,12 +951,13 @@ function openBranch(first, focusWorker) {
   document.getElementById(focusWorker ? 'brWorker' : 'brName').focus();
 }
 // Leave the details screen and land on the weighing screen
-function cleanUrl(s) { return String(s || '').replace(/[^\x21-\x7E]/g, ''); }
-function cleanKey(s) { return String(s || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').trim(); }
+function cleanUrl(s) { const c = String(s || '').replace(/[^\x21-\x7E]/g, ''); const m = c.match(/https:\/\/script\.google\.com\/[\x21-\x7E]*/); return m ? m[0] : c; }
+function cleanName(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+function cleanKey(s) { return String(s || '').replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff\u061c]/g, '').trim(); }
 function closeBranch() {
   document.getElementById('branchPanel').hidden = true;
   document.body.classList.remove('setup-mode');
-  showPage('weigh');
+  showPage(returnPage);
   window.scrollTo(0, 0);
 }
 function skipBranch() {
@@ -925,10 +965,10 @@ function skipBranch() {
   closeBranch();
 }
 function saveBranch() {
-  const name = document.getElementById('brName').value.trim();
+  const name = cleanName(document.getElementById('brName').value);
   const w = document.getElementById('brWorker').value.trim();
   if (!name && w && !document.getElementById('brUrl').value.trim()) { // only the worker's name: save it without branch details
-    worker = w; try { localStorage.setItem('workerName', worker); } catch(e) {}
+    worker = w; try { localStorage.setItem('workerName', worker); localStorage.setItem('branchSkipped', '1'); } catch(e) {}
     renderWorker(); renderHistory(); closeBranch(); return;
   }
   if (!name) { document.getElementById('branchMsg').textContent = 'צריך למלא לפחות את שם הסניף'; return; }
@@ -942,29 +982,37 @@ function saveBranch() {
   worker = document.getElementById('brWorker').value.trim();
   try { localStorage.setItem('workerName', worker); } catch(e) {}
   renderWorker(); renderHistory();
-  // On a new connection, send everything already on the phone (the sheet ignores duplicates)
-  if (newConn) { syncQueue = []; queueOps(history.slice().reverse().map(entry => ({ op:'add', entry })).concat(invEvents.map(e => ({ op:'invAdd', e })))); }
+  // On a new connection, send what this phone recorded (the sheet skips what it already has); deletes still waiting are kept
+  if (newConn) {
+    const keep = syncQueue.filter(o => o.op === 'del' || o.op === 'invDel');
+    const mine = x => !x.dev || x.dev === myDev;
+    syncQueue = [];
+    queueOps(history.filter(mine).reverse().map(entry => ({ op:'add', entry })).concat(invEvents.filter(mine).map(e => ({ op:'invAdd', e })), keep));
+  }
+  if (!url) { sheetRules = false; try { localStorage.removeItem('sheetRules'); } catch(e) {} syncAllowField(); }
   renderBranch();
   closeBranch();
   renderSync();
   syncNow();
 }
+function shownBranch() { return mgrMode && mgrView ? mgrView : branch; } // in area-manager mode: the branch he is looking at
 function addBranchSheet(wb, extra) {
+  const bi = shownBranch();
   const ws = XLSX.utils.aoa_to_sheet([
-    ['סניף', branch.name], ['מנהל מחלקה', branch.manager], ['מנהל אזור', branch.area], ...(extra || []),
+    ['סניף', bi.name], ['מנהל מחלקה', bi.manager], ['מנהל אזור', bi.area], ...(extra || []),
     ['תאריך ייצוא', new Date().toLocaleDateString('he-IL') + ' ' + new Date().toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' })]
   ]);
   ws['!cols'] = [{ wch: 14 }, { wch: 28 }];
   XLSX.utils.book_append_sheet(wb, ws, 'פרטים');
 }
 function branchFilePart() {
-  const n = (branch.name || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+  const n = (shownBranch().name || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
   return n ? n + '_' : '';
 }
 
 // ---------- Area manager ----------
 // He logs in with the sheet address and his own code (tab "מנהלי אזור" in the sheet) and sees only his branches.
-let mgr = null, mgrBranch = '';
+let mgr = null, mgrBranch = '', mgrView = null;
 function openMgrLogin() {
   let info = {};
   try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
@@ -986,6 +1034,7 @@ async function mgrFetch(url, code) {
 }
 function mgrError(d) {
   if (d.error === 'bad manager code') return 'קוד מנהל אזור שגוי';
+  if (d.error === 'too many tries') return 'יותר מדי ניסיונות שגויים · נסו שוב בעוד 10 דקות';
   if (d.error === 'bad key') return 'הגיליון עדיין לא מכיר כניסת מנהל אזור · צריך לעדכן בו את הקוד';
   if (d.error === 'no answer') return `הכתובת לא החזירה תשובה מהגיליון (${d.status}) · בדוק את הכתובת`;
   return 'הגיליון החזיר שגיאה';
@@ -1004,6 +1053,7 @@ async function mgrLogin() {
     localStorage.setItem('mgrInfo', JSON.stringify({ url, code }));
     localStorage.setItem('appMode', 'manager');
   } catch(e) {}
+  msg.textContent = '';
   mgrMode = true;
   mgrStore(d);
   enterMgr(d);
@@ -1038,7 +1088,8 @@ function mgrExit(silent) {
 function renderMgrBar(note) {
   if (!mgr) return;
   const t = mgr.at ? new Date(mgr.at) : null;
-  document.getElementById('mgrText').textContent = 'מנהל אזור: ' + mgr.name + ' · ' + mgr.branches.length + ' סניפים'
+  const n = mgr.branches.length;
+  document.getElementById('mgrText').textContent = 'מנהל אזור: ' + mgr.name + ' · ' + (n === 1 ? 'סניף אחד' : n + ' סניפים')
     + (note ? ' · ' + note : t ? ' · עודכן ' + t.toLocaleDateString('he-IL', { day:'numeric', month:'numeric' }) + ' ' + t.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' }) : '');
 }
 function enterMgr(d) {
@@ -1079,14 +1130,21 @@ function weekStartOf(ds) { const d = new Date(ds + 'T00:00:00'); d.setDate(d.get
 function weekLabel(ws) { const e = new Date(ws + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(ws) + ' עד ' + dm(ymd(e)); }
 function renderMgr() {
   const all = mgr.branches.map(b => ({ b, segs: mgrSegs(b) }));
-  const ends = all.flatMap(x => PK.flatMap(k => x.segs[k].map(s => s.end)));
+  const ends = all.flatMap(x => PK.flatMap(k => x.segs[k].map(s => s.end))).sort();
   const lastWeek = ends.map(weekStartOf).sort().pop(), lastMonth = ends.map(e => e.slice(0, 7)).sort().pop();
+  // alerts look at the last two weeks (so a new week doesn't wipe last week's) and the latest month,
+  // plus the month before during the first week of a month — the same as the sheet
+  const alertWeeks = [...new Set(ends.map(weekStartOf))].slice(-2);
+  const alertMonths = lastMonth ? [lastMonth] : [];
+  if (ends.length && +ends[ends.length - 1].slice(8) <= 7) { const d = new Date(lastMonth + '-01T00:00:00'); d.setMonth(d.getMonth() - 1); alertMonths.unshift(ymd(d).slice(0, 7)); }
+  const mLabel = m => +m.slice(5) + '/' + m.slice(0, 4);
   const inWeek = s => weekStartOf(s.end) === lastWeek, inMonth = s => s.end.slice(0, 7) === lastMonth;
   const lastEnd = (segs, inP) => segs.filter(inP).map(s => s.end).sort().pop();
   const pname = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור' };
   // red alerts: latest week and latest month, every branch
   const alerts = [];
-  all.forEach(({ b, segs }, i) => PK.forEach(k => [['שבוע ' + (lastWeek ? weekLabel(lastWeek) : ''), inWeek], ['חודש ' + (lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''), inMonth]].forEach(([label, inP]) => {
+  const alertSets = alertWeeks.map(w => ['שבוע ' + weekLabel(w), s => weekStartOf(s.end) === w]).concat(alertMonths.map(m => ['חודש ' + mLabel(m), s => s.end.slice(0, 7) === m]));
+  all.forEach(({ b, segs }, i) => PK.forEach(k => alertSets.forEach(([label, inP]) => {
     const a = aggregate(segs[k].filter(inP));
     if (!a.n) return;
     const j = judge(a);
@@ -1094,7 +1152,7 @@ function renderMgr() {
   })));
   document.getElementById('mgrAlerts').innerHTML = alerts.length
     ? `<div class="alert-box"><h3>התראות · ${alerts.length}</h3>${alerts.join('')}</div>`
-    : `<div class="alert-box clear"><h3>✓ אין חשדות השבוע והחודש</h3></div>`;
+    : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`;
   // one card per branch: this week and this month for the three products
   document.getElementById('mgrList').innerHTML = all.map(({ b, segs }, i) => {
     const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judge(a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
@@ -1113,7 +1171,7 @@ function mgrOpen(name, date, stay) {
   mgrBranch = name;
   history = b.entries.slice();
   invEvents = b.inv.slice();
-  branch.name = b.name; branch.manager = b.manager; branch.area = mgr.name; // for the Excel files
+  mgrView = { name: b.name, manager: b.manager, area: mgr.name }; // for the Excel files (the phone's own branch details stay as they are)
   document.getElementById('mgrBranchSel').value = name;
   document.getElementById('mgrBranchMgr').textContent = b.manager ? 'מנהל מחלקה: ' + b.manager : '';
   const lastClose = history.filter(h => h.type === 'סגירה').map(h => h.date).sort().pop();
@@ -1137,19 +1195,20 @@ function sortHistory() {
 }
 // Bring in what other phones of the branch recorded, and drop what was deleted on any phone.
 // Weighings made on this phone are kept until the sheet says they were deleted.
-function mergeRemote(entries) {
+function mergeRemote(entries, since) {
   const remote = new Map(entries.map(e => [e.id, e]));
   const pending = new Set(syncQueue.filter(o => o.op === 'add').map(o => o.entry.id));
+  const deleting = new Set(syncQueue.filter(o => o.op === 'del').map(o => o.id)); // deleted here, the sheet doesn't know yet
   let changed = false;
   history = history.filter(h => {
     const r = remote.get(h.id);
     if (r && r.deleted) { changed = true; return false; }
-    if (!r && h.dev && h.dev !== myDev && !pending.has(h.id)) { changed = true; return false; }
+    if (!r && h.dev && h.dev !== myDev && !pending.has(h.id) && (!since || h.date >= since)) { changed = true; return false; } // older than the sheet sends: keep
     return true;
   });
   const local = new Set(history.map(h => h.id));
   entries.forEach(r => {
-    if (r.deleted || local.has(r.id)) return;
+    if (r.deleted || local.has(r.id) || deleting.has(r.id)) return;
     history.push({ id: r.id, date: r.date, time: r.time, meat: r.meat, type: r.type, weight: (Number(r.weight) || 0).toFixed(2), dev: r.dev || 'other', by: r.by || '' });
     changed = true;
   });
@@ -1168,8 +1227,9 @@ function renderSync() {
   if (!branch.url || mgrMode) { el.hidden = true; return; }
   el.hidden = false;
   if (syncing) { el.style.color = '#1565C0'; el.textContent = 'שולח לגיליון של החברה…'; return; }
-  if (syncError) { el.style.color = '#c62828'; el.textContent = syncError + (syncQueue.length ? ` · ממתינות ${syncQueue.length} שקילות` : ''); return; }
-  if (syncQueue.length) { el.style.color = '#e65100'; el.textContent = `ממתינות ${syncQueue.length} שקילות לשליחה · יישלחו כשיהיה אינטרנט`; return; }
+  const waiting = syncQueue.length === 1 ? 'ממתין עדכון אחד' : `ממתינים ${syncQueue.length} עדכונים`;
+  if (syncError) { el.style.color = '#c62828'; el.textContent = syncError + (syncQueue.length ? ' · ' + waiting : ''); return; }
+  if (syncQueue.length) { el.style.color = '#e65100'; el.textContent = waiting + ' לשליחה · יישלחו כשיהיה אינטרנט'; return; }
   el.style.color = '#2e7d32';
   el.textContent = '✓ מסונכרן עם הגיליון של החברה' + (lastPull ? ' · עודכן ' + lastPull.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' }) : '');
 }
@@ -1179,22 +1239,28 @@ async function syncNow() {
   if (!branch.url || syncing) { renderSync(); return; }
   if (navigator.onLine === false) { syncError = ''; renderSync(); return; }
   syncing = true; syncError = ''; renderSync();
+  // the branch details are copied once, so nothing that changes on screen meanwhile can send under another name
+  const conn = { url: branch.url, key: branch.key, info: { name: branch.name, manager: branch.manager, area: branch.area } };
+  const errors = { 'bad key': 'קוד החברה שגוי · בדוק בפרטי הסניף', 'busy': 'הגיליון עסוק כרגע · ינסה שוב לבד', 'no branch': 'חסר שם סניף בפרטי הסניף' };
   try {
     do {
+      if (mgrMode) break;
       const batch = syncQueue.slice(0, 200);
       const last = batch.length === syncQueue.length;
-      const res = await fetch(branch.url, {
+      const res = await fetch(conn.url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
-        body: JSON.stringify({ key: branch.key, dev: myDev, pull: last, branch: { name: branch.name, manager: branch.manager, area: branch.area }, ops: batch })
+        body: JSON.stringify({ key: conn.key, dev: myDev, pull: last, branch: conn.info, ops: batch })
       });
       let data;
       try { data = JSON.parse(await res.text()); }
       catch(err) { syncError = `הכתובת לא החזירה תשובה מהגיליון (${res.status}) · בדוק את כתובת החיבור`; break; }
-      if (!data.ok) { syncError = data.error === 'bad key' ? 'קוד החברה שגוי · בדוק בפרטי הסניף' : 'הגיליון החזיר שגיאה'; break; }
+      if (!data.ok) { syncError = errors[data.error] || 'הגיליון החזיר שגיאה'; break; }
       syncQueue.splice(0, batch.length); saveQueue();
-      if (last && Array.isArray(data.entries)) { mergeRemote(data.entries); lastPull = new Date(); }
-      if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv);
+      if (mgrMode) break; // switched to area-manager screens while waiting: keep his screens clean
+      if (data.settings) applySheetSettings(data.settings);
+      if (last && Array.isArray(data.entries)) { mergeRemote(data.entries, data.since); lastPull = new Date(); }
+      if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv, data.invSince);
     } while (syncQueue.length);
   } catch(e) {
     syncError = 'אין חיבור לגיליון כרגע';
@@ -1203,7 +1269,7 @@ async function syncNow() {
 }
 let lastPull = null;
 window.addEventListener('online', syncNow);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { document.getElementById('dateInput').max = ymd(new Date()); syncNow(); } });
 setInterval(syncNow, 60000);
 
 buildCards();
