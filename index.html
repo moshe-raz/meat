@@ -251,6 +251,35 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
 .alert-box, .br-card, .mgr-pick { border: 1px solid var(--line); box-shadow: var(--shadow); }
 .br-card-head { background: var(--pri-soft); }
 .br-card-head b { color: var(--pri); }
+/* ===== round 4: compact loss line, labelled +, calmer colours, stock count progress ===== */
+.an-label small { display: block; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+.an-nums { font-size: 13px; color: var(--muted); }
+.an-nums b { color: var(--ink); font-weight: 600; }
+.an-nums .allow { color: var(--muted); }
+.an-note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* the + gets a word under it like the other buttons */
+.nav .plus { margin-bottom: 18px !important; position: relative; overflow: visible; }
+.nav .plus::after { content: 'שקילה'; position: absolute; top: 62px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--pri); white-space: nowrap; }
+/* burgundy only for the header, the main buttons and the +; red stays for problems */
+:root { --sel: #3b302b; }
+.nav button.active, .prod-tabs button.active, .inv-tabs button.active { color: var(--sel) !important; }
+#btnWeigh.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b302b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18'/%3E%3Cpath d='M5 7h14'/%3E%3Cpath d='M5 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M19 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M8 21h8'/%3E%3C/svg%3E") !important; }
+#btnInv.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b302b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='4' width='12' height='17' rx='2'/%3E%3Cpath d='M9 4V3h6v1'/%3E%3Cpath d='M9 10h6M9 14h6M9 18h4'/%3E%3C/svg%3E") !important; }
+.nav button.active { font-weight: 800; }
+.link-btn { color: #5a4a42; }
+.branch-bar .link-btn, .mgr-bar .link-btn { color: #fff; }
+.inventory-item .inv-val { color: var(--ink) !important; font-weight: 700; }
+.inventory-item.selected { outline: 2px solid var(--sel); }
+.h-day .d-rel { background: var(--sel); }
+.an-label { background-image: none !important; padding-inline-start: 0 !important; }
+/* stock count */
+.inv-progress { display: flex; align-items: center; gap: 10px; margin: 2px 2px 10px; font-size: 13px; color: var(--muted); }
+.ip-bar { flex: 1; height: 8px; border-radius: 99px; background: var(--seg); overflow: hidden; display: flex; direction: rtl; }
+.ip-bar i { display: block; height: 100%; background: #2e9d55; border-radius: 99px; transition: width .3s; }
+#invSearch { width: 100%; margin: 0 0 10px; }
+.inventory-item.empty { background: #faf8f5; }
+.inventory-item.empty span { color: #a99a8f; }
+.inventory-item.empty .inv-val { color: #b9aca2 !important; font-weight: 500; font-size: 13px; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -373,6 +402,8 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button></div>
     <div style="margin:0 0 10px;font-size:15px">ספירה לחודש: <input type="month" id="invMonth" style="font-size:15px" onchange="setInvMonth(this.value)"></div>
     <div id="invTotals" class="inv-totals"></div>
+    <div class="inv-progress"><div class="ip-bar"><i id="ipFill"></i></div><span id="ipText"></span></div>
+    <input type="search" id="invSearch" placeholder="🔍 חיפוש מוצר…" oninput="renderInventory()" autocomplete="off">
     <button class="btn entry-only" onclick="saveInventory()">שמור מלאי</button>
     <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
   </div>
@@ -746,7 +777,7 @@ function judge(x) {
   const gap = r2(r2(x.went) - r2(x.sold));
   const pct = x.went > 0 ? gap / x.went * 100 : 0;
   const exp = r2(expectedWaste(x));
-  const nums = `הלך ${f2(x.went)} · נמכר ${f2(x.sold)} ק״ג<br>פער ${f2(gap)} ק״ג · פחת צפוי עד ${f2(exp)}`;
+  const nums = `הלך <b>${f2(x.went)}</b> · נמכר <b>${f2(x.sold)}</b> · פער <b>${f2(gap)}</b> <span class="allow">(מותר ${f2(exp)})</span>`;
   if (x.pending) return { cls:'none', text:'ממתין לנמכר', nums:`הלך ${f2(x.went)} ק״ג<br>הנמכר של ${x.end ? dm(x.end) : 'היום האחרון'} עוד לא נרשם` };
   if (gap < 0 && -gap > r2(Math.max(0, x.went) * SCALE_TOL / 100)) return { cls:'neg', text:`נמכר יותר ב־${f2(-gap)}`, nums: nums + '<br>בדוק שקילות', gap, exp };
   const p = pct.toFixed(1) + '%';
@@ -792,7 +823,7 @@ function updateAnalysis(days) {
     const seg = segs.find(s => s.end === sel);
     if (seg) {
       const j = judge(seg);
-      const span = seg.missing.length ? `<br>מחושב יחד מ־${dm(seg.start)} · חסרה סגירה: ${seg.missing.map(dm).join(', ')}` : '';
+      const span = seg.missing.length ? `<div class="an-note">מחושב יחד מ־${dm(seg.start)} · חסרה סגירה: ${seg.missing.map(dm).join(', ')}</div>` : '';
       html += row('יום', j.cls, j.text, j.nums + span);
     } else if (dd[sel] && dd[sel].hasClose) {
       html += row('יום', 'none', 'אין סגירה קודמת', 'צריך סגירה של יום עבודה קודם כדי לחשב');
@@ -805,7 +836,8 @@ function updateAnalysis(days) {
       const a = aggregate(segs.filter(inP));
       if (!a.n) { html += row(label, 'none', a.waiting ? 'ממתין לנמכר' : 'אין נתונים', a.waiting ? '' : 'צריך לפחות שתי סגירות'); return; }
       const j = judge(a);
-      html += row(label, j.cls, j.text, j.nums + `<br>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}` + (a.waiting ? ' · יום אחרון ממתין לנמכר' : '') + missingText(a.missing));
+      const note = (a.waiting ? 'יום אחרון ממתין לנמכר' : '') + (a.missing.length ? (a.waiting ? ' · ' : '') + missingText(a.missing).replace(/^ · /, '') : '');
+      html += row(label + `<small>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}</small>`, j.cls, j.text, j.nums + (note ? `<div class="an-note">${note}</div>` : ''));
     });
     if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · הפחת הצפוי כולל ניקוי לאיירון</div>';
     document.getElementById(k + '-analysis').innerHTML = html;
@@ -962,19 +994,20 @@ function persistInventory() { if (mgrMode) return; try { localStorage.setItem('i
 function invRow(p) {
   const i = products.indexOf(p);
   let cls = p.includes('מעובד') ? 'inventory-item processed' : 'inventory-item';
+  if (!invValue(p)) cls += ' empty'; // not counted yet
   if (p === selectedProduct) cls += ' selected';
   return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
       <span>${p}</span>
-      <span class="inv-val" style="font-weight:bold; color:#2E75B6">${fmt(invValue(p))} ק״ג</span>
+      <span class="inv-val">${invValue(p) ? fmt(invValue(p)) + ' ק״ג' : 'לא נספר'}</span>
     </div>`;
 }
 
 function renderInventory() {
   const el = document.getElementById('inventoryList');
-  const groups = g => g.map(([name, items]) => `<div class="inv-group">${name}</div>` + items.map(invRow).join('')).join('');
-  el.innerHTML = invTab === 'beef' ? beefProducts.map(invRow).join('')
-    : invTab === 'lamb' ? groups(lambGroups)
-    : groups(poultryGroups);
+  const q = (document.getElementById('invSearch') || {}).value || '';
+  const groups = g => g.map(([name, items]) => { const shown = items.filter(p => p.includes(q.trim())); return shown.length ? `<div class="inv-group">${name}</div>` + shown.map(invRow).join('') : ''; }).join('');
+  const beefGroups = [['בקר', beefProducts.filter(p => !p.includes('מעובד'))], ['בקר מעובד', beefProducts.filter(p => p.includes('מעובד'))]];
+  el.innerHTML = (invTab === 'beef' ? groups(beefGroups) : invTab === 'lamb' ? groups(lambGroups) : groups(poultryGroups)) || '<div class="kv-note" style="text-align:center;padding:20px">לא נמצא מוצר</div>';
   const m = document.getElementById('invMonth'); if (m && m.value !== invMonth) m.value = invMonth;
   renderInvTotals();
 }
@@ -984,7 +1017,15 @@ function invTotals() {
   invEvents.forEach(e => { if (e.month === invMonth && products.includes(e.product)) t[familyOf(catOf(e.product))] += e.w; });
   return { meat: t.meat, poultry: t.poultry, all: t.meat + t.poultry };
 }
+function renderProgress() {
+  const list = invTab === 'beef' ? beefProducts : invTab === 'lamb' ? lambProducts : poultryProducts;
+  const done = list.filter(p => invValue(p) > 0).length;
+  const fill = document.getElementById('ipFill'); if (!fill) return;
+  fill.style.width = (done / list.length * 100) + '%';
+  document.getElementById('ipText').textContent = `נספרו ${done} מתוך ${list.length}`;
+}
 function renderInvTotals() {
+  renderProgress();
   const t = invTotals(), el = document.getElementById('invTotals');
   if (!el) return;
   el.innerHTML = `<div>בקר וכבש<b>${fmt(t.meat)}</b></div><div>עוף והודו<b>${fmt(t.poultry)}</b></div><div>סה״כ כולל<b>${fmt(t.all)}</b></div>`;
