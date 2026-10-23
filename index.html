@@ -129,7 +129,7 @@
 <div id="page-inventory" class="page">
   <div class="controls">
     <h3>ספירת מלאי סוף חודש</h3>
-    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button></div>
+    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button></div>
     <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:10px 0;">
       <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
       <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
@@ -151,12 +151,12 @@ const beefProducts = [
   "צלי כתף","אנטריקוט","סינטה","סטייק עין","אנטריקוט לתנור",
   "פילה מדומה","פילה בקר","שפייץ צאך","שייטל","צלעות",
   "טחינה","אסאדו ללא עצם","שריר","אסאדו ע.ע","אוסובוקו",
-  "כתף","חזה",
+  "כתף","חזה","צלעות ע.ע","צוואר ע.ע","סטייק ע.ע",
   "צלי כתף מעובד","אנטריקוט מעובד","סינטה מעובד","סטייק עין מעובד",
   "אנטריקוט לתנור מעובד","פילה מדומה מעובד","פילה בקר מעובד",
   "שפייץ צאך מעובד","שייטל מעובד","צלעות מעובד","טחינה מעובד",
   "אסאדו ללא עצם מעובד","שריר מעובד","אסאדו ע.ע מעובד",
-  "אוסובוקו מעובד","כתף מעובד","חזה מעובד"
+  "אוסובוקו מעובד","כתף מעובד","חזה מעובד","סטייק ע.ע מעובד"
 ];
 const poultryGroups = [
   ['עוף', ["חזה עוף","שניצל","עוף שלם","עוף צעיר","כרעיים","כרעיים מקוצב","יריכיים","שוקיים","כרעיים ללא גב","יריכיים ללא גב",
@@ -167,7 +167,12 @@ const poultryGroups = [
   ['ארוזים', ["כרעיים ארוזים","שוקיים ארוזים","חזה ארוז","שניצל ארוז","פרגית ארוז"]]
 ];
 const poultryProducts = poultryGroups.flatMap(g => g[1]);
-const products = beefProducts.concat(poultryProducts); // one list, so every product has a fixed index
+const lambGroups = [
+  ['כבש', ["רבע כבש","שוק כבש","חזה כבש","גרון כבש","צלעות כבש","שומן כבש"]],
+  ['כבש מעובד', ["רבע כבש מעובד","שוק כבש מעובד","חזה כבש מעובד","גרון כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
+];
+const lambProducts = lambGroups.flatMap(g => g[1]);
+const products = beefProducts.concat(poultryProducts, lambProducts); // one list, so every product has a fixed index
 let invTab = 'beef';
 
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
@@ -627,15 +632,17 @@ function invRow(p) {
 
 function renderInventory() {
   const el = document.getElementById('inventoryList');
-  el.innerHTML = invTab === 'beef'
-    ? beefProducts.map(invRow).join('')
-    : poultryGroups.map(([g, items]) => `<div class="inv-group">${g}</div>` + items.map(invRow).join('')).join('');
+  const groups = g => g.map(([name, items]) => `<div class="inv-group">${name}</div>` + items.map(invRow).join('')).join('');
+  el.innerHTML = invTab === 'beef' ? beefProducts.map(invRow).join('')
+    : invTab === 'lamb' ? groups(lambGroups)
+    : groups(poultryGroups);
 }
 
 function setInvTab(t) {
   invTab = t;
   document.getElementById('tabBeef').classList.toggle('active', t === 'beef');
   document.getElementById('tabChicken').classList.toggle('active', t === 'chicken');
+  document.getElementById('tabLamb').classList.toggle('active', t === 'lamb');
   selectedProduct = null;
   document.getElementById('calcPanel').style.display = 'none';
   renderInventory();
@@ -727,10 +734,12 @@ function exportInventory() {
   const beefRows = [['מוצר','משקל (ק״ג)','פירוט'], ...beefProducts.map(row)];
   const poultryRows = [['מוצר','משקל (ק״ג)','פירוט']];
   poultryGroups.forEach(([g, items], n) => { if (n) poultryRows.push([]); poultryRows.push([g]); items.forEach(p => poultryRows.push(row(p))); });
+  const lambRows = [['מוצר','משקל (ק״ג)','פירוט']];
+  lambGroups.forEach(([g, items], n) => { if (n) lambRows.push([]); lambRows.push([g]); items.forEach(p => lambRows.push(row(p))); });
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
   addBranchSheet(wb);
-  [[beefRows, 'בקר'], [poultryRows, 'עוף']].forEach(([rows, name]) => {
+  [[beefRows, 'בקר'], [poultryRows, 'עוף'], [lambRows, 'כבש']].forEach(([rows, name]) => {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, ws, name);
