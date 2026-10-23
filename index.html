@@ -46,6 +46,8 @@
   .pill.none { background: #eceff1; color: #546e7a; }
   .pill.neg { background: #e3f2fd; color: #0d47a1; }
   .branch-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
+  body.setup-mode .nav, body.setup-mode .page, body.setup-mode .branch-bar, body.setup-mode #syncStatus { display: none !important; }
+  body.setup-mode #branchPanel { max-width: 460px; margin: 0 auto 15px; }
   .link-btn { background: none; border: none; color: #2E75B6; text-decoration: underline; font-size: 14px; cursor: pointer; padding: 2px; }
   .br-row { display: flex; flex-direction: column; max-width: 320px; margin: 8px auto; text-align: right; font-size: 14px; gap: 2px; }
   .br-row input { margin: 0; width: 100%; }
@@ -70,8 +72,8 @@
 <div class="branch-bar"><span id="branchText"></span><button type="button" class="link-btn" onclick="openBranch()">עריכת פרטי סניף</button></div>
 <div id="syncStatus" style="text-align:center;font-size:13px;margin:-6px 0 10px" hidden></div>
 <div id="branchPanel" class="controls" hidden>
-  <h3 style="margin-top:0">פרטי סניף</h3>
-  <div style="font-size:13px;color:#555">הפרטים נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל</div>
+  <h3 style="margin-top:0" id="brTitle">פרטי סניף</h3>
+  <div style="font-size:14px;color:#555" id="brIntro">הפרטים נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל</div>
   <label class="br-row">שם הסניף<input type="text" id="brName" autocomplete="off"></label>
   <label class="br-row">שם מנהל הסניף<input type="text" id="brManager" autocomplete="off"></label>
   <label class="br-row">שם מנהל האזור<input type="text" id="brArea" autocomplete="off"></label>
@@ -79,8 +81,8 @@
   <label class="br-row">כתובת חיבור<input type="url" id="brUrl" autocomplete="off" dir="ltr" placeholder="https://script.google.com/..."></label>
   <label class="br-row">קוד חברה<input type="text" id="brKey" autocomplete="off" dir="ltr"></label>
   <div id="branchMsg" style="color:#c62828;font-size:13px;min-height:16px"></div>
-  <button class="btn" onclick="saveBranch()">שמור</button>
-  <button class="btn" id="branchCancel" style="background:#6c757d" onclick="closeBranch()">ביטול</button>
+  <button class="btn" id="branchSave" onclick="saveBranch()">שמור</button>
+  <button class="btn" id="branchCancel" style="background:#6c757d" onclick="skipBranch()">ביטול</button>
 </div>
 <div class="nav">
   <button id="btnWeigh" class="active" onclick="showPage('weigh')">שקילות</button>
@@ -756,7 +758,9 @@ let branch = { name:'', manager:'', area:'', url:'', key:'' };
 function loadBranch() {
   try { const b = JSON.parse(localStorage.getItem('branchInfo') || 'null'); if (b) branch = Object.assign(branch, b); } catch(e) {}
   renderBranch();
-  if (!branch.name) openBranch(true);
+  let skipped = false;
+  try { skipped = localStorage.getItem('branchSkipped') === '1'; } catch(e) {}
+  if (!branch.name && !skipped) openBranch(true); // first open: branch details come before anything else
 }
 function renderBranch() {
   const parts = [];
@@ -772,11 +776,28 @@ function openBranch(first) {
   document.getElementById('brUrl').value = branch.url || '';
   document.getElementById('brKey').value = branch.key || '';
   document.getElementById('branchMsg').textContent = '';
-  document.getElementById('branchCancel').hidden = !!first;
+  document.getElementById('brTitle').textContent = first ? 'ברוכים הבאים' : 'פרטי סניף';
+  document.getElementById('brIntro').textContent = first
+    ? 'לפני שמתחילים, מלאו את פרטי הסניף. הם נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל. אפשר גם לדלג ולמלא אחר כך דרך "עריכת פרטי סניף".'
+    : 'הפרטים נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל';
+  document.getElementById('branchSave').textContent = first ? 'שמור והמשך' : 'שמור';
+  document.getElementById('branchCancel').textContent = first ? 'דלג' : 'ביטול';
+  document.body.classList.add('setup-mode');
   document.getElementById('branchPanel').hidden = false;
+  window.scrollTo(0, 0);
   document.getElementById('brName').focus();
 }
-function closeBranch() { document.getElementById('branchPanel').hidden = true; }
+// Leave the details screen and land on the weighing screen
+function closeBranch() {
+  document.getElementById('branchPanel').hidden = true;
+  document.body.classList.remove('setup-mode');
+  showPage('weigh');
+  window.scrollTo(0, 0);
+}
+function skipBranch() {
+  try { localStorage.setItem('branchSkipped', '1'); } catch(e) {}
+  closeBranch();
+}
 function saveBranch() {
   const name = document.getElementById('brName').value.trim();
   if (!name) { document.getElementById('branchMsg').textContent = 'צריך למלא לפחות את שם הסניף'; return; }
