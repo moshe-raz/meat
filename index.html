@@ -59,8 +59,6 @@
   .inv-totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 10px; }
   .inv-totals div { background: #eef4fb; border-radius: 8px; padding: 6px 4px; font-size: 12px; color: #1F4E79; }
   .inv-totals b { display: block; font-size: 17px; color: #1F4E79; }
-  .inventory-item.sub { margin-right: 26px; background: #f7f9fb; }
-  .inventory-item.sub span:first-child::before { content: "↳ "; color: #8aa; }
   .processed { background: #fff3e0; }
   #page-inventory .controls { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
   .inventory-item.selected { outline: 3px solid #2E75B6; }
@@ -80,7 +78,7 @@
   <h3 style="margin-top:0" id="brTitle">פרטי סניף</h3>
   <div style="font-size:14px;color:#555" id="brIntro">הפרטים נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל</div>
   <label class="br-row">שם הסניף<input type="text" id="brName" autocomplete="off"></label>
-  <label class="br-row">שם מנהל הסניף<input type="text" id="brManager" autocomplete="off"></label>
+  <label class="br-row">שם מנהל המחלקה<input type="text" id="brManager" autocomplete="off"></label>
   <label class="br-row">שם מנהל האזור<input type="text" id="brArea" autocomplete="off"></label>
   <div style="font-size:13px;color:#555;margin-top:12px">חיבור לגיליון של החברה (מקבלים ממנהל האזור · אפשר להשאיר ריק)</div>
   <label class="br-row">כתובת חיבור<input type="url" id="brUrl" autocomplete="off" dir="ltr" placeholder="https://script.google.com/..."></label>
@@ -155,15 +153,8 @@
 
 <script>
 const beefProducts = [
-  "צלי כתף","אנטריקוט","סינטה","סטייק עין","אנטריקוט לתנור",
-  "פילה מדומה","פילה בקר","שפייץ צאך","שייטל","צלעות","אונטריב","דנוור",
-  "טחינה","אסאדו ללא עצם","שריר","אסאדו ע.ע","אוסובוקו",
-  "כתף","חזה","צלעות ע.ע","צוואר ע.ע","סטייק ע.ע",
-  "צלי כתף מעובד","אנטריקוט מעובד","סינטה מעובד","סטייק עין מעובד",
-  "אנטריקוט לתנור מעובד","פילה מדומה מעובד","פילה בקר מעובד",
-  "שפייץ צאך מעובד","שייטל מעובד","צלעות מעובד","טחינה מעובד",
-  "אסאדו ללא עצם מעובד","שריר מעובד","אסאדו ע.ע מעובד",
-  "אוסובוקו מעובד","כתף מעובד","חזה מעובד","סטייק ע.ע מעובד"
+  "בשר לטחינה","אנטריקוט","סינטה","דנוור","סטייק עין","אנטריקוט לתנור","צלי כתף","פילה מדומה","אסאדו ללא עצם","כתף בקר","אונטריב","שריר","חזה בקר","בשר ראש","אוסובוקו","אסאדו ע.ע","צוואר ע.ע","צלעות ע.ע","אנטריקוט ע.ע","שייטל","שפיץ צאך","פילה בקר","אצבעות אנטריקוט","כבד בקר","ריאות","שקדי בקר","זנב בקר","לב בקר","לשון","עצמות","עצם מוח","גידים",
+  "בשר לטחינה מעובד","אנטריקוט מעובד","סינטה מעובד","דנוור מעובד","סטייק עין מעובד","אנטריקוט לתנור מעובד","צלי כתף מעובד","פילה מדומה מעובד","אסאדו ללא עצם מעובד","כתף בקר מעובד","אונטריב מעובד","שריר מעובד","חזה בקר מעובד","בשר ראש מעובד","אוסובוקו מעובד","אסאדו ע.ע מעובד","צוואר ע.ע מעובד","צלעות ע.ע מעובד","אנטריקוט ע.ע מעובד","שייטל מעובד","שפיץ צאך מעובד","פילה בקר מעובד","אצבעות אנטריקוט מעובד","לשון מעובד"
 ];
 const poultryGroups = [
   ['עוף', ["חזה עוף","שניצל","עוף שלם","עוף צעיר","כרעיים","כרעיים מקוצב","יריכיים","שוקיים","כרעיים ללא גב","יריכיים ללא גב",
@@ -175,13 +166,11 @@ const poultryGroups = [
 ];
 const poultryProducts = poultryGroups.flatMap(g => g[1]);
 const lambGroups = [
-  ['כבש', ["רבע כבש","שוק כבש","חזה כבש","גרון כבש","צלעות כבש","שומן כבש"]],
-  ['כבש מעובד', ["רבע כבש מעובד","שוק כבש מעובד","חזה כבש מעובד","גרון כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
+  ['כבש', ["רבע כבש","שוק כבש","חזה כבש","צוואר כבש","צלעות כבש","שומן כבש"]],
+  ['כבש מעובד', ["רבע כבש מעובד","שוק כבש מעובד","חזה כבש מעובד","צוואר כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
 ];
 const lambProducts = lambGroups.flatMap(g => g[1]);
 const products = beefProducts.concat(lambProducts, poultryProducts); // one list, so every product has a fixed index
-const subProducts = ["אונטריב","דנוור"]; // shown indented under "צלעות"
-const renamedProducts = { "כרעיים ארוזים": "כרעיים ארוז", "שוקיים ארוזים": "שוקיים ארוז" };
 // beef and lamb are reported together, chicken and turkey together
 function familyOf(cat) { return ['עוף', 'הודו', 'ארוזים'].includes(cat) ? 'poultry' : 'meat'; }
 let invTab = 'beef';
@@ -189,7 +178,6 @@ let invTab = 'beef';
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
 const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה', xfer:'העברה לאנטריקוט', xfer2:'העברה לתנור' };
 let history = [];
-let inventory = {};
 
 document.getElementById('dateInput').valueAsDate = new Date();
 document.getElementById('dateInput').addEventListener('change', updateDisplay);
@@ -640,7 +628,6 @@ function persistInventory() { try { localStorage.setItem('invEvents', JSON.strin
 function invRow(p) {
   const i = products.indexOf(p);
   let cls = p.includes('מעובד') ? 'inventory-item processed' : 'inventory-item';
-  if (subProducts.includes(p)) cls += ' sub';
   if (p === selectedProduct) cls += ' selected';
   return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
       <span>${p}</span>
@@ -781,7 +768,8 @@ function mergeRemoteInv(list) {
   const local = new Set(invEvents.map(e => e.id));
   list.forEach(r => {
     if (r.deleted || local.has(r.id)) return;
-    invEvents.push({ id: r.id, month: r.month, product: r.product, w: Number(r.w) || 0, dev: r.dev || 'other', cat: r.cat, ord: Number(r.ord) });
+    const prod = r.product;
+    invEvents.push({ id: r.id, month: r.month, product: prod, w: Number(r.w) || 0, dev: r.dev || 'other', cat: products.includes(prod) ? catOf(prod) : r.cat, ord: products.includes(prod) ? products.indexOf(prod) : Number(r.ord) });
     changed = true;
   });
   if (changed) {
@@ -825,23 +813,7 @@ function loadData() {
     history.forEach(h => { if (!h.id) { h.id = newId(); added = true; } if (!h.dev) { h.dev = myDev; added = true; } });
     if (added) saveData();
     const ev = localStorage.getItem('invEvents');
-    if (ev) {
-      invEvents = JSON.parse(ev);
-      let ren = false; // products that were renamed keep their counts
-      invEvents.forEach(e => { if (renamedProducts[e.product]) { e.product = renamedProducts[e.product]; e.cat = catOf(e.product); e.ord = products.indexOf(e.product); ren = true; } });
-      if (ren) { persistInventory(); queueOps(invEvents.filter(e => Object.values(renamedProducts).includes(e.product)).map(e => ({ op: 'invAdd', e }))); }
-    }
-    else { // first run of this version: turn the old per-product totals into records for the current count month
-      const inv = JSON.parse(localStorage.getItem('inventoryData') || '{}'), st = JSON.parse(localStorage.getItem('inventorySteps') || '{}');
-      Object.keys(inv).forEach(p => {
-        if (!products.includes(p)) return;
-        const total = parseFloat(inv[p]) || 0, steps = (st[p] || []).map(Number).filter(n => n > 0);
-        const sum = steps.reduce((a, n) => a + n, 0);
-        const ws = steps.length && Math.abs(sum - total) < 0.01 ? steps : (total > 0 ? [total] : []);
-        ws.forEach(w => invEvents.push({ id: newId(), month: invMonth, product: p, w, dev: myDev, cat: catOf(p), ord: products.indexOf(p) }));
-      });
-      persistInventory();
-    }
+    if (ev) invEvents = JSON.parse(ev);
   } catch(e){}
   updateDisplay(); renderHistory();
 }
@@ -858,7 +830,7 @@ function loadBranch() {
 function renderBranch() {
   const parts = [];
   if (branch.name) parts.push('סניף ' + branch.name);
-  if (branch.manager) parts.push('מנהל: ' + branch.manager);
+  if (branch.manager) parts.push('מנהל מחלקה: ' + branch.manager);
   if (branch.area) parts.push('מנהל אזור: ' + branch.area);
   document.getElementById('branchText').textContent = parts.length ? parts.join(' · ') : 'לא הוזנו פרטי סניף';
 }
@@ -912,7 +884,7 @@ function saveBranch() {
 }
 function addBranchSheet(wb, extra) {
   const ws = XLSX.utils.aoa_to_sheet([
-    ['סניף', branch.name], ['מנהל סניף', branch.manager], ['מנהל אזור', branch.area], ...(extra || []),
+    ['סניף', branch.name], ['מנהל מחלקה', branch.manager], ['מנהל אזור', branch.area], ...(extra || []),
     ['תאריך ייצוא', new Date().toLocaleDateString('he-IL') + ' ' + new Date().toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' })]
   ]);
   ws['!cols'] = [{ wch: 14 }, { wch: 28 }];
