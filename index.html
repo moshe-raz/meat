@@ -189,10 +189,37 @@ h1 { background: linear-gradient(135deg, #8e2626, #b23a3a); color: #fff; margin:
 .period { border-top: none; }
 .controls { border-radius: 20px; }
 #calcPanel { background: #fff !important; }
+/* settings button in the burgundy band */
+.gear-btn { position: absolute; top: 14px; left: 10px; width: 44px; height: 44px; border: none; border-radius: 50%; background: rgba(255,255,255,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'/%3E%3C/svg%3E") no-repeat center / 22px; cursor: pointer; z-index: 5; }
+body.mgr-mode .gear-btn, body.setup-mode .gear-btn { display: none; }
+/* product switcher above the cards */
+.prod-tabs { display: flex; gap: 6px; background: var(--seg); padding: 4px; border-radius: 999px; margin: 4px 0 12px; }
+.prod-tabs button { flex: 1; border: none; background: transparent; border-radius: 999px; padding: 9px 4px; font: 700 14px var(--font); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.prod-tabs button.active { background: var(--card); color: var(--pri); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #c9c2bb; flex: none; }
+.dot.ok { background: #2e9d55; } .dot.warn { background: #f08c00; } .dot.bad { background: #d92d20; } .dot.neg { background: #3b6fd8; }
+#cards .meat-card { display: none; }
+#cards .meat-card.shown { display: block; }
+#cards .meat-header { display: none; }
+/* settings page */
+#page-settings h3 { margin: 0 0 12px; font-size: 19px; }
+#page-settings h4 { margin: 18px 0 8px; font-size: 15px; color: var(--muted); text-align: right; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); text-align: right; }
+.set-row:last-of-type { border-bottom: none; }
+.set-row input { width: 74px; text-align: center; margin: 0; }
+.set-hint { font-size: 12px; color: var(--muted); text-align: right; margin-top: 6px; line-height: 1.5; }
+button.btn.danger { background: #fff !important; color: #c62828; border: 1px solid #f0c9c9; width: 100%; }
+/* a short "saved" note after adding */
+#okToast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); opacity: 0; background: #1f2a24; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 70; transition: opacity .2s, transform .2s; pointer-events: none; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#okToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+h1 { position: relative; }
 /* area-manager bar sits in the burgundy band like the branch line */
 .mgr-bar { background: linear-gradient(135deg, #8e2626, #b23a3a); color: #f4dada; margin: 0 -14px 16px; padding: 0 16px 16px; border-radius: 0 0 22px 22px; }
 .mgr-bar .link-btn { color: #fff; text-decoration: underline; }
 body.mgr-mode .branch-bar { display: none !important; }
+#page-weigh #mgrLoss { display: block; margin-top: 4px; }
+body:not(.mgr-mode) #page-weigh #mgrLoss { display: none; }
+#mgrLoss h3 { font-size: 17px; text-align: right; }
 body.mgr-mode .nav button { padding: 30px 2px 4px; font-size: 12px; white-space: nowrap; }
 #syncStatus { margin: -8px 0 12px !important; }
 body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
@@ -209,7 +236,9 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
 </head>
 <body>
 <h1>שקילות בשר ומלאי</h1>
-<div class="branch-bar"><span id="branchText"></span><button type="button" class="link-btn" onclick="openBranch()">עריכת פרטי סניף</button></div>
+<button type="button" class="gear-btn" aria-label="הגדרות" onclick="showPage('settings')"></button>
+<div class="branch-bar"><span id="branchText"></span></div>
+<div id="okToast" role="status"></div>
 <div id="syncStatus" style="text-align:center;font-size:13px;margin:-6px 0 10px" hidden></div>
 <div class="mgr-bar mgr-only"><span id="mgrText"></span><button type="button" class="link-btn" onclick="mgrRefresh()">רענון</button><button type="button" class="link-btn" onclick="mgrExit()">יציאה</button></div>
 <div id="mgrLogin" class="controls" hidden>
@@ -271,19 +300,45 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <div id="soldNote" class="entry-only" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
     <button class="btn entry-only" onclick="addWeight()">הוסף</button>
     <div id="workerLine" class="entry-only" style="font-size:13px;color:#555;margin:4px 0"></div>
-    <div class="entry-only" style="margin:6px 0; font-size:14px"><span id="lossAllowLabel">פחת רגיל (קליפה)</span>: <input type="text" id="lossAllow" inputmode="decimal" style="width:60px;text-align:center"> %
-      <div id="ironAllowRow">פחת בניקוי לאיירון (רק צלי כתף): <input type="text" id="ironAllow" inputmode="decimal" style="width:60px;text-align:center"> %
-        <div style="color:#666;font-size:12px">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14%</div></div>
-      <div style="color:#666;font-size:12px">עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div>
-      <div id="allowNote" style="color:#1565C0;font-size:12px" hidden>האחוזים נקבעים בגיליון של החברה (לשונית "הגדרות")</div></div>
     <button class="btn entry-only" style="background:#6c757d" onclick="deleteLast()">מחק אחרון</button>
     <button class="btn" style="background:#28a745" onclick="exportToExcel()">ייצא לאקסל</button>
-    <button class="btn entry-only" style="background:#d32f2f" onclick="resetAll()">אפס הכל</button>
   </div>
 
+  <div id="prodTabs" class="prod-tabs"></div>
   <div id="cards"></div>
 
+  <div id="mgrLoss" class="controls mgr-only">
+    <h3 style="margin:0 0 8px">אחוזי פחת · <span id="mgrLossBranch"></span></h3>
+    <label class="set-row">אנטריקוט <span><input type="text" id="mg_entrecote" inputmode="decimal"> %</span></label>
+    <label class="set-row">צלי כתף <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mg_oven" inputmode="decimal"> %</span></label>
+    <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
+    <label class="set-row" style="justify-content:flex-start;gap:8px"><input type="checkbox" id="mgAll" style="width:auto"> לקבוע את אותם אחוזים לכל הסניפים שלי</label>
+    <button class="btn" style="width:100%" onclick="mgrSaveLoss()">שמירה</button>
+    <div id="mgLossMsg" class="set-hint" style="text-align:center"></div>
+  </div>
+
   <div id="historyList" style="background:white;padding:10px;border-radius:8px;max-height:200px;overflow:auto;margin-top:10px;"></div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div id="page-settings" class="page">
+  <div class="controls">
+    <h3>הגדרות</h3>
+    <div class="set-row"><span id="setBranch"></span><button type="button" class="link-btn" onclick="openBranch()">עריכה</button></div>
+    <div class="set-row"><span id="setWorker"></span><button type="button" class="link-btn" onclick="openBranch(false, true)">שינוי</button></div>
+    <h4>פחת מותר (קליפה)</h4>
+    <label class="set-row">אנטריקוט <span><input type="text" id="allow_entrecote" inputmode="decimal"> %</span></label>
+    <label class="set-row">צלי כתף <span><input type="text" id="allow_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row">אנטריקוט לתנור <span><input type="text" id="allow_oven" inputmode="decimal"> %</span></label>
+    <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="ironAllow" inputmode="decimal"> %</span></label>
+    <div class="set-hint">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14% · עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div>
+    <div id="allowNote" class="set-hint" style="color:#1565C0" hidden>האחוזים נקבעים על ידי מנהל האזור או החברה ומתעדכנים לבד</div>
+    <h4>מחיקה</h4>
+    <button class="btn danger" onclick="resetAll()">איפוס כל השקילות בטלפון הזה</button>
+    <div class="set-hint">השקילות שכבר בגיליון של החברה לא נמחקות ויחזרו בסנכרון הבא.</div>
+    <button type="button" class="btn" style="width:100%;margin-top:16px" onclick="showPage('weigh')">חזרה</button>
+  </div>
 </div>
 
 <!-- INVENTORY PAGE -->
@@ -336,6 +391,7 @@ let invTab = 'beef';
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
 const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה', xfer:'העברה לאנטריקוט', xfer2:'העברה לתנור' };
 let history = [];
+let prodStatus = {}, cardSel = 'entrecote', cardsBuilt = false; // which product card is shown
 // Area manager mode: read only, shows his branches from the company sheet; nothing is saved or sent
 let mgrMode = false;
 try { mgrMode = localStorage.getItem('appMode') === 'manager'; } catch(e) {}
@@ -344,6 +400,11 @@ document.getElementById('dateInput').value = ymd(new Date()); // local date (val
 document.getElementById('dateInput').max = ymd(new Date());
 document.getElementById('dateInput').addEventListener('change', updateDisplay);
 
+let okTimer;
+function showOk(text) {
+  const el = document.getElementById('okToast'); el.textContent = text; el.classList.add('show');
+  clearTimeout(okTimer); okTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
 // the + in the bottom bar: straight to the weight field, from anywhere
 function goAdd() {
   showPage('weigh');
@@ -354,7 +415,9 @@ function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  document.getElementById({ weigh:'btnWeigh', inventory:'btnInv', mgr:'btnMgr' }[page]).classList.add('active');
+  const nb = { weigh:'btnWeigh', inventory:'btnInv', mgr:'btnMgr' }[page];
+  if (nb) document.getElementById(nb).classList.add('active');
+  if (page === 'settings') { renderSettings(); window.scrollTo(0, 0); }
   document.getElementById('mgrBranchPick').hidden = !mgrMode || page === 'mgr';
   if (page === 'inventory') { renderInventory(); if (branch.url) syncNow(); }
 }
@@ -379,7 +442,7 @@ function syncTypeForMeat() {
   });
   if (isIron) typeSel.value = 'sold';
   else if ((typeSel.value === 'xfer' && meat !== 'oven') || (typeSel.value === 'xfer2' && meat !== 'entrecote')) typeSel.value = 'prep';
-  document.getElementById('ironAllowRow').hidden = !(meat === 'shoulder' || meat === 'iron');
+  setCard(meat === 'iron' ? 'shoulder' : meat);
 }
 // Sales figures arrive the next working day: Thursday's on Friday, Friday's on Sunday.
 // So "sold" is recorded under the day the meat was sold, not the day you type it in.
@@ -447,6 +510,7 @@ function addWeight() {
   updateDisplay();
   renderHistory();
   saveData();
+  showOk(`✓ נשמר: ${entry.meat} · ${entry.type} · ${entry.weight} ק״ג` + (nums.length > 1 ? ` (${nums.length} מגשים)` : ''));
   if (history.length > 12000) pruneOld();
 }
 
@@ -462,8 +526,9 @@ function shortDate(ds) { const d = new Date(ds + 'T00:00:00'); return dayNames[d
 function dm(ds) { const d = new Date(ds + 'T00:00:00'); return d.getDate() + '.' + (d.getMonth()+1); }
 
 function buildCards() {
+  cardsBuilt = true;
   document.getElementById('cards').innerHTML = cardDefs.map(([k, n]) => `
-  <div class="meat-card">
+  <div class="meat-card" data-k="${k}">
     <div class="meat-header">${n}</div>
     <div class="meat-body">
       <div class="section stock"><div>מלאי ליום</div><div class="total" id="${k}-stock">0.00</div><div class="sub" id="${k}-stock-sub"></div></div>
@@ -562,6 +627,7 @@ function updateDisplay() {
   });
   updatePeriodTotals();
   updateAnalysis(days);
+  renderProdTabs();
 }
 
 function updatePeriodTotals() {
@@ -592,15 +658,18 @@ const lossAllow = { entrecote:0, shoulder:5, oven:5 }; // regular trim waste per
 let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of the raw shoulder used
 let SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
 let WARN_X = 2;    // up to this many times the expected waste = check, above = suspicion
-const allowKey = () => { const m = document.getElementById('meatSelect').value; return m === 'iron' ? 'shoulder' : m; };
 let sheetRules = false; // connected branches use the company's percentages from the sheet
 function syncAllowField() {
-  const k = allowKey();
-  document.getElementById('lossAllowLabel').textContent = 'פחת רגיל ל' + names[k];
-  document.getElementById('lossAllow').value = lossAllow[k];
-  document.getElementById('ironAllow').value = ironAllow;
-  document.getElementById('lossAllow').readOnly = document.getElementById('ironAllow').readOnly = sheetRules;
+  PK.forEach(k => { const el = document.getElementById('allow_' + k); el.value = lossAllow[k]; el.readOnly = sheetRules; });
+  const ia = document.getElementById('ironAllow'); ia.value = ironAllow; ia.readOnly = sheetRules;
   document.getElementById('allowNote').hidden = !sheetRules;
+}
+function renderSettings() {
+  const parts = [branch.name ? 'סניף ' + branch.name : 'לא הוזנו פרטי סניף'];
+  if (branch.url) parts.push('מחובר לגיליון');
+  document.getElementById('setBranch').textContent = parts.join(' · ');
+  document.getElementById('setWorker').textContent = worker ? 'רושם בטלפון הזה: ' + worker : 'לא הוזן שם עובד';
+  syncAllowField();
 }
 function applySheetSettings(s) {
   if (!s || !s.loss) return;
@@ -610,7 +679,7 @@ function applySheetSettings(s) {
   if (isFinite(s.tol)) { SCALE_TOL = Number(s.tol); save('scaleTol', SCALE_TOL); }
   if (Number(s.warnX) > 0) { WARN_X = Number(s.warnX); save('warnX', WARN_X); }
   sheetRules = true; save('sheetRules', '1');
-  syncAllowField(); updateAnalysis(buildDays());
+  syncAllowField(); updateAnalysis(buildDays()); renderProdTabs();
 }
 function loadAllow() {
   try {
@@ -619,19 +688,20 @@ function loadAllow() {
   } catch(e) {}
   const save = (id, v) => { try { localStorage.setItem(id, v); } catch(e) {} };
   const num = el => { const v = parseFloat(el.value.replace(',', '.')); return !isNaN(v) && v >= 0 && v < 100 ? v : null; };
-  const la = document.getElementById('lossAllow'), ia = document.getElementById('ironAllow');
-  ia.value = ironAllow;
+  const ia = document.getElementById('ironAllow');
   try {
     const t = parseFloat(localStorage.getItem('scaleTol')); if (!isNaN(t)) SCALE_TOL = t;
     const x = parseFloat(localStorage.getItem('warnX')); if (x > 0) WARN_X = x;
     sheetRules = localStorage.getItem('sheetRules') === '1';
   } catch(e) {}
-  la.addEventListener('input', () => { if (sheetRules) return; const v = num(la); if (v !== null) { const k = allowKey(); lossAllow[k] = v; save('lossAllow_' + k, v); updateAnalysis(buildDays()); } });
+  PK.forEach(k => {
+    const el = document.getElementById('allow_' + k);
+    el.addEventListener('input', () => { if (sheetRules) return; const v = num(el); if (v !== null) { lossAllow[k] = v; save('lossAllow_' + k, v); updateAnalysis(buildDays()); } });
+    el.addEventListener('blur', () => { el.value = lossAllow[k]; }); // a bad value goes back to the one in use
+  });
   ia.addEventListener('input', () => { if (sheetRules) return; const v = num(ia); if (v !== null) { ironAllow = v; save('ironAllow', v); updateAnalysis(buildDays()); } });
   // leaving a field with a bad value puts back the value actually used
-  la.addEventListener('blur', () => { la.value = lossAllow[allowKey()]; });
   ia.addEventListener('blur', () => { ia.value = ironAllow; });
-  document.getElementById('meatSelect').addEventListener('change', syncAllowField);
   syncAllowField();
 }
 
@@ -675,6 +745,12 @@ function missingText(list) {
   return ' · חסרה סגירה: ' + list.slice(0, 4).map(dm).join(', ') + (list.length > 4 ? ` ועוד ${list.length - 4}` : '');
 }
 
+function setCard(k) { cardSel = k; if (cardsBuilt) renderProdTabs(); }
+function renderProdTabs() {
+  const el = document.getElementById('prodTabs'); if (!el) return;
+  el.innerHTML = cardDefs.map(([k, n]) => `<button type="button" class="${k === cardSel ? 'active' : ''}" onclick="setCard('${k}')"><span class="dot ${prodStatus[k] || 'none'}"></span>${k === 'oven' ? 'לתנור' : n}</button>`).join('');
+  document.querySelectorAll('#cards .meat-card').forEach(c => c.classList.toggle('shown', c.dataset.k === cardSel));
+}
 function updateAnalysis(days) {
   const sel = document.getElementById('dateInput').value;
   if (!sel) return;
@@ -707,6 +783,9 @@ function updateAnalysis(days) {
     });
     if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · הפחת הצפוי כולל ניקוי לאיירון</div>';
     document.getElementById(k + '-analysis').innerHTML = html;
+    // the worst status of day / week / month shows as a dot on the product switcher
+    const rank = { none: 0, ok: 1, neg: 2, warn: 3, bad: 4 };
+    prodStatus[k] = (html.match(/pill (\w+)/g) || []).map(x => x.slice(5)).reduce((w, c) => (rank[c] || 0) > (rank[w] || 0) ? c : w, 'none');
   });
 }
 
@@ -1269,6 +1348,7 @@ function weekStartOf(ds) { const d = new Date(ds + 'T00:00:00'); d.setDate(d.get
 function weekLabel(ws) { const e = new Date(ws + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(ws) + ' עד ' + dm(ymd(e)); }
 function renderMgr() {
   const all = mgr.branches.map(b => ({ b, segs: mgrSegs(b) }));
+  const judgeIn = (b, a) => { useSettings(b.settings || mgr.settings); return judge(a); };
   const ends = all.flatMap(x => PK.flatMap(k => x.segs[k].map(s => s.end))).sort();
   const lastWeek = ends.map(weekStartOf).sort().pop(), lastMonth = ends.map(e => e.slice(0, 7)).sort().pop();
   // alerts look at the last two weeks (so a new week doesn't wipe last week's) and the latest month,
@@ -1286,7 +1366,7 @@ function renderMgr() {
   all.forEach(({ b, segs }, i) => PK.forEach(k => alertSets.forEach(([label, inP]) => {
     const a = aggregate(segs[k].filter(inP));
     if (!a.n) return;
-    const j = judge(a);
+    const j = judgeIn(b, a);
     if (j.cls === 'bad') alerts.push(`<button type="button" class="alert-row" onclick="mgrOpenAt(${i}, '${lastEnd(segs[k], inP)}')">🔴 <b>${esc(b.name)}</b> · ${pname[k]} · ${label} · ${j.text} · פער ${f2(a.went - a.sold)} ק״ג ←</button>`);
   })));
   document.getElementById('mgrAlerts').innerHTML = alerts.length
@@ -1294,7 +1374,7 @@ function renderMgr() {
     : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`;
   // one card per branch: this week and this month for the three products
   document.getElementById('mgrList').innerHTML = all.map(({ b, segs }, i) => {
-    const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judge(a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
+    const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judgeIn(b, a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
     const end = PK.map(k => lastEnd(segs[k], inWeek)).filter(Boolean).sort().pop();
     return `<div class="br-card" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">
       <div class="br-card-head"><b>${esc(b.name)}</b><span>${b.manager ? 'מנהל מחלקה: ' + esc(b.manager) + ' · ' : ''}פתח ←</span></div>
@@ -1303,11 +1383,47 @@ function renderMgr() {
   }).join('') || '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
 }
 function mgrOpenAt(i, date) { mgrOpen(mgr.branches[i].name, date); }
+// the loss % used for a branch: the ones its area manager set, otherwise the company's
+function useSettings(s) {
+  if (!s || !s.loss) return;
+  PK.forEach(k => { if (isFinite(s.loss[k])) lossAllow[k] = Number(s.loss[k]); });
+  if (isFinite(s.iron)) ironAllow = Number(s.iron);
+  if (isFinite(s.tol)) SCALE_TOL = Number(s.tol);
+  if (Number(s.warnX) > 0) WARN_X = Number(s.warnX);
+}
+function renderMgrLoss() {
+  document.getElementById('mgrLossBranch').textContent = mgrBranch;
+  PK.forEach(k => { document.getElementById('mg_' + k).value = lossAllow[k]; });
+  document.getElementById('mg_iron').value = ironAllow;
+  document.getElementById('mgAll').checked = false;
+  document.getElementById('mgLossMsg').textContent = '';
+}
+async function mgrSaveLoss() {
+  const msg = document.getElementById('mgLossMsg');
+  const read = id => { const v = parseFloat(document.getElementById(id).value.replace(',', '.')); return isNaN(v) || v < 0 || v >= 100 ? null : v; };
+  const loss = { entrecote: read('mg_entrecote'), shoulder: read('mg_shoulder'), oven: read('mg_oven'), iron: read('mg_iron') };
+  if (Object.values(loss).some(v => v === null)) { msg.style.color = '#c62828'; msg.textContent = 'כל אחוז צריך להיות מספר בין 0 ל־99'; return; }
+  const all = document.getElementById('mgAll').checked;
+  const list = all ? mgr.branches.map(b => b.name) : [mgrBranch];
+  if (all && !confirm(`לקבוע את האחוזים האלה ל־${list.length} הסניפים שלך?`)) return;
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
+  msg.style.color = '#1565C0'; msg.textContent = 'שומר…';
+  try {
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrSet', mcode: info.code, branches: list, loss }) });
+    let d; try { d = JSON.parse(await res.text()); } catch(e) { d = { ok: false }; }
+    if (!d.ok) { msg.style.color = '#c62828'; msg.textContent = d.error === 'busy' ? 'הגיליון עסוק · נסה שוב בעוד רגע' : d.error === 'bad key' ? 'הגיליון עדיין לא מכיר את האפשרות הזו · צריך לעדכן בו את הקוד' : 'השמירה לא הצליחה'; return; }
+    msg.style.color = '#2e7d32'; msg.textContent = '✓ נשמר · הטלפונים בסניף יקבלו את האחוזים בסנכרון הבא';
+    await mgrRefresh();
+    document.getElementById('mgLossMsg').style.color = '#2e7d32';
+    document.getElementById('mgLossMsg').textContent = '✓ נשמר · הטלפונים בסניף יקבלו את האחוזים בסנכרון הבא';
+  } catch(e) { msg.style.color = '#c62828'; msg.textContent = 'אין חיבור לגיליון כרגע'; }
+}
 // Shows one branch in the weighing and stock count screens (read only)
 function mgrOpen(name, date, stay) {
   const b = mgr && mgr.branches.find(x => x.name === name);
   if (!b) return;
   mgrBranch = name;
+  useSettings(b.settings || mgr.settings);
   history = b.entries.slice();
   invEvents = b.inv.slice();
   mgrView = { name: b.name, manager: b.manager, area: mgr.name }; // for the Excel files (the phone's own branch details stay as they are)
@@ -1317,7 +1433,7 @@ function mgrOpen(name, date, stay) {
   if (date || !stay) { document.getElementById('dateInput').value = date || lastClose || ymd(new Date()); autoDate = false; }
   selectedProduct = null;
   document.getElementById('calcPanel').style.display = 'none';
-  updateDisplay(); renderHistory();
+  updateDisplay(); renderHistory(); renderMgrLoss();
   if (!stay) { showPage(document.getElementById('page-inventory').classList.contains('active') ? 'inventory' : 'weigh'); window.scrollTo(0, 0); }
   else if (document.getElementById('page-inventory').classList.contains('active')) renderInventory();
 }
