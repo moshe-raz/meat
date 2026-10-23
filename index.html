@@ -217,6 +217,7 @@ h1 { position: relative; }
 .mgr-bar { background: linear-gradient(135deg, #8e2626, #b23a3a); color: #f4dada; margin: 0 -14px 16px; padding: 0 16px 16px; border-radius: 0 0 22px 22px; }
 .mgr-bar .link-btn { color: #fff; text-decoration: underline; }
 body.mgr-mode .branch-bar { display: none !important; }
+body.mgr-ro #mgrLoss { display: none !important; }
 #page-weigh #mgrLoss { display: block; margin-top: 4px; }
 body:not(.mgr-mode) #page-weigh #mgrLoss { display: none; }
 #mgrLoss h3 { font-size: 17px; text-align: right; }
@@ -1252,6 +1253,7 @@ async function mgrFetch(url, code) {
 }
 function mgrError(d) {
   if (d.error === 'bad manager code') return 'קוד מנהל אזור שגוי';
+  if (d.error === 'read only') return 'לעוזר יש הרשאת צפייה בלבד';
   if (d.error === 'too many tries') return 'יותר מדי ניסיונות שגויים · נסו שוב בעוד 10 דקות';
   if (d.error === 'bad key') return 'הגיליון עדיין לא מכיר כניסת מנהל אזור · צריך לעדכן בו את הקוד';
   if (d.error === 'no answer') return `הכתובת לא החזירה תשובה מהגיליון (${d.status}) · בדוק את הכתובת`;
@@ -1288,7 +1290,7 @@ async function mgrRefresh() {
   let info = {};
   try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
   if (!info.url) return;
-  document.getElementById('mgrText').textContent = (mgr ? 'מנהל אזור: ' + mgr.name + ' · ' : '') + 'מעדכן…';
+  document.getElementById('mgrText').textContent = (mgr ? roleName() + ': ' + mgr.name + ' · ' : '') + 'מעדכן…';
   try {
     const d = await mgrFetch(info.url, info.code);
     if (!d.ok) { if (d.error === 'bad manager code') { alert('הקוד שלך כבר לא פעיל · פנה לחברה'); mgrExit(true); } else renderMgrBar(mgrError(d)); return; }
@@ -1303,11 +1305,13 @@ function mgrExit(silent) {
   } catch(e) {}
   location.reload();
 }
+// manager, assistant (view only) or district manager, as set in the sheet's "מנהלי אזור" tab
+function roleName() { return { assistant: 'עוזר מנהל אזור', senior: 'מנהל מחוז' }[mgr && mgr.role] || 'מנהל אזור'; }
 function renderMgrBar(note) {
   if (!mgr) return;
   const t = mgr.at ? new Date(mgr.at) : null;
   const n = mgr.branches.length;
-  document.getElementById('mgrText').textContent = 'מנהל אזור: ' + mgr.name + ' · ' + (n === 1 ? 'סניף אחד' : n + ' סניפים')
+  document.getElementById('mgrText').textContent = roleName() + ': ' + mgr.name + (mgr.canEdit === false ? ' · צפייה בלבד' : '') + ' · ' + (n === 1 ? 'סניף אחד' : n + ' סניפים')
     + (note ? ' · ' + note : t ? ' · עודכן ' + t.toLocaleDateString('he-IL', { day:'numeric', month:'numeric' }) + ' ' + t.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' }) : '');
 }
 function enterMgr(d) {
@@ -1325,6 +1329,7 @@ function enterMgr(d) {
   if (Number(s.warnX) > 0) WARN_X = Number(s.warnX);
   document.body.classList.remove('setup-mode');
   document.body.classList.add('mgr-mode');
+  document.body.classList.toggle('mgr-ro', d.canEdit === false); // an assistant only looks
   document.getElementById('branchPanel').hidden = true;
   document.getElementById('mgrLogin').hidden = true;
   document.getElementById('btnWeigh').textContent = 'פחת ושקילות';
