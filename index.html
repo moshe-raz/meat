@@ -56,6 +56,11 @@
   .inv-tabs button.active { background: #2E75B6; color: #fff; }
   .inv-group { font-weight: bold; color: #1F4E79; margin: 16px 4px 6px; padding-bottom: 3px; border-bottom: 2px solid #2E75B6; }
   .inv-group:first-child { margin-top: 0; }
+  .inv-totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 10px; }
+  .inv-totals div { background: #eef4fb; border-radius: 8px; padding: 6px 4px; font-size: 12px; color: #1F4E79; }
+  .inv-totals b { display: block; font-size: 17px; color: #1F4E79; }
+  .inventory-item.sub { margin-right: 26px; background: #f7f9fb; }
+  .inventory-item.sub span:first-child::before { content: "↳ "; color: #8aa; }
   .processed { background: #fff3e0; }
   #page-inventory .controls { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
   .inventory-item.selected { outline: 3px solid #2E75B6; }
@@ -129,8 +134,9 @@
 <div id="page-inventory" class="page">
   <div class="controls">
     <h3>ספירת מלאי סוף חודש</h3>
-    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button></div>
+    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button></div>
     <div style="margin:0 0 10px;font-size:15px">ספירה לחודש: <input type="month" id="invMonth" style="font-size:15px" onchange="setInvMonth(this.value)"></div>
+    <div id="invTotals" class="inv-totals"></div>
     <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:10px 0;">
       <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
       <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
@@ -150,7 +156,7 @@
 <script>
 const beefProducts = [
   "צלי כתף","אנטריקוט","סינטה","סטייק עין","אנטריקוט לתנור",
-  "פילה מדומה","פילה בקר","שפייץ צאך","שייטל","צלעות",
+  "פילה מדומה","פילה בקר","שפייץ צאך","שייטל","צלעות","אונטריב","דנוור",
   "טחינה","אסאדו ללא עצם","שריר","אסאדו ע.ע","אוסובוקו",
   "כתף","חזה","צלעות ע.ע","צוואר ע.ע","סטייק ע.ע",
   "צלי כתף מעובד","אנטריקוט מעובד","סינטה מעובד","סטייק עין מעובד",
@@ -165,7 +171,7 @@ const poultryGroups = [
            "קורקבן עוף","לבבות עוף","כבד עוף","גרון עוף"]],
   ['הודו', ["הודו שלם","גרון הודו","חזה הודו","ירך הודו","שוקיים הודו","כנפיים הודו","שווארמה הודו","רצועות שווראמה",
             "קורקבן הודו","לבבות הודו","כבד הודו"]],
-  ['ארוזים', ["כרעיים ארוזים","שוקיים ארוזים","חזה ארוז","שניצל ארוז","פרגית ארוז"]]
+  ['ארוזים', ["כרעיים ארוז","שוקיים ארוז","חזה ארוז","שניצל ארוז","פרגית ארוז"]]
 ];
 const poultryProducts = poultryGroups.flatMap(g => g[1]);
 const lambGroups = [
@@ -173,7 +179,11 @@ const lambGroups = [
   ['כבש מעובד', ["רבע כבש מעובד","שוק כבש מעובד","חזה כבש מעובד","גרון כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
 ];
 const lambProducts = lambGroups.flatMap(g => g[1]);
-const products = beefProducts.concat(poultryProducts, lambProducts); // one list, so every product has a fixed index
+const products = beefProducts.concat(lambProducts, poultryProducts); // one list, so every product has a fixed index
+const subProducts = ["אונטריב","דנוור"]; // shown indented under "צלעות"
+const renamedProducts = { "כרעיים ארוזים": "כרעיים ארוז", "שוקיים ארוזים": "שוקיים ארוז" };
+// beef and lamb are reported together, chicken and turkey together
+function familyOf(cat) { return ['עוף', 'הודו', 'ארוזים'].includes(cat) ? 'poultry' : 'meat'; }
 let invTab = 'beef';
 
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
@@ -630,6 +640,7 @@ function persistInventory() { try { localStorage.setItem('invEvents', JSON.strin
 function invRow(p) {
   const i = products.indexOf(p);
   let cls = p.includes('מעובד') ? 'inventory-item processed' : 'inventory-item';
+  if (subProducts.includes(p)) cls += ' sub';
   if (p === selectedProduct) cls += ' selected';
   return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
       <span>${p}</span>
@@ -644,6 +655,18 @@ function renderInventory() {
     : invTab === 'lamb' ? groups(lambGroups)
     : groups(poultryGroups);
   const m = document.getElementById('invMonth'); if (m && m.value !== invMonth) m.value = invMonth;
+  renderInvTotals();
+}
+
+function invTotals() {
+  const t = { meat: 0, poultry: 0 };
+  invEvents.forEach(e => { if (e.month === invMonth && products.includes(e.product)) t[familyOf(catOf(e.product))] += e.w; });
+  return { meat: t.meat, poultry: t.poultry, all: t.meat + t.poultry };
+}
+function renderInvTotals() {
+  const t = invTotals(), el = document.getElementById('invTotals');
+  if (!el) return;
+  el.innerHTML = `<div>בקר וכבש<b>${fmt(t.meat)}</b></div><div>עוף והודו<b>${fmt(t.poultry)}</b></div><div>סה״כ כולל<b>${fmt(t.all)}</b></div>`;
 }
 
 function setInvTab(t) {
@@ -671,6 +694,7 @@ function refreshRow(product, flash) {
   if (!row) { renderInventory(); return; }
   row.querySelector('.inv-val').textContent = fmt(invValue(product)) + ' ק״ג';
   if (flash) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+  renderInvTotals();
 }
 
 function refreshCalc() {
@@ -782,8 +806,9 @@ function exportInventory() {
   lambGroups.forEach(([g, items], n) => { if (n) lambRows.push([]); lambRows.push([g]); items.forEach(p => lambRows.push(row(p))); });
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
-  addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)]]);
-  [[beefRows, 'בקר'], [poultryRows, 'עוף'], [lambRows, 'כבש']].forEach(([rows, name]) => {
+  const t = invTotals(), r3 = n => Math.round(n * 100) / 100;
+  addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)], ['סה״כ בקר וכבש (ק״ג)', r3(t.meat)], ['סה״כ עוף והודו (ק״ג)', r3(t.poultry)], ['סה״כ כולל (ק״ג)', r3(t.all)]]);
+  [[beefRows, 'בקר'], [lambRows, 'כבש'], [poultryRows, 'עוף']].forEach(([rows, name]) => {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, ws, name);
@@ -800,7 +825,12 @@ function loadData() {
     history.forEach(h => { if (!h.id) { h.id = newId(); added = true; } if (!h.dev) { h.dev = myDev; added = true; } });
     if (added) saveData();
     const ev = localStorage.getItem('invEvents');
-    if (ev) invEvents = JSON.parse(ev);
+    if (ev) {
+      invEvents = JSON.parse(ev);
+      let ren = false; // products that were renamed keep their counts
+      invEvents.forEach(e => { if (renamedProducts[e.product]) { e.product = renamedProducts[e.product]; e.cat = catOf(e.product); e.ord = products.indexOf(e.product); ren = true; } });
+      if (ren) { persistInventory(); queueOps(invEvents.filter(e => Object.values(renamedProducts).includes(e.product)).map(e => ({ op: 'invAdd', e }))); }
+    }
     else { // first run of this version: turn the old per-product totals into records for the current count month
       const inv = JSON.parse(localStorage.getItem('inventoryData') || '{}'), st = JSON.parse(localStorage.getItem('inventorySteps') || '{}');
       Object.keys(inv).forEach(p => {
