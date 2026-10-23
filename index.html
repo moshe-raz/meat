@@ -236,6 +236,8 @@ body.mgr-mode .branch-bar { display: none !important; }
 .h-type { border-radius: 999px; padding: 2px 0; font-size: 12px; font-weight: 700; text-align: center; }
 .h-type.t-prep { background: #e6f4f2; color: #0f6f69; } .h-type.t-close { background: #edf0f4; color: #3f5168; }
 .h-type.t-sold { background: #eaf1fb; color: #1f5aa8; } .h-type.t-recv { background: #f1edfb; color: #5b3fb8; } .h-type.t-xfer { background: #f3efe9; color: #857469; }
+.h-type.t-conv { background: #fdf1e3; color: #9a5b13; } .h-type.t-waste { background: #3b302b; color: #fff; }
+#convTo, #convOther { width: 100%; }
 .h-meat small { color: var(--muted); font-size: 12px; }
 .h-w { font-variant-numeric: tabular-nums; font-size: 15px; }
 .h-time { color: var(--muted); font-size: 12px; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.3; white-space: nowrap; }
@@ -348,7 +350,14 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
       <option value="recv">סחורה שנכנסה</option>
       <option value="xfer">העברה לאנטריקוט</option>
       <option value="xfer2">העברה לתנור</option>
+      <option value="conv">המרה</option>
+      <option value="waste">השמדה</option>
     </select>
+    <select id="convTo" class="entry-only" hidden aria-label="המרה ל">
+      <option value="טחון">המרה לטחון</option>
+      <option value="אחר">המרה למוצר אחר…</option>
+    </select>
+    <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב">
     <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal">
     <div class="entry-only" style="font-size:12px;color:#888;margin-top:-2px">כמה מגשים? כותבים עם רווח: 5.2 4.8 6.1 והם יחוברו</div>
     <div id="soldNote" class="entry-only" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
@@ -445,7 +454,7 @@ function familyOf(cat) { return ['עוף', 'הודו', 'ארוזים'].includes(
 let invTab = 'beef';
 
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
-const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה', xfer:'העברה לאנטריקוט', xfer2:'העברה לתנור' };
+const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה', xfer:'העברה לאנטריקוט', xfer2:'העברה לתנור', conv:'המרה', waste:'השמדה' };
 let history = [];
 let prodStatus = {}, cardSel = 'entrecote', cardsBuilt = false; // which product card is shown
 // Area manager mode: read only, shows his branches from the company sheet; nothing is saved or sent
@@ -531,13 +540,18 @@ function syncDateForType() {
     recv: 'סחורה שהגיעה ב',
     xfer: 'יורד מאנטריקוט לתנור ונוסף לאנטריקוט · ',
     xfer2: 'יורד מאנטריקוט ונוסף לאנטריקוט לתנור · ',
+    conv: 'יוצא מהמלאי למוצר אחר · לא נחשב פחת · ',
+    waste: 'בשר שנזרק · יוצא מהמלאי ולא נחשב פחת · ',
   };
+  document.getElementById('convTo').hidden = type !== 'conv';
+  document.getElementById('convOther').hidden = type !== 'conv' || document.getElementById('convTo').value !== 'אחר';
   if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value) + (type === 'sold' ? ' · לא נמכר כלום? רושמים 0' : ''); note.hidden = false; }
   else note.hidden = true;
 }
 document.getElementById('meatSelect').addEventListener('change', () => { syncTypeForMeat(); syncDateForType(); });
 document.getElementById('typeSelect').addEventListener('change', syncDateForType);
 document.getElementById('dateInput').addEventListener('change', syncDateForType);
+document.getElementById('convTo').addEventListener('change', () => { syncDateForType(); if (document.getElementById('convTo').value === 'אחר') document.getElementById('convOther').focus(); });
 syncTypeForMeat();
 
 function addWeight() {
@@ -559,7 +573,13 @@ function addWeight() {
   }
   if (type === 'sold' && date === ymd(new Date()) && !confirm('הנמכר של היום מגיע רק מחר. לרשום אותו בכל זאת לתאריך של היום?')) return;
   if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
-  const entry = { id: newId(), dev: myDev, by: worker, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: typeNames[type], weight: weight.toFixed(2) };
+  let convTarget = document.getElementById('convTo').value;
+  if (type === 'conv' && convTarget === 'אחר') {
+    convTarget = document.getElementById('convOther').value.replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e]/g, '').replace(/\s+/g, ' ').trim();
+    if (!convTarget) { alert('כתבו לאיזה מוצר הומר הבשר (למשל אונטריב)'); document.getElementById('convOther').focus(); return; }
+  }
+  const tLabel = type === 'conv' ? 'המרה ל' + convTarget : typeNames[type];
+  const entry = { id: newId(), dev: myDev, by: worker, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: tLabel, weight: weight.toFixed(2) };
   history.unshift(entry);
   queueOps([{ op:'add', entry }]);
   document.getElementById('weightInput').value = '';
@@ -597,10 +617,11 @@ function buildCards() {
   </div>`).join('');
 }
 
-function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, xfer:0, hasClose:false }; }
+function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, xfer:0, conv:0, waste:0, hasClose:false }; }
 function keyOf(h) { return Object.keys(names).find(k => names[k] === h.meat); }
-const TYPE_KEYS = { 'הכנות':'prep', 'סגירה':'close', 'נמכר':'sold', 'סחורה':'recv', 'העברה לאנטריקוט':'xfer', 'העברה לתנור':'xfer2' };
-function typeOf(h) { return TYPE_KEYS[h.type] || null; } // anything else is ignored, like in the sheet
+const TYPE_KEYS = { 'הכנות':'prep', 'סגירה':'close', 'נמכר':'sold', 'סחורה':'recv', 'העברה לאנטריקוט':'xfer', 'העברה לתנור':'xfer2', 'השמדה':'waste' };
+// anything else is ignored, like in the sheet; "המרה לטחון" / "המרה לאונטריב" … are conversions
+function typeOf(h) { return TYPE_KEYS[h.type] || (/^המרה/.test(h.type || '') ? 'conv' : null); }
 
 function buildDays() {
   const days = { entrecote:{}, shoulder:{}, oven:{} };
@@ -641,9 +662,9 @@ function segmentsFor(dd, k) {
   for (let i = 1; i < closes.length; i++) {
     const c0 = closes[i-1], c1 = closes[i];
     const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0, pending: !dd[c1].hasSold };
-    s.xfer = 0;
-    dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; } });
-    s.stock = s.open + s.recv + s.xfer;
+    s.xfer = 0; s.conv = 0; s.waste = 0;
+    dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; s.conv += dd[d].conv; s.waste += dd[d].waste; } });
+    s.stock = s.open + s.recv + s.xfer - s.conv - s.waste; // converted or destroyed meat left the stock with a known reason
     s.went = s.stock - s.close;
     s.missing = workdaysBetween(c0, c1);
     segs.push(s);
@@ -653,10 +674,9 @@ function segmentsFor(dd, k) {
 
 function stockFor(dd, date) {
   const prev = Object.keys(dd).filter(d => d < date && dd[d].hasClose).sort().pop();
-  let recv = 0;
-  let xfer = 0;
-  Object.keys(dd).forEach(d => { if ((!prev || d > prev) && d <= date) { recv += dd[d].recv; xfer += dd[d].xfer; } });
-  return { prev, open: prev ? dd[prev].close : 0, recv, xfer, stock: (prev ? dd[prev].close : 0) + recv + xfer };
+  let recv = 0, xfer = 0, conv = 0, waste = 0;
+  Object.keys(dd).forEach(d => { if ((!prev || d > prev) && d <= date) { recv += dd[d].recv; xfer += dd[d].xfer; conv += dd[d].conv; waste += dd[d].waste; } });
+  return { prev, open: prev ? dd[prev].close : 0, recv, xfer, conv, waste, stock: (prev ? dd[prev].close : 0) + recv + xfer - conv - waste };
 }
 
 function updateDisplay() {
@@ -670,7 +690,8 @@ function updateDisplay() {
     const kv = (label, value) => `<div class="kv"><span>${label}</span><b>${value}</b></div>`;
     document.getElementById(k+'-stock-sub').innerHTML = (st.prev ? kv('סגירה ' + shortDate(st.prev), f2(st.open)) : '<div class="kv-note">אין סגירה קודמת</div>')
       + (st.recv ? kv('+ סחורה', f2(st.recv)) : '')
-      + (st.xfer ? kv(st.xfer > 0 ? '+ העברות' : '− העברות', f2(Math.abs(st.xfer))) : '');
+      + (st.xfer ? kv(st.xfer > 0 ? '+ העברות' : '− העברות', f2(Math.abs(st.xfer))) : '')
+      + (st.conv ? kv('− המרות', f2(st.conv)) : '') + (st.waste ? kv('− השמדה', f2(st.waste)) : '');
     document.getElementById(k+'-close').textContent = t.hasClose ? f2(t.close) : '—';
     document.getElementById(k+'-close-sub').innerHTML = `<span class="kv-chip">${t.hasClose ? 'כולל ארגזים' : 'נשקלת בבוקר שאחרי'}</span>`;
     document.getElementById(k+'-prep').textContent = f2(t.prep);
@@ -788,15 +809,23 @@ function judge(x) {
 
 // Sum segments; a segment whose sold isn't in yet is left out so it doesn't look like loss
 function aggregate(segs) {
-  const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, n:0, waiting:0, missing:[] };
+  const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, conv:0, waste:0, n:0, waiting:0, missing:[] };
   segs.forEach(s => {
     a.missing.push(...s.missing);
+    a.conv += s.conv || 0; a.waste += s.waste || 0;
     if (s.pending) { a.waiting++; return; }
     a.went += s.went; a.sold += s.sold; a.iron += s.iron; a.recv += s.recv; a.prep += s.prep; a.n += 1 + s.missing.length;
   });
   return a;
 }
 
+// converted / destroyed meat, shown apart from the loss
+function outNote(x) {
+  const parts = [];
+  if (x.conv > 0) parts.push('הומר ' + f2(x.conv));
+  if (x.waste > 0) parts.push('הושמד ' + f2(x.waste));
+  return parts.length ? `<div class="an-note">${parts.join(' · ')} ק״ג · לא נחשב פחת</div>` : '';
+}
 function missingText(list) {
   if (!list.length) return '';
   return ' · חסרה סגירה: ' + list.slice(0, 4).map(dm).join(', ') + (list.length > 4 ? ` ועוד ${list.length - 4}` : '');
@@ -823,7 +852,7 @@ function updateAnalysis(days) {
     const seg = segs.find(s => s.end === sel);
     if (seg) {
       const j = judge(seg);
-      const span = seg.missing.length ? `<div class="an-note">מחושב יחד מ־${dm(seg.start)} · חסרה סגירה: ${seg.missing.map(dm).join(', ')}</div>` : '';
+      const span = (seg.missing.length ? `<div class="an-note">מחושב יחד מ־${dm(seg.start)} · חסרה סגירה: ${seg.missing.map(dm).join(', ')}</div>` : '') + outNote(seg);
       html += row('יום', j.cls, j.text, j.nums + span);
     } else if (dd[sel] && dd[sel].hasClose) {
       html += row('יום', 'none', 'אין סגירה קודמת', 'צריך סגירה של יום עבודה קודם כדי לחשב');
@@ -837,7 +866,7 @@ function updateAnalysis(days) {
       if (!a.n) { html += row(label, 'none', a.waiting ? 'ממתין לנמכר' : 'אין נתונים', a.waiting ? '' : 'צריך לפחות שתי סגירות'); return; }
       const j = judge(a);
       const note = (a.waiting ? 'יום אחרון ממתין לנמכר' : '') + (a.missing.length ? (a.waiting ? ' · ' : '') + missingText(a.missing).replace(/^ · /, '') : '');
-      html += row(label + `<small>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}</small>`, j.cls, j.text, j.nums + (note ? `<div class="an-note">${note}</div>` : ''));
+      html += row(label + `<small>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}</small>`, j.cls, j.text, j.nums + (note ? `<div class="an-note">${note}</div>` : '') + outNote(a));
     });
     if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · הפחת הצפוי כולל ניקוי לאיירון</div>';
     document.getElementById(k + '-analysis').innerHTML = html;
@@ -853,8 +882,8 @@ function renderHistory() {
   // the latest 40, grouped by the day they belong to, newest day first; each type has its own colour
   const days = {};
   history.slice(0, 40).forEach(h => (days[h.date] = days[h.date] || []).push(h));
-  const tcls = { 'הכנות':'prep', 'סגירה':'close', 'נמכר':'sold', 'סחורה':'recv', 'העברה לאנטריקוט':'xfer', 'העברה לתנור':'xfer' };
-  const tname = t => t.startsWith('העברה') ? 'העברה' : t;
+  const tcls = { 'הכנות':'prep', 'סגירה':'close', 'נמכר':'sold', 'סחורה':'recv', 'העברה לאנטריקוט':'xfer', 'העברה לתנור':'xfer', 'השמדה':'waste' };
+  const tname = t => t.startsWith('העברה') ? 'העברה' : t.startsWith('המרה') ? 'המרה' : t;
   const today = ymd(new Date()), y = new Date(); y.setDate(y.getDate() - 1); const yest = ymd(y);
   const dayHead = d => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return `<span class="d-name">${esc(d)}</span>`;
@@ -864,7 +893,7 @@ function renderHistory() {
   };
   el.innerHTML = Object.keys(days).sort().reverse().map(d => `<div class="h-day">${dayHead(d)}</div>`
     + days[d].sort((a, b) => String(b.time).localeCompare(String(a.time))).map(h =>
-      `<div class="h-row"><span class="h-type t-${tcls[h.type] || 'xfer'}">${esc(tname(h.type))}</span><span class="h-meat">${esc(h.meat)}${h.type.startsWith('העברה') ? ' <small>' + (h.type === 'העברה לתנור' ? '→ תנור' : '→ אנטריקוט') + '</small>' : ''}</span><b class="h-w">${h.weight}</b><span class="h-time">${esc(h.time)}${whoTag(h)}</span></div>`).join('')).join('');
+      `<div class="h-row"><span class="h-type t-${tcls[h.type] || (String(h.type).startsWith('המרה') ? 'conv' : 'xfer')}">${esc(tname(h.type))}</span><span class="h-meat">${esc(h.meat)}${h.type.startsWith('העברה') ? ' <small>' + (h.type === 'העברה לתנור' ? '→ תנור' : '→ אנטריקוט') + '</small>' : h.type.startsWith('המרה ל') ? ' <small>→ ' + esc(h.type.slice(6)) + '</small>' : ''}</span><b class="h-w">${h.weight}</b><span class="h-time">${esc(h.time)}${whoTag(h)}</span></div>`).join('')).join('');
 }
 // Shows who recorded a weighing, unless it is the person using this phone now
 function whoTag(h) {
@@ -921,8 +950,8 @@ function exportToExcel() {
   PK.forEach(k => {
     const isSh = k === 'shoulder';
     const head = isSh
-      ? ['תאריך','יום','הכנות','סחורה','מלאי ליום','סגירה','הלך','נמכר צלי','איירון','נמכר כולל איירון','פער','מצב','הכנות שבועי','נמכר צלי שבועי','כולל איירון שבועי','נמכר צלי חודשי','כולל איירון חודשי','הערה']
-      : ['תאריך','יום','הכנות','סחורה','העברות (+נכנס −יצא)','מלאי ליום','סגירה','הלך','נמכר','פער','מצב','הכנות שבועי','נמכר שבועי','נמכר חודשי','הערה'];
+      ? ['תאריך','יום','הכנות','סחורה','המרה','השמדה','מלאי ליום','סגירה','הלך','נמכר צלי','איירון','נמכר כולל איירון','פער','מצב','הכנות שבועי','נמכר צלי שבועי','כולל איירון שבועי','נמכר צלי חודשי','כולל איירון חודשי','הערה']
+      : ['תאריך','יום','הכנות','סחורה','העברות (+נכנס −יצא)','המרה','השמדה','מלאי ליום','סגירה','הלך','נמכר','פער','מצב','הכנות שבועי','נמכר שבועי','נמכר חודשי','הערה'];
     const rows = [head];
     let wk = { prep:0, sold:0, all:0 }, mon = { sold:0, all:0 }, curWeek = null, curMonth = null;
     dates.forEach(date => {
@@ -936,34 +965,35 @@ function exportToExcel() {
       const status = seg ? judge(seg).text : (x.hasClose ? '' : (x.sold || x.recv || x.prep ? 'חסרה סגירה' : ''));
       const note = seg && seg.missing.length ? 'מחושב יחד מ־' + dm(seg.start) : '';
       const xf = isSh ? [] : [r2(x.xfer)];
-      const base = [shortD(date), dayShort(date), r2(x.prep), r2(x.recv), ...xf, r2(stockFor(days[k], date).stock), x.hasClose ? r2(x.close) : '', seg ? r2(seg.went) : ''];
+      const base = [shortD(date), dayShort(date), r2(x.prep), r2(x.recv), ...xf, x.conv ? r2(x.conv) : '', x.waste ? r2(x.waste) : '', r2(stockFor(days[k], date).stock), x.hasClose ? r2(x.close) : '', seg ? r2(seg.went) : ''];
       rows.push(isSh
         ? [...base, r2(own), r2(x.iron), r2(x.sold), gap, status, r2(wk.prep), r2(wk.sold), r2(wk.all), r2(mon.sold), r2(mon.all), note]
         : [...base, r2(x.sold), gap, status, r2(wk.prep), r2(wk.sold), r2(mon.sold), note]);
     });
-    addSheet(rows, names[k], isSh ? [8,6,7,7,9,7,7,8,7,9,6,12,9,9,9,9,9,16] : [8,6,7,7,13,9,7,7,7,6,12,9,9,9,16]);
+    addSheet(rows, names[k], isSh ? [8,6,7,7,7,7,9,7,7,8,7,9,6,12,9,9,9,9,9,16] : [8,6,7,7,13,7,7,9,7,7,7,6,12,9,9,9,16]);
   });
 
   // --- Weekly & monthly check ---
   const periodSheet = (title, keyOfDate, labelOf) => {
-    const rows = [[title,'מוצר','הכנות','סחורה','הלך','נמכר','מתוכו איירון','פער ק״ג','פער %','פחת צפוי ק״ג','מצב','ימים','חסרה סגירה']];
+    const rows = [[title,'מוצר','הכנות','סחורה','המרה','השמדה','הלך','נמכר','מתוכו איירון','פער ק״ג','פער %','פחת צפוי ק״ג','מצב','ימים','חסרה סגירה']];
     [...new Set(dates.map(keyOfDate))].forEach(p => {
       PK.forEach(k => {
         const a = aggregate(segs[k].filter(s => keyOfDate(s.end) === p));
-        let prep = 0, recv = 0;
-        Object.keys(days[k]).forEach(d => { if (keyOfDate(d) === p) { prep += days[k][d].prep; recv += days[k][d].recv; } });
-        if (!a.n && !prep && !recv) return;
+        let prep = 0, recv = 0, conv = 0, waste = 0;
+        Object.keys(days[k]).forEach(d => { if (keyOfDate(d) === p) { prep += days[k][d].prep; recv += days[k][d].recv; conv += days[k][d].conv; waste += days[k][d].waste; } });
+        if (!a.n && !prep && !recv && !conv && !waste) return;
+        const cw = [conv ? r2(conv) : '', waste ? r2(waste) : ''];
         const name = names[k] + (k === 'shoulder' ? ' (נמכר כולל איירון)' : '');
-        if (!a.n) { rows.push([labelOf(p), name, r2(prep), r2(recv), '', '', '', '', '', '', a.waiting ? 'ממתין לנמכר' : 'חסרות סגירות', '', a.missing.map(dm).join(', ')]); return; }
+        if (!a.n) { rows.push([labelOf(p), name, r2(prep), r2(recv), ...cw, '', '', '', '', '', '', a.waiting ? 'ממתין לנמכר' : 'חסרות סגירות', '', a.missing.map(dm).join(', ')]); return; }
         const j = judge(a), gap = j.gap;
-        rows.push([labelOf(p), name, r2(prep), r2(recv), r2(a.went), r2(a.sold), k === 'shoulder' ? r2(a.iron) : '', gap, a.went > 0 ? r2(gap / a.went * 100) : '', j.exp, j.text, a.n, a.missing.map(dm).join(', ')]);
+        rows.push([labelOf(p), name, r2(prep), r2(recv), ...cw, r2(a.went), r2(a.sold), k === 'shoulder' ? r2(a.iron) : '', gap, a.went > 0 ? r2(gap / a.went * 100) : '', j.exp, j.text, a.n, a.missing.map(dm).join(', ')]);
       });
       rows.push([]);
     });
     return rows;
   };
-  addSheet(periodSheet('שבוע', weekStart, w => { const e = new Date(w + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(w) + '–' + dm(ymd(e)); }), 'שבועי', [12,26,9,9,9,9,11,9,8,12,14,6,18]);
-  addSheet(periodSheet('חודש', d => d.slice(0, 7), m => m.slice(5) + '/' + m.slice(0, 4)), 'חודשי', [9,26,9,9,9,9,11,9,8,12,14,6,18]);
+  addSheet(periodSheet('שבוע', weekStart, w => { const e = new Date(w + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(w) + '–' + dm(ymd(e)); }), 'שבועי', [12,26,9,9,8,8,9,9,11,9,8,12,14,6,18]);
+  addSheet(periodSheet('חודש', d => d.slice(0, 7), m => m.slice(5) + '/' + m.slice(0, 4)), 'חודשי', [9,26,9,9,8,8,9,9,11,9,8,12,14,6,18]);
 
   // --- Every weighing ---
   const hist = [['תאריך','שעה','מוצר','סוג שקילה','משקל','עובד'], ...history.slice().reverse().map(h => [h.date, h.time, h.meat, h.type, parseFloat(h.weight), h.by || ''])];
