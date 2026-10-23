@@ -757,6 +757,7 @@ function loadData() {
 let branch = { name:'', manager:'', area:'', url:'', key:'' };
 function loadBranch() {
   try { const b = JSON.parse(localStorage.getItem('branchInfo') || 'null'); if (b) branch = Object.assign(branch, b); } catch(e) {}
+  branch.url = cleanUrl(branch.url); branch.key = cleanKey(branch.key);
   renderBranch();
   let skipped = false;
   try { skipped = localStorage.getItem('branchSkipped') === '1'; } catch(e) {}
@@ -788,6 +789,8 @@ function openBranch(first) {
   document.getElementById('brName').focus();
 }
 // Leave the details screen and land on the weighing screen
+function cleanUrl(s) { return String(s || '').replace(/[^\x21-\x7E]/g, ''); }
+function cleanKey(s) { return String(s || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').trim(); }
 function closeBranch() {
   document.getElementById('branchPanel').hidden = true;
   document.body.classList.remove('setup-mode');
@@ -801,7 +804,8 @@ function skipBranch() {
 function saveBranch() {
   const name = document.getElementById('brName').value.trim();
   if (!name) { document.getElementById('branchMsg').textContent = 'צריך למלא לפחות את שם הסניף'; return; }
-  const url = document.getElementById('brUrl').value.trim(), key = document.getElementById('brKey').value.trim();
+  // copying from WhatsApp often adds invisible direction marks or spaces; strip them
+  const url = cleanUrl(document.getElementById('brUrl').value), key = cleanKey(document.getElementById('brKey').value);
   if (url && !/^https:\/\/script\.google\.com\//.test(url)) { document.getElementById('branchMsg').textContent = 'כתובת החיבור צריכה להתחיל ב־https://script.google.com/'; return; }
   if (url && !key) { document.getElementById('branchMsg').textContent = 'חסר קוד חברה'; return; }
   const newConn = url && (url !== branch.url || key !== branch.key);
@@ -888,7 +892,9 @@ async function syncNow() {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
         body: JSON.stringify({ key: branch.key, dev: myDev, pull: last, branch: { name: branch.name, manager: branch.manager, area: branch.area }, ops: batch })
       });
-      const data = await res.json();
+      let data;
+      try { data = JSON.parse(await res.text()); }
+      catch(err) { syncError = `הכתובת לא החזירה תשובה מהגיליון (${res.status}) · בדוק את כתובת החיבור`; break; }
       if (!data.ok) { syncError = data.error === 'bad key' ? 'קוד החברה שגוי · בדוק בפרטי הסניף' : 'הגיליון החזיר שגיאה'; break; }
       syncQueue.splice(0, batch.length); saveQueue();
       if (last && Array.isArray(data.entries)) { mergeRemote(data.entries); lastPull = new Date(); }
