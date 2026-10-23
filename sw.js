@@ -1,8 +1,8 @@
 // v3: network-first, and the app's own files always ask the site for the latest version
 // (skips the browser's 10-minute copy), so an update shows up on the next open.
 // The saved copy is only used when offline or when the site is down.
-const CACHE = 'weighing-v3';
-const FILES = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'weighing-v4';
+const FILES = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();
