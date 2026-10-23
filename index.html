@@ -45,6 +45,15 @@
   .pill.bad { background: #ffebee; color: #b71c1c; }
   .pill.none { background: #eceff1; color: #546e7a; }
   .pill.neg { background: #e3f2fd; color: #0d47a1; }
+  .branch-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
+  .link-btn { background: none; border: none; color: #2E75B6; text-decoration: underline; font-size: 14px; cursor: pointer; padding: 2px; }
+  .br-row { display: flex; flex-direction: column; max-width: 320px; margin: 8px auto; text-align: right; font-size: 14px; gap: 2px; }
+  .br-row input { margin: 0; width: 100%; }
+  .inv-tabs { display: flex; gap: 8px; justify-content: center; margin: 4px 0 12px; }
+  .inv-tabs button { flex: 1; max-width: 160px; padding: 10px; font-size: 17px; border: none; border-radius: 8px; background: #ddd; cursor: pointer; }
+  .inv-tabs button.active { background: #2E75B6; color: #fff; }
+  .inv-group { font-weight: bold; color: #1F4E79; margin: 16px 4px 6px; padding-bottom: 3px; border-bottom: 2px solid #2E75B6; }
+  .inv-group:first-child { margin-top: 0; }
   .processed { background: #fff3e0; }
   #page-inventory .controls { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
   .inventory-item.selected { outline: 3px solid #2E75B6; }
@@ -58,6 +67,21 @@
 </head>
 <body>
 <h1>שקילות בשר ומלאי</h1>
+<div class="branch-bar"><span id="branchText"></span><button type="button" class="link-btn" onclick="openBranch()">עריכת פרטי סניף</button></div>
+<div id="syncStatus" style="text-align:center;font-size:13px;margin:-6px 0 10px" hidden></div>
+<div id="branchPanel" class="controls" hidden>
+  <h3 style="margin-top:0">פרטי סניף</h3>
+  <div style="font-size:13px;color:#555">הפרטים נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל</div>
+  <label class="br-row">שם הסניף<input type="text" id="brName" autocomplete="off"></label>
+  <label class="br-row">שם מנהל הסניף<input type="text" id="brManager" autocomplete="off"></label>
+  <label class="br-row">שם מנהל האזור<input type="text" id="brArea" autocomplete="off"></label>
+  <div style="font-size:13px;color:#555;margin-top:12px">חיבור לגיליון של החברה (מקבלים ממנהל האזור · אפשר להשאיר ריק)</div>
+  <label class="br-row">כתובת חיבור<input type="url" id="brUrl" autocomplete="off" dir="ltr" placeholder="https://script.google.com/..."></label>
+  <label class="br-row">קוד חברה<input type="text" id="brKey" autocomplete="off" dir="ltr"></label>
+  <div id="branchMsg" style="color:#c62828;font-size:13px;min-height:16px"></div>
+  <button class="btn" onclick="saveBranch()">שמור</button>
+  <button class="btn" id="branchCancel" style="background:#6c757d" onclick="closeBranch()">ביטול</button>
+</div>
 <div class="nav">
   <button id="btnWeigh" class="active" onclick="showPage('weigh')">שקילות</button>
   <button id="btnInv" onclick="showPage('inventory')">ספירת מלאי סוף חודש</button>
@@ -83,9 +107,10 @@
     <div id="soldNote" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
     <button class="btn" onclick="addWeight()">הוסף</button>
     <br>
-    <div style="margin:6px 0; font-size:14px">פחת רגיל (קליפה): <input type="text" id="lossAllow" inputmode="decimal" style="width:60px;text-align:center"> %
-      <br>פחת בניקוי לאיירון: <input type="text" id="ironAllow" inputmode="decimal" style="width:60px;text-align:center"> %
-      <div style="color:#666;font-size:12px">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14% · עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד</div></div>
+    <div style="margin:6px 0; font-size:14px"><span id="lossAllowLabel">פחת רגיל (קליפה)</span>: <input type="text" id="lossAllow" inputmode="decimal" style="width:60px;text-align:center"> %
+      <div id="ironAllowRow">פחת בניקוי לאיירון (רק צלי כתף): <input type="text" id="ironAllow" inputmode="decimal" style="width:60px;text-align:center"> %
+        <div style="color:#666;font-size:12px">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14%</div></div>
+      <div style="color:#666;font-size:12px">עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div></div>
     <button class="btn" style="background:#6c757d" onclick="deleteLast()">מחק אחרון</button>
     <button class="btn" style="background:#28a745" onclick="exportToExcel()">ייצא לאקסל</button>
     <button class="btn" style="background:#d32f2f" onclick="resetAll()">אפס הכל</button>
@@ -100,6 +125,7 @@
 <div id="page-inventory" class="page">
   <div class="controls">
     <h3>ספירת מלאי סוף חודש</h3>
+    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button></div>
     <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:10px 0;">
       <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
       <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
@@ -117,7 +143,7 @@
 </div>
 
 <script>
-const products = [
+const beefProducts = [
   "צלי כתף","אנטריקוט","סינטה","סטייק עין","אנטריקוט לתנור",
   "פילה מדומה","פילה בקר","שפייץ צאך","שייטל","צלעות",
   "טחינה","אסאדו ללא עצם","שריר","אסאדו ע.ע","אוסובוקו",
@@ -128,6 +154,17 @@ const products = [
   "אסאדו ללא עצם מעובד","שריר מעובד","אסאדו ע.ע מעובד",
   "אוסובוקו מעובד","כתף מעובד","חזה מעובד"
 ];
+const poultryGroups = [
+  ['עוף', ["חזה עוף","שניצל","עוף שלם","עוף צעיר","כרעיים","כרעיים מקוצב","יריכיים","שוקיים","כרעיים ללא גב","יריכיים ללא גב",
+           "כנפיים","שוקיית","כנפית","פרגית","מעורב ירושלמי","מעורב ישראלי","רצועות חזה","דואט למרק",
+           "קורקבן עוף","לבבות עוף","כבד עוף","גרון עוף"]],
+  ['הודו', ["הודו שלם","גרון הודו","חזה הודו","ירך הודו","שוקיים הודו","כנפיים הודו","שווארמה הודו","רצועות שווראמה",
+            "קורקבן הודו","לבבות הודו","כבד הודו"]],
+  ['ארוזים', ["כרעיים ארוזים","שוקיים ארוזים","חזה ארוז","שניצל ארוז","פרגית ארוז"]]
+];
+const poultryProducts = poultryGroups.flatMap(g => g[1]);
+const products = beefProducts.concat(poultryProducts); // one list, so every product has a fixed index
+let invTab = 'beef';
 
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
 const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה' };
@@ -159,6 +196,8 @@ function syncTypeForMeat() {
   const typeSel = document.getElementById('typeSelect');
   Array.from(typeSel.options).forEach(o => { o.disabled = isIron && o.value !== 'sold'; o.hidden = isIron && o.value !== 'sold'; });
   if (isIron) typeSel.value = 'sold';
+  const meat = document.getElementById('meatSelect').value;
+  document.getElementById('ironAllowRow').hidden = !(meat === 'shoulder' || meat === 'iron');
 }
 // Sales figures arrive the next working day: Thursday's on Friday, Friday's on Sunday.
 // So "sold" is recorded under the day the meat was sold, not the day you type it in.
@@ -212,7 +251,9 @@ function addWeight() {
   }
   if (type === 'sold' && date === ymd(new Date()) && !confirm('הנמכר של היום מגיע רק מחר. לרשום אותו בכל זאת לתאריך של היום?')) return;
   if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
-  history.unshift({ date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: typeNames[type], weight: weight.toFixed(2) });
+  const entry = { id: newId(), date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: typeNames[type], weight: weight.toFixed(2) };
+  history.unshift(entry);
+  queueOps([{ op:'add', entry }]);
   if (history.length > 5000) history.pop();
   document.getElementById('weightInput').value = '';
   updateDisplay();
@@ -273,13 +314,13 @@ function workdaysBetween(a, b) { // exclusive, skips Saturday
 }
 
 // One segment per pair of consecutive closes; days without a close are folded into the next one
-function segmentsFor(dd) {
+function segmentsFor(dd, k) {
   const dates = Object.keys(dd).sort();
   const closes = dates.filter(d => dd[d].hasClose);
   const segs = [];
   for (let i = 1; i < closes.length; i++) {
     const c0 = closes[i-1], c1 = closes[i];
-    const s = { start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0 };
+    const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0 };
     dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; } });
     s.stock = s.open + s.recv;
     s.went = s.stock - s.close;
@@ -345,28 +386,37 @@ function updatePeriodTotals() {
 }
 
 // ---------- Loss analysis ----------
-let lossAllow = 5;   // regular trim waste, % of what went
+const lossAllow = { entrecote:0, shoulder:5, oven:5 }; // regular trim waste per product, % of what went
 let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of the raw shoulder used
+const SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
+const allowKey = () => { const m = document.getElementById('meatSelect').value; return m === 'iron' ? 'shoulder' : m; };
+function syncAllowField() {
+  const k = allowKey();
+  document.getElementById('lossAllowLabel').textContent = 'פחת רגיל ל' + names[k];
+  document.getElementById('lossAllow').value = lossAllow[k];
+}
 function loadAllow() {
   try {
-    const v = parseFloat(localStorage.getItem('lossAllow')); if (!isNaN(v)) lossAllow = v;
+    PK.forEach(k => { const v = parseFloat(localStorage.getItem('lossAllow_' + k)); if (!isNaN(v)) lossAllow[k] = v; });
     const w = parseFloat(localStorage.getItem('ironAllow')); if (!isNaN(w)) ironAllow = w;
   } catch(e) {}
-  [['lossAllow', () => lossAllow, v => lossAllow = v], ['ironAllow', () => ironAllow, v => ironAllow = v]].forEach(([id, get, set]) => {
-    const el = document.getElementById(id);
-    el.value = get();
-    el.addEventListener('input', () => {
-      const v = parseFloat(el.value.replace(',', '.'));
-      if (!isNaN(v) && v >= 0 && v < 100) { set(v); try { localStorage.setItem(id, v); } catch(e) {} updateAnalysis(buildDays()); }
-    });
-  });
+  const save = (id, v) => { try { localStorage.setItem(id, v); } catch(e) {} };
+  const num = el => { const v = parseFloat(el.value.replace(',', '.')); return !isNaN(v) && v >= 0 && v < 100 ? v : null; };
+  const la = document.getElementById('lossAllow'), ia = document.getElementById('ironAllow');
+  ia.value = ironAllow;
+  la.addEventListener('input', () => { const v = num(la); if (v !== null) { const k = allowKey(); lossAllow[k] = v; save('lossAllow_' + k, v); updateAnalysis(buildDays()); } });
+  ia.addEventListener('input', () => { const v = num(ia); if (v !== null) { ironAllow = v; save('ironAllow', v); updateAnalysis(buildDays()); } });
+  document.getElementById('meatSelect').addEventListener('change', syncAllowField);
+  syncAllowField();
 }
 
-// Expected trim in kg: iron needs raw = iron / (1 − ironAllow%); the rest of what went gets the regular %
+// Expected trim in kg: iron needs raw = iron / (1 − ironAllow%); the rest of what went gets the product's regular %.
+// Never below the scale tolerance, so a 0% product isn't flagged for normal weighing noise.
 function expectedWaste(x) {
   const r = ironAllow / 100;
   const ironRaw = x.iron > 0 ? x.iron / (1 - r) : 0;
-  return (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * lossAllow / 100;
+  const trim = (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * (lossAllow[x.k] ?? 5) / 100;
+  return Math.max(trim, Math.max(0, x.went) * SCALE_TOL / 100);
 }
 
 function judge(x) {
@@ -375,7 +425,7 @@ function judge(x) {
   const exp = expectedWaste(x);
   const nums = `הלך ${f2(x.went)} · נמכר ${f2(x.sold)} ק״ג<br>פער ${f2(gap)} ק״ג · פחת צפוי עד ${f2(exp)}`;
   if (x.sold <= 0) return { cls:'none', text:'ממתין לנמכר', nums:`הלך ${f2(x.went)} ק״ג<br>הנמכר מגיע ביום העבודה הבא` };
-  if (gap < 0) return { cls:'neg', text:`נמכר יותר ב־${f2(-gap)}`, nums: nums + '<br>בדוק שקילות' };
+  if (gap < 0 && -gap > Math.max(0, x.went) * SCALE_TOL / 100) return { cls:'neg', text:`נמכר יותר ב־${f2(-gap)}`, nums: nums + '<br>בדוק שקילות' };
   const p = pct.toFixed(1) + '%';
   if (gap <= exp) return { cls:'ok', text:'תקין ' + p, nums };
   if (gap <= exp * 2) return { cls:'warn', text:'לבדוק ' + p, nums };
@@ -384,7 +434,7 @@ function judge(x) {
 
 // Sum segments; a segment whose sold isn't in yet is left out so it doesn't look like loss
 function aggregate(segs) {
-  const a = { went:0, sold:0, iron:0, recv:0, prep:0, n:0, waiting:0, missing:[] };
+  const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, n:0, waiting:0, missing:[] };
   segs.forEach(s => {
     a.missing.push(...s.missing);
     if (s.sold <= 0) { a.waiting++; return; }
@@ -406,7 +456,7 @@ function updateAnalysis(days) {
   const eow = new Date(sow); eow.setDate(sow.getDate() + 6);
   const ws = ymd(sow), we = ymd(eow), mo = sel.slice(0, 7);
   PK.forEach(k => {
-    const dd = days[k], segs = segmentsFor(dd);
+    const dd = days[k], segs = segmentsFor(dd, k);
     const row = (label, cls, text, nums) => `<div class="an-row"><span class="an-label">${label}</span><span class="pill ${cls}">${text}</span><span class="an-nums">${nums}</span></div>`;
     let html = '';
     // Day
@@ -441,7 +491,8 @@ function renderHistory() {
 
 function deleteLast() {
   if (!history.length) return;
-  history.shift();
+  const removed = history.shift();
+  if (removed.id) queueOps([{ op:'del', id: removed.id }]);
   updateDisplay(); renderHistory(); saveData();
 }
 
@@ -456,9 +507,10 @@ function exportToExcel() {
   if (!history.length) { alert('אין נתונים'); return; }
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
+  addBranchSheet(wb);
   const r2 = n => Math.round(n * 100) / 100;
   const days = buildDays();
-  const segs = {}; PK.forEach(k => segs[k] = segmentsFor(days[k]));
+  const segs = {}; PK.forEach(k => segs[k] = segmentsFor(days[k], k));
   const dates = [...new Set(history.map(h => h.date))].sort();
   const weekStart = ds => { const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() - d.getDay()); return ymd(d); };
   const addSheet = (rows, name, widths) => {
@@ -466,34 +518,34 @@ function exportToExcel() {
     ws['!cols'] = widths.map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws, name);
   };
-  const went = (k, date) => { const s = segs[k].find(x => x.end === date); return s ? r2(s.went) : ''; };
 
-  // --- Daily ---
-  const head = ['תאריך','יום'];
-  const plain = n => [n+' הכנות', n+' סחורה', n+' מלאי ליום', n+' סגירה', n+' הלך', n+' נמכר', n+' הכנות מצטבר שבועי', n+' נמכר מצטבר שבועי', n+' נמכר מצטבר חודשי'];
-  head.push(...plain('אנטריקוט'));
-  head.push('צלי כתף הכנות','צלי כתף סחורה','צלי כתף מלאי ליום','צלי כתף סגירה','צלי כתף הלך','צלי כתף נמכר','איירון סטייק נמכר','צלי כתף נמכר כולל איירון',
-            'צלי כתף הכנות מצטבר שבועי','צלי כתף נמכר מצטבר שבועי','צלי כתף כולל איירון מצטבר שבועי','צלי כתף נמכר מצטבר חודשי','צלי כתף כולל איירון מצטבר חודשי');
-  head.push(...plain('אנטריקוט לתנור'));
-  const daily = [head];
-  const zero = () => ({ ePrep:0, eSold:0, sPrep:0, sSold:0, sAll:0, oPrep:0, oSold:0 });
-  let wk = zero(), mon = zero(), curWeek = null, curMonth = null;
-  dates.forEach(date => {
-    if (weekStart(date) !== curWeek) { if (curWeek !== null) daily.push([]); curWeek = weekStart(date); wk = zero(); }
-    if (date.slice(0, 7) !== curMonth) { curMonth = date.slice(0, 7); mon = zero(); }
-    const g = k => days[k][date] || emptyDay();
-    const e = g('entrecote'), sh = g('shoulder'), o = g('oven');
-    const inc = { ePrep:e.prep, eSold:e.sold, sPrep:sh.prep, sSold:sh.sold - sh.iron, sAll:sh.sold, oPrep:o.prep, oSold:o.sold };
-    Object.keys(inc).forEach(x => { wk[x] += inc[x]; mon[x] += inc[x]; });
-    const base = (k, x) => [r2(x.prep), r2(x.recv), r2(stockFor(days[k], date).stock), x.hasClose ? r2(x.close) : '', went(k, date)];
-    daily.push([
-      date, dayNames[new Date(date + 'T00:00:00').getDay()],
-      ...base('entrecote', e), r2(e.sold), r2(wk.ePrep), r2(wk.eSold), r2(mon.eSold),
-      ...base('shoulder', sh), r2(sh.sold - sh.iron), r2(sh.iron), r2(sh.sold), r2(wk.sPrep), r2(wk.sSold), r2(wk.sAll), r2(mon.sSold), r2(mon.sAll),
-      ...base('oven', o), r2(o.sold), r2(wk.oPrep), r2(wk.oSold), r2(mon.oSold)
-    ]);
+  // --- One sheet per product (short headers so it reads well on a phone) ---
+  const shortD = ds => { const [y, m, d] = ds.split('-'); return +d + '.' + +m + '.' + y.slice(2); };
+  const dayShort = ds => dayNames[new Date(ds + 'T00:00:00').getDay()];
+  PK.forEach(k => {
+    const isSh = k === 'shoulder';
+    const head = isSh
+      ? ['תאריך','יום','הכנות','סחורה','מלאי ליום','סגירה','הלך','נמכר צלי','איירון','נמכר כולל איירון','פער','מצב','הכנות שבועי','נמכר צלי שבועי','כולל איירון שבועי','נמכר צלי חודשי','כולל איירון חודשי','הערה']
+      : ['תאריך','יום','הכנות','סחורה','מלאי ליום','סגירה','הלך','נמכר','פער','מצב','הכנות שבועי','נמכר שבועי','נמכר חודשי','הערה'];
+    const rows = [head];
+    let wk = { prep:0, sold:0, all:0 }, mon = { sold:0, all:0 }, curWeek = null, curMonth = null;
+    dates.forEach(date => {
+      const x = days[k][date] || emptyDay();
+      if (weekStart(date) !== curWeek) { if (curWeek !== null) rows.push([]); curWeek = weekStart(date); wk = { prep:0, sold:0, all:0 }; }
+      if (date.slice(0, 7) !== curMonth) { curMonth = date.slice(0, 7); mon = { sold:0, all:0 }; }
+      const own = x.sold - x.iron;
+      wk.prep += x.prep; wk.sold += own; wk.all += x.sold; mon.sold += own; mon.all += x.sold;
+      const seg = segs[k].find(s => s.end === date);
+      const gap = seg ? r2(seg.went - seg.sold) : '';
+      const status = seg ? judge(seg).text : (x.hasClose ? '' : (x.sold || x.recv || x.prep ? 'חסרה סגירה' : ''));
+      const note = seg && seg.missing.length ? 'מחושב יחד מ־' + dm(seg.start) : '';
+      const base = [shortD(date), dayShort(date), r2(x.prep), r2(x.recv), r2(stockFor(days[k], date).stock), x.hasClose ? r2(x.close) : '', seg ? r2(seg.went) : ''];
+      rows.push(isSh
+        ? [...base, r2(own), r2(x.iron), r2(x.sold), gap, status, r2(wk.prep), r2(wk.sold), r2(wk.all), r2(mon.sold), r2(mon.all), note]
+        : [...base, r2(x.sold), gap, status, r2(wk.prep), r2(wk.sold), r2(mon.sold), note]);
+    });
+    addSheet(rows, names[k], isSh ? [8,6,7,7,9,7,7,8,7,9,6,12,9,9,9,9,9,16] : [8,6,7,7,9,7,7,7,6,12,9,9,9,16]);
   });
-  addSheet(daily, 'יומי', [11,7].concat(Array(head.length - 2).fill(11)));
 
   // --- Weekly & monthly check ---
   const periodSheet = (title, keyOfDate, labelOf) => {
@@ -507,7 +559,7 @@ function exportToExcel() {
         const name = names[k] + (k === 'shoulder' ? ' (נמכר כולל איירון)' : '');
         if (!a.n) { rows.push([labelOf(p), name, r2(prep), r2(recv), '', '', '', '', '', '', a.waiting ? 'ממתין לנמכר' : 'חסרות סגירות', '', a.missing.map(dm).join(', ')]); return; }
         const gap = a.went - a.sold;
-        rows.push([labelOf(p), name, r2(prep), r2(recv), r2(a.went), r2(a.sold), r2(a.iron), r2(gap), a.went > 0 ? r2(gap / a.went * 100) : '', r2(expectedWaste(a)), judge(a).text, a.n, a.missing.map(dm).join(', ')]);
+        rows.push([labelOf(p), name, r2(prep), r2(recv), r2(a.went), r2(a.sold), k === 'shoulder' ? r2(a.iron) : '', r2(gap), a.went > 0 ? r2(gap / a.went * 100) : '', r2(expectedWaste(a)), judge(a).text, a.n, a.missing.map(dm).join(', ')]);
       });
       rows.push([]);
     });
@@ -516,22 +568,11 @@ function exportToExcel() {
   addSheet(periodSheet('שבוע', weekStart, w => { const e = new Date(w + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(w) + '–' + dm(ymd(e)); }), 'שבועי', [12,26,9,9,9,9,11,9,8,12,14,6,18]);
   addSheet(periodSheet('חודש', d => d.slice(0, 7), m => m.slice(5) + '/' + m.slice(0, 4)), 'חודשי', [9,26,9,9,9,9,11,9,8,12,14,6,18]);
 
-  // --- Each close-to-close check ---
-  const lossRows = [['מסגירה של','עד סגירה של','מוצר','סגירה קודמת','סחורה','מלאי','סגירה','הלך','נמכר','מתוכו איירון','פער ק״ג','פער %','פחת צפוי ק״ג','מצב','חסרה סגירה']];
-  const all = [];
-  PK.forEach(k => segs[k].forEach(s => all.push([k, s])));
-  all.sort((a, b) => a[1].end < b[1].end ? -1 : a[1].end > b[1].end ? 1 : PK.indexOf(a[0]) - PK.indexOf(b[0]));
-  all.forEach(([k, s]) => {
-    const gap = s.went - s.sold;
-    lossRows.push([s.start, s.end, names[k] + (k === 'shoulder' ? ' (כולל איירון)' : ''), r2(s.open), r2(s.recv), r2(s.stock), r2(s.close), r2(s.went), r2(s.sold), r2(s.iron), r2(gap), s.went > 0 ? r2(gap / s.went * 100) : '', r2(expectedWaste(s)), judge(s).text, s.missing.map(dm).join(', ')]);
-  });
-  addSheet(lossRows, 'פחת יומי', [11,11,22,10,9,9,9,9,9,11,9,8,12,14,16]);
-
   // --- Every weighing ---
   const hist = [['תאריך','שעה','סוג','קטגוריה','משקל'], ...history.slice().reverse().map(h => [h.date, h.time, h.meat, h.type, parseFloat(h.weight)])];
   addSheet(hist, 'היסטוריה', [11,7,16,9,9]);
 
-  XLSX.writeFile(wb, 'שקילות_בשר_' + ymd(new Date()) + '.xlsx');
+  XLSX.writeFile(wb, 'שקילות_בשר_' + branchFilePart() + ymd(new Date()) + '.xlsx');
 }
 
 let selectedProduct = null;
@@ -547,16 +588,30 @@ function persistInventory() {
   } catch(e) {}
 }
 
-function renderInventory() {
-  const el = document.getElementById('inventoryList');
-  el.innerHTML = products.map((p,i) => {
-    let cls = p.includes('מעובד') ? 'inventory-item processed' : 'inventory-item';
-    if (p === selectedProduct) cls += ' selected';
-    return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
+function invRow(p) {
+  const i = products.indexOf(p);
+  let cls = p.includes('מעובד') ? 'inventory-item processed' : 'inventory-item';
+  if (p === selectedProduct) cls += ' selected';
+  return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
       <span>${p}</span>
       <span class="inv-val" style="font-weight:bold; color:#2E75B6">${fmt(invValue(p))} ק״ג</span>
     </div>`;
-  }).join('');
+}
+
+function renderInventory() {
+  const el = document.getElementById('inventoryList');
+  el.innerHTML = invTab === 'beef'
+    ? beefProducts.map(invRow).join('')
+    : poultryGroups.map(([g, items]) => `<div class="inv-group">${g}</div>` + items.map(invRow).join('')).join('');
+}
+
+function setInvTab(t) {
+  invTab = t;
+  document.getElementById('tabBeef').classList.toggle('active', t === 'beef');
+  document.getElementById('tabChicken').classList.toggle('active', t === 'chicken');
+  selectedProduct = null;
+  document.getElementById('calcPanel').style.display = 'none';
+  renderInventory();
 }
 
 // Update one row in place, so the list never shows a stale number
@@ -641,10 +696,19 @@ function saveInventory(silent) {
 function exportInventory() {
   if (typeof XLSX === 'undefined') { alert('טוען...'); return; }
   saveInventory(true);
-  const rows = [['מוצר','משקל (ק״ג)','פירוט'], ...products.map(p => [p, invValue(p), (inventorySteps[p]||[]).join(' + ')])];
+  const row = p => [p, invValue(p), (inventorySteps[p]||[]).join(' + ')];
+  const beefRows = [['מוצר','משקל (ק״ג)','פירוט'], ...beefProducts.map(row)];
+  const poultryRows = [['מוצר','משקל (ק״ג)','פירוט']];
+  poultryGroups.forEach(([g, items], n) => { if (n) poultryRows.push([]); poultryRows.push([g]); items.forEach(p => poultryRows.push(row(p))); });
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'מלאי');
-  XLSX.writeFile(wb, 'מלאי_סוף_חודש.xlsx');
+  wb.Workbook = { Views: [{ RTL: true }] };
+  addBranchSheet(wb);
+  [[beefRows, 'בקר'], [poultryRows, 'עוף']].forEach(([rows, name]) => {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  });
+  XLSX.writeFile(wb, 'מלאי_סוף_חודש_' + branchFilePart() + ymd(new Date()) + '.xlsx');
 }
 
 function saveData() { try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) {} }
@@ -652,6 +716,9 @@ function loadData() {
   try {
     const s = localStorage.getItem('meatWeighing');
     if (s) { history = JSON.parse(s).history || []; }
+    let added = false;
+    history.forEach(h => { if (!h.id) { h.id = newId(); added = true; } });
+    if (added) saveData();
     const inv = localStorage.getItem('inventoryData');
     if (inv) inventory = JSON.parse(inv);
     const st = localStorage.getItem('inventorySteps');
@@ -659,9 +726,111 @@ function loadData() {
   } catch(e){}
   updateDisplay(); renderHistory();
 }
+// ---------- Branch details ----------
+let branch = { name:'', manager:'', area:'', url:'', key:'' };
+function loadBranch() {
+  try { const b = JSON.parse(localStorage.getItem('branchInfo') || 'null'); if (b) branch = Object.assign(branch, b); } catch(e) {}
+  renderBranch();
+  if (!branch.name) openBranch(true);
+}
+function renderBranch() {
+  const parts = [];
+  if (branch.name) parts.push('סניף ' + branch.name);
+  if (branch.manager) parts.push('מנהל: ' + branch.manager);
+  if (branch.area) parts.push('מנהל אזור: ' + branch.area);
+  document.getElementById('branchText').textContent = parts.length ? parts.join(' · ') : 'לא הוזנו פרטי סניף';
+}
+function openBranch(first) {
+  document.getElementById('brName').value = branch.name;
+  document.getElementById('brManager').value = branch.manager;
+  document.getElementById('brArea').value = branch.area;
+  document.getElementById('brUrl').value = branch.url || '';
+  document.getElementById('brKey').value = branch.key || '';
+  document.getElementById('branchMsg').textContent = '';
+  document.getElementById('branchCancel').hidden = !!first;
+  document.getElementById('branchPanel').hidden = false;
+  document.getElementById('brName').focus();
+}
+function closeBranch() { document.getElementById('branchPanel').hidden = true; }
+function saveBranch() {
+  const name = document.getElementById('brName').value.trim();
+  if (!name) { document.getElementById('branchMsg').textContent = 'צריך למלא לפחות את שם הסניף'; return; }
+  const url = document.getElementById('brUrl').value.trim(), key = document.getElementById('brKey').value.trim();
+  if (url && !/^https:\/\/script\.google\.com\//.test(url)) { document.getElementById('branchMsg').textContent = 'כתובת החיבור צריכה להתחיל ב־https://script.google.com/'; return; }
+  if (url && !key) { document.getElementById('branchMsg').textContent = 'חסר קוד חברה'; return; }
+  const newConn = url && (url !== branch.url || key !== branch.key);
+  branch = { name, manager: document.getElementById('brManager').value.trim(), area: document.getElementById('brArea').value.trim(), url, key };
+  try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) {}
+  // On a new connection, send everything already on the phone (the sheet ignores duplicates)
+  if (newConn) { syncQueue = []; queueOps(history.slice().reverse().map(entry => ({ op:'add', entry }))); }
+  renderBranch();
+  closeBranch();
+  renderSync();
+  syncNow();
+}
+function addBranchSheet(wb) {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['סניף', branch.name], ['מנהל סניף', branch.manager], ['מנהל אזור', branch.area],
+    ['תאריך ייצוא', new Date().toLocaleDateString('he-IL') + ' ' + new Date().toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' })]
+  ]);
+  ws['!cols'] = [{ wch: 14 }, { wch: 28 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'פרטים');
+}
+function branchFilePart() {
+  const n = (branch.name || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+  return n ? n + '_' : '';
+}
+
+// ---------- Sync to the company sheet ----------
+// Every weighing gets an id; changes wait in a queue on the phone and are sent when there is internet.
+function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+let syncQueue = [], syncing = false, syncError = '';
+try { syncQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]'); } catch(e) {}
+function saveQueue() { try { localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); } catch(e) {} }
+function queueOps(ops) {
+  if (!branch.url) return;
+  syncQueue.push(...ops); saveQueue(); renderSync();
+  setTimeout(syncNow, 300);
+}
+function renderSync() {
+  const el = document.getElementById('syncStatus');
+  if (!branch.url) { el.hidden = true; return; }
+  el.hidden = false;
+  if (syncing) { el.style.color = '#1565C0'; el.textContent = 'שולח לגיליון של החברה…'; return; }
+  if (syncError) { el.style.color = '#c62828'; el.textContent = syncError + (syncQueue.length ? ` · ממתינות ${syncQueue.length} שקילות` : ''); return; }
+  if (syncQueue.length) { el.style.color = '#e65100'; el.textContent = `ממתינות ${syncQueue.length} שקילות לשליחה · יישלחו כשיהיה אינטרנט`; return; }
+  el.style.color = '#2e7d32'; el.textContent = '✓ הכול נשלח לגיליון של החברה';
+}
+async function syncNow() {
+  if (!branch.url || syncing || !syncQueue.length) { renderSync(); return; }
+  if (navigator.onLine === false) { syncError = ''; renderSync(); return; }
+  syncing = true; syncError = ''; renderSync();
+  try {
+    while (syncQueue.length) {
+      const batch = syncQueue.slice(0, 200);
+      const res = await fetch(branch.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
+        body: JSON.stringify({ key: branch.key, branch: { name: branch.name, manager: branch.manager, area: branch.area }, ops: batch })
+      });
+      const data = await res.json();
+      if (!data.ok) { syncError = data.error === 'bad key' ? 'קוד החברה שגוי · בדוק בפרטי הסניף' : 'הגיליון החזיר שגיאה'; break; }
+      syncQueue.splice(0, batch.length); saveQueue();
+    }
+  } catch(e) {
+    syncError = 'אין חיבור לגיליון כרגע';
+  }
+  syncing = false; renderSync();
+}
+window.addEventListener('online', syncNow);
+setInterval(() => { if (syncQueue.length) syncNow(); }, 60000);
+
 buildCards();
+loadBranch();
 loadAllow();
 loadData();
+renderSync();
+syncNow();
 
 // Service worker: always fetch the latest version when online, so code updates reach the phone
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
