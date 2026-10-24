@@ -74,6 +74,12 @@
   .mgr-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
   .mgr-pick { background: #fff; border-radius: 12px; padding: 8px; margin-bottom: 12px; text-align: center; font-size: 15px; }
   .mgr-pick select { font-weight: bold; min-width: 160px; }
+  .mg-price { margin: 4px 0 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--field); }
+  .mg-price summary { cursor: pointer; padding: 10px 12px; font-weight: 700; text-align: right; list-style: none; }
+  .mg-price summary::-webkit-details-marker { display: none; }
+  .mg-price summary::after { content: ' ▾'; color: var(--muted); } .mg-price[open] summary::after { content: ' ▴'; }
+  .mg-price summary span { font-weight: 400; color: var(--muted); }
+  .mg-price .set-row, .mg-price .set-hint { padding: 0 12px; } .mg-price .set-hint { padding-bottom: 10px; }
   .mgr-money { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; background: #fff8e6; border: 1px solid #f0d9a0; color: #5a3d00; border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; font-size: 14.5px; text-align: right; }
   .mgr-money span:first-child { font-weight: 700; flex-basis: 100%; } .mgr-money b { font-size: 17px; }
   .mgr-money.none { display: block; font-size: 13px; color: #7a6a4a; background: #fbf8f1; border-style: dashed; }
@@ -779,7 +785,13 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <label class="set-row">צלי כתף <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
     <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mg_oven" inputmode="decimal"> %</span></label>
     <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
-    <label class="set-row" style="justify-content:flex-start;gap:8px"><input type="checkbox" id="mgAll" style="width:auto"> לקבוע את אותם אחוזים לכל הסניפים שלי</label>
+    <details id="mgPriceBox" class="mg-price"><summary>💰 מחיר לק״ג<span id="mgPriceSum"></span></summary>
+      <label class="set-row">אנטריקוט <span><input type="text" id="mgp_entrecote" inputmode="decimal"> ₪</span></label>
+      <label class="set-row">צלי כתף <span><input type="text" id="mgp_shoulder" inputmode="decimal"> ₪</span></label>
+      <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mgp_oven" inputmode="decimal"> ₪</span></label>
+      <div class="set-hint">מחיר העלות, בשביל הפחת בשקלים · ריק = המחיר הכללי מהגיליון</div>
+    </details>
+    <label class="set-row" style="justify-content:flex-start;gap:8px"><input type="checkbox" id="mgAll" style="width:auto"> לקבוע את אותם אחוזים ומחירים לכל הסניפים שלי</label>
     <button class="btn" style="width:100%" onclick="mgrSaveLoss()">שמירה</button>
     <div id="mgLossMsg" class="set-hint" style="text-align:center"></div>
   </div>
@@ -2065,7 +2077,7 @@ function weekLabel(ws) { const e = new Date(ws + 'T00:00:00'); e.setDate(e.getDa
 function renderMgr() {
   const all = mgr.branches.map(b => ({ b, segs: mgrSegs(b) }));
   // loss in shekels: the kg that went and were not sold × the cost per kg from the sheet's "הגדרות" (rows 10-12)
-  const PR = (mgr.settings || {}).price || {}, hasPr = PK.some(k => PR[k] > 0);
+  const hasPr = mgr.branches.some(b => PK.some(k => mgrPriceOf(b, k) > 0));
   const nis = v => '₪' + Math.round(v).toLocaleString('he-IL');
   const judgeIn = (b, a) => { useSettings(b.settings || mgr.settings); return judge(a); };
   const ends = all.flatMap(x => PK.flatMap(k => x.segs[k].map(s => s.end))).sort();
@@ -2094,10 +2106,10 @@ function renderMgr() {
       kabat.push({ id: b.name + '|' + k + '|' + key, i, b, k, label, gap: j.gap, miss, pct: j.gap / a.went * 100, end: lastEnd(segs[k], inP) });
     if (j.cls === 'bad') alerts.push(`<button type="button" class="alert-row" onclick="mgrOpenAt(${i}, '${lastEnd(segs[k], inP)}')">🔴 <b>${esc(b.name)}</b> · ${pname[k]} · ${label} · ${j.text} · פער ${f2(a.went - a.sold)} ק״ג ←</button>`);
   })));
-  const lossNis = (b, segs, inP) => PK.reduce((s, k) => { const a = aggregate(segs[k].filter(inP)); if (!a.n || !(PR[k] > 0)) return s; const j = judgeIn(b, a); return s + (j.gap > 0 ? j.gap * PR[k] : 0); }, 0);
+  const lossNis = (b, segs, inP) => PK.reduce((s, k) => { const a = aggregate(segs[k].filter(inP)); const pr = mgrPriceOf(b, k); if (!a.n || !(pr > 0)) return s; const j = judgeIn(b, a); return s + (j.gap > 0 ? j.gap * pr : 0); }, 0);
   all.forEach(x => { x.nisW = hasPr ? lossNis(x.b, x.segs, inWeek) : 0; x.nisM = hasPr ? lossNis(x.b, x.segs, inMonth) : 0; });
   const money = hasPr ? `<div class="mgr-money"><span>💰 פחת בכל הסניפים שלך</span><span>השבוע <b>${nis(all.reduce((s, x) => s + x.nisW, 0))}</b></span><span>החודש <b>${nis(all.reduce((s, x) => s + x.nisM, 0))}</b></span></div>`
-    : mgr.canEdit !== false ? '<div class="mgr-money none">💰 כדי לראות את הפחת בשקלים, ממלאים מחיר עלות לק״ג בלשונית "הגדרות" בגיליון (שורות 10–12).</div>' : '';
+    : mgr.canEdit !== false ? '<div class="mgr-money none">💰 כדי לראות את הפחת בשקלים, ממלאים מחיר לק״ג במסך "פחת ושקילות" (💰 מחיר לק״ג), או בלשונית "הגדרות" בגיליון (שורות 10–12).</div>' : '';
   document.getElementById('mgrAlerts').innerHTML = money + kabatHtml(kabat, pname) + (alerts.length
     ? `<div class="alert-box"><h3>התראות · ${alerts.length}</h3>${alerts.join('')}</div>`
     : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`);
@@ -2127,7 +2139,7 @@ function kabatHtml(list, pname) {
   const ro = mgr.canEdit === false;
   const row = c => { const s = S[c.id] || {}, state = st(c), n = kabatCases.indexOf(c);
     return `<div class="kb-row kb-${state}">
-      <div class="kb-main" onclick="mgrOpenAt(${c.i}, '${c.end}')"><b>${esc(c.b.name)} · ${pname[c.k]}</b><span>${esc(c.label)} · חסר <b>${f2(c.gap)} ק״ג</b> (${c.pct.toFixed(1)}%) · מתוכם <b>${f2(c.miss)}</b> מעבר לפחת המותר${(((mgr.settings || {}).price || {})[c.k] > 0) ? ` · כ־<b>₪${Math.round(c.miss * mgr.settings.price[c.k]).toLocaleString('he-IL')}</b>` : ''}</span>
+      <div class="kb-main" onclick="mgrOpenAt(${c.i}, '${c.end}')"><b>${esc(c.b.name)} · ${pname[c.k]}</b><span>${esc(c.label)} · חסר <b>${f2(c.gap)} ק״ג</b> (${c.pct.toFixed(1)}%) · מתוכם <b>${f2(c.miss)}</b> מעבר לפחת המותר${mgrPriceOf(c.b, c.k) > 0 ? ` · כ־<b>₪${Math.round(c.miss * mgrPriceOf(c.b, c.k)).toLocaleString('he-IL')}</b>` : ''}</span>
         ${state !== 'open' ? `<small>${{ progress: '🟡 בטיפול', done: '✓ טופל', ignore: 'סומן להתעלם' }[state]}${s.by ? ' · ' + esc(s.by) : ''}${s.at ? ' · ' + esc(s.at) : ''}</small>` : ''}</div>
       ${ro ? '' : `<div class="kb-btns">${state === 'open' ? `<button type="button" onclick="kabatSet(${n}, 'progress')">בטיפול</button>` : ''}${state === 'open' || state === 'progress' ? `<button type="button" class="ok" onclick="kabatSet(${n}, 'done')">טופל</button><button type="button" class="ign" onclick="kabatSet(${n}, 'ignore')">התעלם</button>` : `<button type="button" class="ign" onclick="kabatSet(${n}, 'open')">פתיחה מחדש</button>`}</div>`}
     </div>`; };
@@ -2170,19 +2182,36 @@ function renderMgrLoss() {
   document.getElementById('mg_iron').value = ironAllow;
   document.getElementById('mgAll').checked = false;
   document.getElementById('mgLossMsg').textContent = '';
+  // prices: the branch's own in the box, the company price as the grey hint; the closed row shows what applies
+  const b = mgr && mgr.branches.find(x => x.name === mgrBranch), st = (b && b.settings) || {}, own = st.priceOwn || {}, gp = (mgr && mgr.settings && mgr.settings.price) || {};
+  const eff = PK.map(k => mgrPriceOf(b, k));
+  PK.forEach(k => { const el = document.getElementById('mgp_' + k); el.value = own[k] ? st.price[k] : ''; el.placeholder = gp[k] > 0 ? String(gp[k]) : ''; });
+  document.getElementById('mgPriceSum').textContent = eff.some(v => v > 0) ? ': ' + eff.map(v => v > 0 ? v : '–').join(' · ') : ' · לא הוגדר';
+  document.getElementById('mgPriceBox').open = false;
+}
+// cost per kg for a branch: set by the area manager for this branch, else the company price
+function mgrPriceOf(b, k) {
+  const s = b && b.settings, own = s && s.priceOwn && s.priceOwn[k] ? s.price[k] : null;
+  if (own != null) return own;
+  const g = mgr && mgr.settings && mgr.settings.price; return g && g[k] > 0 ? g[k] : 0;
 }
 async function mgrSaveLoss() {
   const msg = document.getElementById('mgLossMsg');
   const read = id => { const v = parseFloat(document.getElementById(id).value.replace(',', '.')); return isNaN(v) || v < 0 || v >= 100 ? null : v; };
   const loss = { entrecote: read('mg_entrecote'), shoulder: read('mg_shoulder'), oven: read('mg_oven'), iron: read('mg_iron') };
   if (Object.values(loss).some(v => v === null)) { msg.style.color = '#c62828'; msg.textContent = 'כל אחוז צריך להיות מספר בין 0 ל־99'; return; }
+  const price = {}; let badPrice = false;
+  PK.forEach(k => { let t = document.getElementById('mgp_' + k).value.replace(/[₪\s]/g, ''); if (!t) { price[k] = null; return; }
+    t = /,\d{1,2}$/.test(t) && t.indexOf('.') < 0 ? t.replace(',', '.') : t.replace(/,/g, ''); const v = parseFloat(t);
+    if (isNaN(v) || v < 0 || v > 100000) badPrice = true; else price[k] = v; });
+  if (badPrice) { msg.style.color = '#c62828'; msg.textContent = 'מחיר צריך להיות מספר, למשל 89.90'; document.getElementById('mgPriceBox').open = true; return; }
   const all = document.getElementById('mgAll').checked;
   const list = all ? mgr.branches.map(b => b.name) : [mgrBranch];
-  if (all && !await ask({ title: `לקבוע את האחוזים ל־${list.length} הסניפים שלך?`, text: 'האחוזים יחולו על כל הסניפים שלך מעכשיו.', ok: 'כן, לכולם', cancel: 'ביטול', icon: 'warn' })) return;
+  if (all && !await ask({ title: `לקבוע את האחוזים והמחירים ל־${list.length} הסניפים שלך?`, text: 'האחוזים והמחירים יחולו על כל הסניפים שלך מעכשיו.', ok: 'כן, לכולם', cancel: 'ביטול', icon: 'warn' })) return;
   let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
   msg.style.color = '#1565C0'; msg.textContent = 'שומר…';
   try {
-    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrSet', mcode: info.code, branches: list, loss }) });
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrSet', mcode: info.code, branches: list, loss, price }) });
     let d; try { d = JSON.parse(await res.text()); } catch(e) { d = { ok: false }; }
     if (!d.ok) { msg.style.color = '#c62828'; msg.textContent = d.error === 'busy' ? 'הגיליון עסוק · נסה שוב בעוד רגע' : d.error === 'bad key' ? 'הגיליון עדיין לא מכיר את האפשרות הזו · צריך לעדכן בו את הקוד' : 'השמירה לא הצליחה'; return; }
     msg.style.color = '#2e7d32'; msg.textContent = '✓ נשמר · הטלפונים בסניף יקבלו את האחוזים בסנכרון הבא';
