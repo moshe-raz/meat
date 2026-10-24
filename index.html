@@ -2218,7 +2218,7 @@ function renderMgrLoss() {
 // cost per kg for a branch: set by the area manager for this branch, else the company price
 function mgrPriceOf(b, k) {
   const s = b && b.settings, own = s && s.priceOwn && s.priceOwn[k] ? s.price[k] : null;
-  if (own != null) return own;
+  if (own > 0) return own;
   const g = mgr && mgr.settings && mgr.settings.price; return g && g[k] > 0 ? g[k] : 0;
 }
 async function mgrSaveLoss() {
@@ -2229,7 +2229,7 @@ async function mgrSaveLoss() {
   const price = {}; let badPrice = false;
   PK.forEach(k => { let t = document.getElementById('mgp_' + k).value.replace(/[₪\s]/g, ''); if (!t) { price[k] = null; return; }
     t = /,\d{1,2}$/.test(t) && t.indexOf('.') < 0 ? t.replace(',', '.') : t.replace(/,/g, ''); const v = parseFloat(t);
-    if (isNaN(v) || v < 0 || v > 100000) badPrice = true; else price[k] = v; });
+    if (isNaN(v) || v < 0 || v > 100000) badPrice = true; else price[k] = v > 0 ? v : null; }); // 0 = like blank: the company price
   if (badPrice) { msg.style.color = '#c62828'; msg.textContent = 'מחיר צריך להיות מספר, למשל 89.90'; document.getElementById('mgPriceBox').open = true; return; }
   const all = document.getElementById('mgAll').checked;
   const list = all ? mgr.branches.map(b => b.name) : [mgrBranch];
@@ -2537,14 +2537,16 @@ function slModel() {
 function slStockOf(p, stock, avg) {
   const s = stock[p], key = { 'אנטריקוט': 'entrecote', 'צלי כתף': 'shoulder' }[p];
   let fromClose = null;
-  if (key) { try { const dd = buildDays()[key] || {}, last = Object.keys(dd).filter(d => dd[d].hasClose).sort().pop();
+  let dd = null;
+  if (key) { try { dd = buildDays()[key] || {}; const last = Object.keys(dd).filter(d => dd[d].hasClose).sort().pop();
     if (last) fromClose = { kg: dd[last].close + Object.keys(dd).filter(d => d > last).reduce((t, d) => t + (dd[d].recv || 0), 0), at: new Date(last + 'T20:00:00').getTime(), close: true }; } catch (e) {} }
   const res = s && (!fromClose || s.at >= fromClose.at) ? { kg: +s.kg, at: s.at } : fromClose || { kg: 0, at: 0, none: true };
   // counted on an earlier day: take off what usually sells on the days in between (their sales report hasn't come yet)
   if (avg && res.at && !res.none) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const d = new Date(res.at); d.setHours(0, 0, 0, 0);
-    let gone = 0; for (let n = 0; n < 14; n++) { d.setDate(d.getDate() + 1); if (d >= today) break; if (d.getDay() <= 5) gone += avg[d.getDay()] || 0; }
+    let gone = 0; for (let n = 0; n < 14; n++) { d.setDate(d.getDate() + 1); if (d >= today) break; if (d.getDay() > 5) continue;
+      const day = dd && dd[ymd(d)]; gone += day && day.hasSold ? day.sold : avg[d.getDay()] || 0; }
     if (gone > 0) return Object.assign({}, res, { kg: Math.max(0, r1(res.kg - gone)), gone: r1(gone) });
   }
   return res;
