@@ -2521,7 +2521,7 @@ function slCalc(x, M, ot, pot) {
 }
 // poultry deliveries: Mon, Tue, Wed, Thu, Fri; each lasts until the next one (Friday's also through Sunday)
 function slPOT(M) {
-  const nd = slPref('noDay', {})[slSun(new Date())] || {};
+  const nd = Object.assign({}, slPref('noDay', {})[slSun(new Date())], { tue: false }); // poultry is always ordered for Tuesday
   return [
     { k: 'p1', day: 1, l: 'לשני', d: 'מזמינים בראשון', cov: nd.tue ? [1, 2] : [1], nx: nd.tue ? 3 : 2 },
     { k: 'p2', day: 2, l: 'לשלישי', d: nd.tue ? 'אין הזמנה' : 'מזמינים בשני', cov: [2], nx: 3, off: !!nd.tue },
@@ -2665,7 +2665,6 @@ function slRenderRec() {
   const po = slPOT(M).find(o => o.k === slPot), nd = slPref('noDay', {})[slSun(new Date())] || {};
   document.getElementById('slCover').innerHTML = poultry
     ? `ההזמנה ${po.l} צריכה להספיק ל<b>${po.cov.map(d => 'יום ' + SL_DN[d]).join(', ')}</b>, ולפתיחה ב${SL_DN[po.nx]} בבוקר.`
-      + (slPot === 'p1' || slPot === 'p2' ? `<label class="sl-check"><input type="checkbox" data-nd="tue"${nd.tue ? ' checked' : ''}> לא מזמינים לשלישי השבוע</label>` : '')
       + (slPot === 'p4' || slPot === 'p5' ? `<label class="sl-check"><input type="checkbox" data-nd="fri"${nd.fri ? ' checked' : ''}> לא מזמינים לשישי השבוע (חמישי מספיק גם לשישי ולראשון)</label>` : '')
     : slOt === 'week' ? 'ההזמנה הקבועה מגיעה כל ראשון. כאן רואים <b>מה כדאי לשנות בה</b>.' : `השלמה ${OT.find(o => o.k === slOt).d}. <b>מופיעים רק מוצרים שצפויים להיגמר</b> לפני האספקה הבאה.`;
   document.getElementById('slMorn').innerHTML = 'להשאיר לבוקר: ' + [0.3, 0.4, 0.5].map(v => `<button type="button" data-v="${v}" class="${v === M.morning ? 'on' : ''}">${v * 100}%</button>`).join('') + ' <span>מהמכר של היום שאחרי</span>';
