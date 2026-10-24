@@ -119,6 +119,7 @@ button[onclick="resetAll()"] { color: #c62828; }
 .section { border-radius: 14px; padding: 12px 8px; }
 .section > div:first-child { font-size: 13px; color: var(--muted); font-weight: 600; }
 .section.stock { background: var(--t-stock); } .stock .total { color: var(--c-stock); }
+.section .total { direction: ltr; text-align: right; } /* a negative number keeps its minus in front */
 .section.close { background: var(--t-close); } .close .total { color: var(--c-close); }
 .section.sold { background: var(--t-sold); } .sold .total { color: var(--c-sold); }
 .section.prep { background: var(--t-prep); } .prep .total { color: var(--c-prep); }
@@ -210,7 +211,22 @@ body.mgr-mode .gear-btn, body.setup-mode .gear-btn { display: none; }
 .set-hint { font-size: 12px; color: var(--muted); text-align: right; margin-top: 6px; line-height: 1.5; }
 button.btn.danger { background: #fff !important; color: #c62828; border: 1px solid #f0c9c9; width: 100%; }
 /* a short "saved" note after adding */
-#okToast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); opacity: 0; background: #1f2a24; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 70; transition: opacity .2s, transform .2s; pointer-events: none; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#okToast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); opacity: 0; background: #1f2a24; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 70; transition: opacity .2s, transform .2s; pointer-events: none; white-space: normal; width: max-content; max-width: min(92vw, 420px); text-align: center; line-height: 1.4; }
+#finishSheet { position: fixed; inset: 0; z-index: 80; }
+#finishSheet .fs-dim { position: absolute; inset: 0; background: rgba(40,25,18,.4); }
+#finishSheet .fs-card { position: absolute; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; background: #fff; border-radius: 22px 22px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 12px; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,.2); }
+#finishSheet h3 { margin: 0; font-size: 19px; }
+#finishSheet .inv-totals { margin: 0; }
+.fs-warn { background: #fff4e5; border: 1px solid #f3d2a2; color: #7a4a00; border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.55; }
+.fs-ok { background: #e3f4e8; color: #1b6b34; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
+.fs-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fs-btns .btn { margin: 0; }
+#invDoneBox { background: #e3f4e8; border-radius: 14px; padding: 12px; margin: 0 0 10px; text-align: center; color: #1b6b34; line-height: 1.5; font-size: 13.5px; }
+#invDoneBox b { display: block; font-size: 16px; }
+#invDoneBox small { color: #4d6b55; }
+#invFinishNote { text-align: center; margin: 6px 0 10px; font-size: 13px; }
+.br-inv { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.br-inv b { color: #1b6b34; } .br-inv .no { color: var(--pri); font-weight: 700; }
 #okToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 h1 { position: relative; }
 /* area-manager bar sits in the burgundy band like the branch line */
@@ -357,8 +373,8 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
       <option value="טחון">המרה לטחון</option>
       <option value="אחר">המרה למוצר אחר…</option>
     </select>
-    <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב">
-    <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal">
+    <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב" enterkeyhint="next" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('weightInput').focus()}">
+    <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
     <div class="entry-only" style="font-size:12px;color:#888;margin-top:-2px">כמה מגשים? כותבים עם רווח: 5.2 4.8 6.1 והם יחוברו</div>
     <div id="soldNote" class="entry-only" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
     <button class="btn entry-only" onclick="addWeight()">הוסף</button>
@@ -408,12 +424,14 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
 <div id="page-inventory" class="page">
   <div class="controls">
     <h3>ספירת מלאי סוף חודש</h3>
-    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button></div>
+    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button><button type="button" id="tabSupply" onclick="setInvTab('supply')">ציוד</button></div>
     <div style="margin:0 0 10px;font-size:15px">ספירה לחודש: <input type="month" id="invMonth" style="font-size:15px" onchange="setInvMonth(this.value)"></div>
     <div id="invTotals" class="inv-totals"></div>
     <div class="inv-progress"><div class="ip-bar"><i id="ipFill"></i></div><span id="ipText"></span></div>
     <input type="search" id="invSearch" placeholder="🔍 חיפוש מוצר…" oninput="renderInventory()" autocomplete="off">
-    <button class="btn entry-only" onclick="saveInventory()">שמור מלאי</button>
+    <div id="invDoneBox" hidden></div>
+    <button class="btn entry-only" id="invFinishBtn" type="button" onclick="openFinish()">סיום ספירה</button>
+    <div id="invFinishNote" class="kv-note entry-only" hidden></div>
     <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
   </div>
   <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:0 0 10px;">
@@ -427,6 +445,15 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
       <div class="entry-only" style="font-size:12px;color:#666;margin-top:4px">אפשר כמה משקלים בבת אחת עם רווח ביניהם, למשל: 30 15 14.742</div>
   </div>
   <div id="inventoryList"></div>
+</div>
+<div id="finishSheet" hidden>
+  <div class="fs-dim" onclick="closeFinish()"></div>
+  <div class="fs-card" role="dialog" aria-modal="true" aria-labelledby="fsTitle">
+    <h3 id="fsTitle"></h3>
+    <div class="inv-totals" id="fsTotals"></div>
+    <div id="fsMissing"></div>
+    <div class="fs-btns"><button class="btn" type="button" style="background:#fff;color:var(--ink);border:1px solid var(--line)" onclick="closeFinish()">חזרה לספירה</button><button class="btn" type="button" id="fsGo" onclick="doFinish()">סיום ושליחה</button></div>
+  </div>
 </div>
 
 <script>
@@ -444,13 +471,22 @@ const poultryGroups = [
 ];
 const poultryProducts = poultryGroups.flatMap(g => g[1]);
 const lambGroups = [
-  ['כבש', ["רבע כבש","שוק כבש","חזה כבש","צוואר כבש","צלעות כבש","שומן כבש"]],
-  ['כבש מעובד', ["רבע כבש מעובד","שוק כבש מעובד","חזה כבש מעובד","צוואר כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
+  ['כבש', ["רבע כבש","כתף כבש","חזה כבש","צוואר כבש","צלעות כבש","שומן כבש"]],
+  ['כבש מעובד', ["רבע כבש מעובד","כתף כבש מעובד","חזה כבש מעובד","צוואר כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
 ];
 const lambProducts = lambGroups.flatMap(g => g[1]);
-const products = beefProducts.concat(lambProducts, poultryProducts); // one list, so every product has a fixed index
-// beef and lamb are reported together, chicken and turkey together
-function familyOf(cat) { return ['עוף', 'הודו', 'ארוזים'].includes(cat) ? 'poultry' : 'meat'; }
+// supplies and equipment: counted in units, never part of the kg totals
+const supplyGroups = [
+  ['שונות', ['פירורי לחם', 'תבלין לשווארמה']],
+  ['פלסטונים', ['פלסטון עוף עוז', 'פלסטון עוף הגליל', 'פלסטון חמש קצבים', 'פלסטון מססה']],
+  ['משטחים', ['משטחים']]
+];
+const supplyProducts = supplyGroups.flatMap(g => g[1]);
+const products = beefProducts.concat(lambProducts, poultryProducts, supplyProducts); // one list, so every product has a fixed index (new ones only at the end)
+// beef and lamb are reported together, chicken and turkey together; supplies apart
+function familyOf(cat) { return ['עוף', 'הודו', 'ארוזים'].includes(cat) ? 'poultry' : supplyGroups.some(g => g[0] === cat) ? 'supply' : 'meat'; }
+function isUnit(p) { return supplyProducts.includes(p); }
+function qtyText(p, v) { return isUnit(p) ? Math.round(v) + ' יח׳' : fmt(v) + ' ק״ג'; }
 let invTab = 'beef';
 
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
@@ -563,7 +599,7 @@ function addWeight() {
   if (!date || !parts.length || parts.some(x => !/^\d+(\.\d+)?$/.test(x))) { alert('נא למלא תאריך ומשקל (מספרים בלבד, למשל 12.5 או כמה מגשים: 5.2 4.8)'); return; }
   const nums = parts.map(Number);
   const weight = Math.round(nums.reduce((a, n) => a + n, 0) * 1000) / 1000;
-  if (nums.some(n => n <= 0) && !(type === 'sold' && nums.length === 1)) { alert('המשקל צריך להיות גדול מ־0'); return; }
+  if (nums.some(n => n <= 0) && !((type === 'sold' || type === 'close') && nums.length === 1)) { alert('המשקל צריך להיות גדול מ־0'); return; }
   if (meat === 'iron' && type !== 'sold') { alert('איירון סטייק נרשם רק בנמכר'); return; }
   if (type === 'xfer' && meat !== 'oven') { alert('העברה לאנטריקוט נרשמת רק מאנטריקוט לתנור'); return; }
   if (type === 'xfer2' && meat !== 'entrecote') { alert('העברה לתנור נרשמת רק מאנטריקוט'); return; }
@@ -575,8 +611,12 @@ function addWeight() {
   if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
   let convTarget = document.getElementById('convTo').value;
   if (type === 'conv' && convTarget === 'אחר') {
-    convTarget = document.getElementById('convOther').value.replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e]/g, '').replace(/\s+/g, ' ').trim();
+    convTarget = document.getElementById('convOther').value.replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff\u061c]/g, '').replace(/\s+/g, ' ').trim();
     if (!convTarget) { alert('כתבו לאיזה מוצר הומר הבשר (למשל אונטריב)'); document.getElementById('convOther').focus(); return; }
+  }
+  if (type === 'conv' || type === 'waste') {
+    const st = stockFor(buildDays()[meat] || {}, date).stock;
+    if (weight > st + 0.005 && !confirm(`במלאי של ${names[meat]} יש רק ${f2(Math.max(0, st))} ק״ג, ורושמים ${f2(weight)}. לרשום בכל זאת?`)) return;
   }
   const tLabel = type === 'conv' ? 'המרה ל' + convTarget : typeNames[type];
   const entry = { id: newId(), dev: myDev, by: worker, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: tLabel, weight: weight.toFixed(2) };
@@ -812,8 +852,8 @@ function aggregate(segs) {
   const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, conv:0, waste:0, n:0, waiting:0, missing:[] };
   segs.forEach(s => {
     a.missing.push(...s.missing);
-    a.conv += s.conv || 0; a.waste += s.waste || 0;
     if (s.pending) { a.waiting++; return; }
+    a.conv += s.conv || 0; a.waste += s.waste || 0;
     a.went += s.went; a.sold += s.sold; a.iron += s.iron; a.recv += s.recv; a.prep += s.prep; a.n += 1 + s.missing.length;
   });
   return a;
@@ -832,9 +872,14 @@ function missingText(list) {
 }
 
 function setCard(k) { cardSel = k; if (cardsBuilt) renderProdTabs(); }
+function pickCard(k) {
+  setCard(k);
+  const ms = document.getElementById('meatSelect');
+  if (ms.value !== k && !(k === 'shoulder' && ms.value === 'iron')) { ms.value = k; syncTypeForMeat(); syncDateForType(); }
+}
 function renderProdTabs() {
   const el = document.getElementById('prodTabs'); if (!el) return;
-  el.innerHTML = cardDefs.map(([k, n]) => `<button type="button" class="${k === cardSel ? 'active' : ''}" onclick="setCard('${k}')"><span class="dot ${prodStatus[k] || 'none'}"></span>${k === 'oven' ? 'לתנור' : n}</button>`).join('');
+  el.innerHTML = cardDefs.map(([k, n]) => `<button type="button" class="${k === cardSel ? 'active' : ''}" onclick="pickCard('${k}')"><span class="dot ${prodStatus[k] || 'none'}"></span>${k === 'oven' ? 'לתנור' : n}</button>`).join('');
   document.querySelectorAll('#cards .meat-card').forEach(c => c.classList.toggle('shown', c.dataset.k === cardSel));
 }
 function updateAnalysis(days) {
@@ -928,7 +973,7 @@ function resetAll() {
 }
 
 function exportToExcel() {
-  if (typeof XLSX === 'undefined') { alert('טוען ספרייה...'); return; }
+  if (typeof XLSX === 'undefined') { alert(navigator.onLine === false ? 'לייצוא לאקסל צריך אינטרנט. נסו שוב כשיש חיבור.' : 'טוען את האקסל… נסו שוב בעוד כמה שניות'); return; }
   if (!history.length) { alert('אין נתונים'); return; }
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
@@ -979,9 +1024,10 @@ function exportToExcel() {
     [...new Set(dates.map(keyOfDate))].forEach(p => {
       PK.forEach(k => {
         const a = aggregate(segs[k].filter(s => keyOfDate(s.end) === p));
-        let prep = 0, recv = 0, conv = 0, waste = 0;
-        Object.keys(days[k]).forEach(d => { if (keyOfDate(d) === p) { prep += days[k][d].prep; recv += days[k][d].recv; conv += days[k][d].conv; waste += days[k][d].waste; } });
-        if (!a.n && !prep && !recv && !conv && !waste) return;
+        let prep = 0, recv = 0;
+        const conv = a.conv, waste = a.waste;
+        Object.keys(days[k]).forEach(d => { if (keyOfDate(d) === p) { prep += days[k][d].prep; recv += days[k][d].recv; } });
+        if (!a.n && !a.waiting && !prep && !recv && !conv && !waste) return;
         const cw = [conv ? r2(conv) : '', waste ? r2(waste) : ''];
         const name = names[k] + (k === 'shoulder' ? ' (נמכר כולל איירון)' : '');
         if (!a.n) { rows.push([labelOf(p), name, r2(prep), r2(recv), ...cw, '', '', '', '', '', '', a.waiting ? 'ממתין לנמכר' : 'חסרות סגירות', '', a.missing.map(dm).join(', ')]); return; }
@@ -1014,7 +1060,7 @@ function defaultInvMonth() { // the first week of a month still counts as the en
 let invMonth = defaultInvMonth();
 function catOf(p) {
   if (beefProducts.includes(p)) return p.includes('מעובד') ? 'בקר מעובד' : 'בקר';
-  const g = poultryGroups.concat(lambGroups).find(([, items]) => items.includes(p));
+  const g = poultryGroups.concat(lambGroups, supplyGroups).find(([, items]) => items.includes(p));
   return g ? g[0] : '';
 }
 function invOf(p) { return invEvents.filter(e => e.month === invMonth && e.product === p).sort((a, b) => createdAt(a.id) - createdAt(b.id)); }
@@ -1028,7 +1074,7 @@ function invRow(p) {
   if (p === selectedProduct) cls += ' selected';
   return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
       <span>${p}</span>
-      <span class="inv-val">${invValue(p) ? fmt(invValue(p)) + ' ק״ג' : 'לא נספר'}</span>
+      <span class="inv-val">${invValue(p) ? qtyText(p, invValue(p)) : 'לא נספר'}</span>
     </div>`;
 }
 
@@ -1037,18 +1083,19 @@ function renderInventory() {
   const q = (document.getElementById('invSearch') || {}).value || '';
   const groups = g => g.map(([name, items]) => { const shown = items.filter(p => p.includes(q.trim())); return shown.length ? `<div class="inv-group">${name}</div>` + shown.map(invRow).join('') : ''; }).join('');
   const beefGroups = [['בקר', beefProducts.filter(p => !p.includes('מעובד'))], ['בקר מעובד', beefProducts.filter(p => p.includes('מעובד'))]];
-  el.innerHTML = (invTab === 'beef' ? groups(beefGroups) : invTab === 'lamb' ? groups(lambGroups) : groups(poultryGroups)) || '<div class="kv-note" style="text-align:center;padding:20px">לא נמצא מוצר</div>';
+  el.innerHTML = (invTab === 'beef' ? groups(beefGroups) : invTab === 'lamb' ? groups(lambGroups) : invTab === 'supply' ? groups(supplyGroups) : groups(poultryGroups)) || '<div class="kv-note" style="text-align:center;padding:20px">לא נמצא מוצר</div>';
   const m = document.getElementById('invMonth'); if (m && m.value !== invMonth) m.value = invMonth;
   renderInvTotals();
+  renderInvDone();
 }
 
 function invTotals() {
-  const t = { meat: 0, poultry: 0 };
+  const t = { meat: 0, poultry: 0, supply: 0 };
   invEvents.forEach(e => { if (e.month === invMonth && products.includes(e.product)) t[familyOf(catOf(e.product))] += e.w; });
   return { meat: t.meat, poultry: t.poultry, all: t.meat + t.poultry };
 }
 function renderProgress() {
-  const list = invTab === 'beef' ? beefProducts : invTab === 'lamb' ? lambProducts : poultryProducts;
+  const list = invTab === 'beef' ? beefProducts : invTab === 'lamb' ? lambProducts : invTab === 'supply' ? supplyProducts : poultryProducts;
   const done = list.filter(p => invValue(p) > 0).length;
   const fill = document.getElementById('ipFill'); if (!fill) return;
   fill.style.width = (done / list.length * 100) + '%';
@@ -1066,6 +1113,7 @@ function setInvTab(t) {
   document.getElementById('tabBeef').classList.toggle('active', t === 'beef');
   document.getElementById('tabChicken').classList.toggle('active', t === 'chicken');
   document.getElementById('tabLamb').classList.toggle('active', t === 'lamb');
+  document.getElementById('tabSupply').classList.toggle('active', t === 'supply');
   selectedProduct = null;
   document.getElementById('calcPanel').style.display = 'none';
   renderInventory();
@@ -1084,7 +1132,10 @@ function refreshRow(product, flash) {
   const i = products.indexOf(product);
   const row = document.querySelector(`#inventoryList [data-idx="${i}"]`);
   if (!row) { renderInventory(); return; }
-  row.querySelector('.inv-val').textContent = fmt(invValue(product)) + ' ק״ג';
+  const v = invValue(product);
+  row.querySelector('.inv-val').textContent = v ? qtyText(product, v) : 'לא נספר';
+  row.classList.toggle('empty', !v);
+  renderProgress();
   if (flash) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
   renderInvTotals();
 }
@@ -1092,7 +1143,7 @@ function refreshRow(product, flash) {
 function refreshCalc() {
   const p = selectedProduct;
   if (!p) return;
-  document.getElementById('calcCurrent').textContent = fmt(invValue(p));
+  document.getElementById('calcCurrent').textContent = isUnit(p) ? Math.round(invValue(p)) + ' יח׳' : fmt(invValue(p));
   const steps = invOf(p).map(e => e.w);
   document.getElementById('calcSteps').textContent = steps.length > 1 ? steps.join(' + ') + ' = ' + fmt(invValue(p)) : '';
 }
@@ -1100,7 +1151,8 @@ function refreshCalc() {
 function selectProduct(i) {
   selectedProduct = products[i];
   document.getElementById('calcPanel').style.display = 'block';
-  document.getElementById('calcProductName').textContent = selectedProduct;
+  document.getElementById('calcProductName').textContent = selectedProduct + (isUnit(selectedProduct) ? ' · סופרים ביחידות' : '');
+  document.getElementById('calcInput').placeholder = isUnit(selectedProduct) ? 'כמה יחידות' : 'משקל';
   document.querySelectorAll('#inventoryList .inventory-item').forEach(r => r.classList.toggle('selected', r.dataset.idx == i));
   refreshCalc();
   const input = document.getElementById('calcInput');
@@ -1119,6 +1171,7 @@ function calcAdd() {
   const nums = parseNumbers(input.value.trim());
   if (!nums.length) return;
   if (nums.some(n => isNaN(n) || n <= 0)) { alert('מספר לא תקין'); return; }
+  if (isUnit(selectedProduct) && nums.some(n => !Number.isInteger(n))) { alert('את ' + selectedProduct + ' סופרים ביחידות: מספר שלם, למשל 12'); return; }
   const p = selectedProduct, cat = catOf(p), ord = products.indexOf(p);
   const added = nums.map(n => ({ id: newId(), month: invMonth, product: p, w: n, dev: myDev, by: worker, cat, ord }));
   invEvents.push(...added);
@@ -1184,13 +1237,77 @@ function mergeRemoteInv(list, since) {
   }
 }
 
+// ---------- Finishing a month's count ----------
+// Only the department manager (the name in the branch details) finishes; the sheet then makes a separate file for that count.
+let invDone = {}; // month -> { by, at, total, missing, url, updated, pending }
+try { invDone = JSON.parse(localStorage.getItem('invDone') || '{}') || {}; } catch (e) {}
+function persistDone() { if (mgrMode) return; try { localStorage.setItem('invDone', JSON.stringify(invDone)); } catch (e) {} }
+const nameKey = s => cleanKey(s).replace(/\s+/g, ' ');
+function isDeptManager() { const m = nameKey(branch.manager); return !!m && nameKey(worker) === m; }
+function doneWhen(at) { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); }
+function monthLabel(m) { return ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][+m.slice(5) - 1] + ' ' + m.slice(0, 4); }
+function renderInvDone() {
+  const box = document.getElementById('invDoneBox'); if (!box) return;
+  const d = invDone[invMonth];
+  box.hidden = !d;
+  if (d) box.innerHTML = `<b>✓ הספירה של ${monthLabel(invMonth)} הסתיימה</b>${esc(doneWhen(d.at))} · ${esc(d.by || '')} · ${fmt(d.total || 0)} ק״ג`
+    + `<br><small>${d.pending ? 'נשלח לגיליון של החברה…' : d.url ? '✓ נוצר קובץ בדרייב של החברה' + (d.updated ? ' · עודכן אחרי הסיום ' + esc(doneWhen(d.updated)) : '') : branch.url ? '' : 'הקובץ נשמר בטלפון'}</small>`;
+  const btn = document.getElementById('invFinishBtn'), note = document.getElementById('invFinishNote');
+  if (!btn) return;
+  const can = isDeptManager();
+  btn.hidden = !can || mgrMode;
+  btn.textContent = d ? 'עדכון סיום הספירה' : 'סיום ספירה';
+  note.hidden = can || mgrMode;
+  note.textContent = branch.manager ? `את הספירה מסיים מנהל המחלקה (${branch.manager})` : 'כדי לסיים ספירה, מלאו בהגדרות את שם מנהל המחלקה';
+}
+function openFinish() {
+  if (!isDeptManager()) { alert('את הספירה מסיים מנהל המחלקה'); return; }
+  const t = invTotals(), missing = products.filter(p => !invValue(p));
+  document.getElementById('fsTitle').textContent = (invDone[invMonth] ? 'לעדכן את סיום ספירת ' : 'לסיים את ספירת ') + monthLabel(invMonth) + '?';
+  document.getElementById('fsTotals').innerHTML = `<div>בקר וכבש<b>${fmt(t.meat)}</b></div><div>עוף והודו<b>${fmt(t.poultry)}</b></div><div>סה״כ כולל<b>${fmt(t.all)}</b></div>`;
+  document.getElementById('fsMissing').innerHTML = missing.length
+    ? `<div class="fs-warn"><b>${missing.length === 1 ? 'מוצר אחד לא נספר' : missing.length + ' מוצרים לא נספרו'}</b>`
+      + (missing.length > 10 ? ` (${[['בקר', beefProducts], ['כבש', lambProducts], ['עוף והודו', poultryProducts], ['ציוד', supplyProducts]].map(([n, l]) => [n, l.filter(p => missing.includes(p)).length]).filter(x => x[1]).map(x => x[0] + ' ' + x[1]).join(' · ')})` : '')
+      + `: ${missing.slice(0, 10).map(esc).join(', ')}${missing.length > 10 ? ' ועוד ' + (missing.length - 10) : ''}.<br>אם אין מהם במלאי, אפשר לסיים. הם יירשמו כ־0.</div>`
+    : '<div class="fs-ok">✓ כל המוצרים נספרו</div>';
+  document.getElementById('fsGo').textContent = branch.url ? 'סיום ושליחה' : 'סיום ושמירת קובץ';
+  document.getElementById('finishSheet').hidden = false;
+}
+function closeFinish() { document.getElementById('finishSheet').hidden = true; }
+function doFinish() {
+  if (!isDeptManager()) return;
+  const t = invTotals(), r3 = n => Math.round(n * 1000) / 1000;
+  const missing = products.filter(p => !invValue(p)).map(p => ({ p, cat: catOf(p), ord: products.indexOf(p) }));
+  const rec = { month: invMonth, by: worker, at: new Date().toISOString(), total: r3(t.all), meat: r3(t.meat), poultry: r3(t.poultry), missing };
+  invDone[invMonth] = Object.assign({}, rec, { missing: missing.length, pending: !!branch.url });
+  persistDone();
+  closeFinish();
+  renderInvDone();
+  try { exportInventory(); } catch (e) {}
+  if (branch.url) { queueOps([{ op: 'invDone', d: rec }]); syncNow(); }
+  showOk('✓ הספירה של ' + monthLabel(invMonth) + ' הסתיימה' + (branch.url ? ' · נשלח לגיליון' : ''));
+}
+// what the sheet knows: which months are finished, and the link to each file
+function mergeDone(list) {
+  if (!Array.isArray(list)) return;
+  let changed = false;
+  list.forEach(s => {
+    if (!s || !/^\d{4}-\d{2}$/.test(s.month)) return;
+    const l = invDone[s.month];
+    if (l && l.pending && new Date(l.at) > new Date(s.at)) return; // ours is newer and still on its way
+    invDone[s.month] = { by: s.by, at: s.at, total: Number(s.total) || 0, missing: Number(s.missing) || 0, url: s.url || '', updated: s.updated || '', pending: false };
+    changed = true;
+  });
+  if (changed) { persistDone(); renderInvDone(); }
+}
+
 function saveInventory(silent) {
   persistInventory();
   if (!silent) alert('מלאי נשמר' + (branch.url ? ' · נשלח גם לגיליון של החברה' : ''));
 }
 
 function exportInventory() {
-  if (typeof XLSX === 'undefined') { alert('טוען...'); return; }
+  if (typeof XLSX === 'undefined') { alert(navigator.onLine === false ? 'לייצוא לאקסל צריך אינטרנט. נסו שוב כשיש חיבור.' : 'טוען את האקסל… נסו שוב בעוד כמה שניות'); return; }
   saveInventory(true);
   const row = p => [p, invValue(p), invOf(p).map(e => e.w).join(' + ')];
   const beefRows = [['מוצר','משקל (ק״ג)','פירוט'], ...beefProducts.map(row)];
@@ -1201,8 +1318,12 @@ function exportInventory() {
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
   const t = invTotals(), r3 = n => Math.round(n * 1000) / 1000;
-  addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)], ['סה״כ בקר וכבש (ק״ג)', r3(t.meat)], ['סה״כ עוף והודו (ק״ג)', r3(t.poultry)], ['סה״כ כולל (ק״ג)', r3(t.all)]]);
-  [[beefRows, 'בקר'], [lambRows, 'כבש'], [poultryRows, 'עוף']].forEach(([rows, name]) => {
+  const fin = invDone[invMonth];
+  addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)], ['סה״כ בקר וכבש (ק״ג)', r3(t.meat)], ['סה״כ עוף והודו (ק״ג)', r3(t.poultry)], ['סה״כ כולל (ק״ג)', r3(t.all)]]
+    .concat(fin ? [['הספירה הסתיימה', doneWhen(fin.at) + ' · ' + (fin.by || '')]] : []));
+  const supplyRows = [['פריט','כמות (יח׳)','פירוט']];
+  supplyGroups.forEach(([g, items], n) => { if (n) supplyRows.push([]); supplyRows.push([g]); items.forEach(p => supplyRows.push([p, Math.round(invValue(p)), invOf(p).map(e => e.w).join(' + ')])); });
+  [[beefRows, 'בקר'], [lambRows, 'כבש'], [poultryRows, 'עוף'], [supplyRows, 'ציוד']].forEach(([rows, name]) => {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, ws, name);
@@ -1494,8 +1615,13 @@ function renderMgr() {
     return `<div class="br-card" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">
       <div class="br-card-head"><b>${esc(b.name)}</b><span>${b.manager ? 'מנהל מחלקה: ' + esc(b.manager) + ' · ' : ''}פתח ←</span></div>
       <div class="br-grid"><span></span><span class="h">שבוע ${lastWeek ? weekLabel(lastWeek) : ''}</span><span class="h">חודש ${lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''}</span>
-      ${PK.map(k => `<span>${pname[k]}</span>${cell(k, inWeek)}${cell(k, inMonth)}`).join('')}</div></div>`;
+      ${PK.map(k => `<span>${pname[k]}</span>${cell(k, inWeek)}${cell(k, inMonth)}`).join('')}</div>${invLine(b)}</div>`;
   }).join('') || '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
+}
+// stock count of the latest month on the branch card: finished or not yet
+function invLine(b) {
+  const m = defaultInvMonth(), d = (b.done || []).find(x => x.month === m);
+  return `<div class="br-inv">ספירת מלאי ${+m.slice(5)}/${m.slice(0, 4)}: ${d ? `<b>✓ הסתיימה ${esc(doneWhen(d.at))}</b>` : '<span class="no">עוד לא הסתיימה</span>'}</div>`;
 }
 function mgrOpenAt(i, date) { mgrOpen(mgr.branches[i].name, date); }
 // the loss % used for a branch: the ones its area manager set, otherwise the company's
@@ -1541,6 +1667,7 @@ function mgrOpen(name, date, stay) {
   useSettings(b.settings || mgr.settings);
   history = b.entries.slice();
   invEvents = b.inv.slice();
+  invDone = {}; (b.done || []).forEach(s => { invDone[s.month] = { by: s.by, at: s.at, total: Number(s.total) || 0, missing: Number(s.missing) || 0, url: s.url || '', updated: s.updated || '' }; });
   mgrView = { name: b.name, manager: b.manager, area: mgr.name }; // for the Excel files (the phone's own branch details stay as they are)
   document.getElementById('mgrBranchSel').value = name;
   document.getElementById('mgrBranchMgr').textContent = b.manager ? 'מנהל מחלקה: ' + b.manager : '';
@@ -1631,6 +1758,7 @@ async function syncNow() {
       if (data.settings) applySheetSettings(data.settings);
       if (last && Array.isArray(data.entries)) { mergeRemote(data.entries, data.since); lastPull = new Date(); }
       if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv, data.invSince);
+      if (last && Array.isArray(data.done)) mergeDone(data.done);
     } while (syncQueue.length);
   } catch(e) {
     syncError = 'אין חיבור לגיליון כרגע';
