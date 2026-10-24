@@ -229,6 +229,29 @@ body.mgr-mode .gear-btn, body.setup-mode .gear-btn { display: none; }
 button.btn.danger { background: #fff !important; color: #c62828; border: 1px solid #f0c9c9; width: 100%; }
 /* a short "saved" note after adding */
 #okToast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); opacity: 0; background: #1f2a24; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 70; transition: opacity .2s, transform .2s; pointer-events: none; white-space: normal; width: max-content; max-width: min(92vw, 420px); text-align: center; line-height: 1.4; }
+#uiDlg { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-end; justify-content: center; }
+#uiDlg[hidden] { display: none; }
+#uiDlg .dl-dim { position: absolute; inset: 0; background: rgba(40,25,18,.42); animation: dlFade .18s ease; }
+#uiDlg .dl-card { position: relative; width: 100%; max-width: 520px; background: #fff; border-radius: 22px 22px 0 0; padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 10px; text-align: center; box-shadow: 0 -10px 30px rgba(0,0,0,.2); animation: dlUp .22s ease; }
+@media (min-width: 600px) { #uiDlg { align-items: center; } #uiDlg .dl-card { border-radius: 22px; max-width: 420px; } }
+#uiDlg .dl-icon { width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 2px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: var(--pri-soft); color: var(--pri); }
+#uiDlg .dl-icon.warn { background: #fff4e5; color: #b35c00; }
+#uiDlg .dl-icon.info { background: #eaf1fb; color: #1f5aa8; }
+#uiDlg h3 { margin: 0; font-size: 19px; line-height: 1.35; color: var(--ink); }
+#dlText { color: var(--muted); font-size: 15px; line-height: 1.55; white-space: pre-line; }
+#dlText .dl-box { margin: 6px 0 0; background: var(--field); border: 1px solid var(--line); border-radius: 14px; padding: 12px; color: var(--ink); white-space: normal; }
+#dlText .dl-box b { display: block; font-size: 17px; }
+#dlText .dl-box .dl-w { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 2px 0; }
+#dlText .dl-box small { color: var(--muted); font-size: 13px; }
+.dl-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.dl-btns.one { grid-template-columns: 1fr; }
+.dl-btns button { font: 700 16px var(--font); border-radius: 14px; padding: 13px 10px; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink); }
+.dl-btns .dl-yes { background: var(--pri); border-color: var(--pri); color: #fff; }
+.dl-btns .dl-yes.danger { background: #b3261e; border-color: #b3261e; }
+.dl-btns button:focus-visible { outline: 3px solid rgba(159,45,45,.35); outline-offset: 2px; }
+@keyframes dlUp { from { transform: translateY(24px); opacity: 0; } }
+@keyframes dlFade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #uiDlg .dl-card, #uiDlg .dl-dim { animation: none; } }
 #finishSheet { position: fixed; inset: 0; z-index: 80; }
 #finishSheet .fs-dim { position: absolute; inset: 0; background: rgba(40,25,18,.4); }
 #finishSheet .fs-card { position: absolute; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; background: #fff; border-radius: 22px 22px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 12px; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,.2); }
@@ -593,6 +616,15 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
   </div>
   <div id="inventoryList"></div>
 </div>
+<div id="uiDlg" hidden>
+  <div class="dl-dim"></div>
+  <div class="dl-card" role="alertdialog" aria-modal="true" aria-labelledby="dlTitle" aria-describedby="dlText">
+    <div class="dl-icon" id="dlIcon" aria-hidden="true"></div>
+    <h3 id="dlTitle"></h3>
+    <div id="dlText"></div>
+    <div class="dl-btns" id="dlBtns"><button type="button" class="dl-no" id="dlNo"></button><button type="button" class="dl-yes" id="dlYes"></button></div>
+  </div>
+</div>
 <div id="finishSheet" hidden>
   <div class="fs-dim" onclick="closeFinish()"></div>
   <div class="fs-card" role="dialog" aria-modal="true" aria-labelledby="fsTitle">
@@ -647,6 +679,37 @@ try { mgrMode = localStorage.getItem('appMode') === 'manager'; } catch(e) {}
 document.getElementById('dateInput').value = ymd(new Date()); // local date (valueAsDate would give yesterday before 03:00)
 document.getElementById('dateInput').max = ymd(new Date());
 document.getElementById('dateInput').addEventListener('change', updateDisplay);
+
+// ---------- In-app dialogs (instead of the browser's plain "the site says" boxes) ----------
+// ask({ title, text, html, ok, cancel, danger, icon }) -> Promise<true|false>; a message has no cancel button.
+let dlgOpen = false, dlgQueue = Promise.resolve();
+function ask(o) {
+  const run = () => new Promise(resolve => {
+    const el = document.getElementById('uiDlg');
+    if (!el) { resolve(o.cancel === false ? true : window.confirm(o.title + (o.text ? '\n' + o.text : ''))); return; }
+    const yes = document.getElementById('dlYes'), no = document.getElementById('dlNo'), icon = document.getElementById('dlIcon');
+    document.getElementById('dlTitle').textContent = o.title || '';
+    const t = document.getElementById('dlText');
+    if (o.html) t.innerHTML = o.html; else t.textContent = o.text || '';
+    t.hidden = !o.html && !o.text;
+    icon.className = 'dl-icon' + (o.icon === 'warn' ? ' warn' : o.icon === 'info' ? ' info' : '');
+    icon.textContent = o.icon === 'warn' ? '!' : o.icon === 'info' ? 'i' : o.icon === 'trash' ? '🗑' : '?';
+    yes.textContent = o.ok || 'אישור'; yes.classList.toggle('danger', !!o.danger);
+    no.textContent = o.cancel || 'ביטול'; no.hidden = o.cancel === false;
+    document.getElementById('dlBtns').classList.toggle('one', o.cancel === false);
+    const done = v => { el.hidden = true; dlgOpen = false; yes.onclick = no.onclick = null; document.removeEventListener('keydown', key, true);
+      if (back && back.tagName === 'INPUT' && document.contains(back)) back.focus(); resolve(v); };
+    const key = e => { if (e.key === 'Escape') { e.preventDefault(); done(o.cancel === false); } else if (e.key === 'Enter') { e.preventDefault(); done(true); } };
+    yes.onclick = () => done(true); no.onclick = () => done(false);
+    el.querySelector('.dl-dim').onclick = () => done(o.cancel === false);
+    document.addEventListener('keydown', key, true);
+    const back = document.activeElement; if (back && back.blur) back.blur();
+    dlgOpen = true; el.hidden = false; setTimeout(() => yes.focus(), 30);
+  });
+  const p = dlgQueue.then(run); dlgQueue = p.catch(() => {}); return p;
+}
+// every message in the app uses the same dialog
+window.alert = m => { m = String(m); ask(m.length > 45 ? { title: 'שימו לב', text: m, cancel: false, ok: 'הבנתי', icon: 'info' } : { title: m, cancel: false, ok: 'הבנתי', icon: 'info' }); };
 
 let okTimer;
 function showOk(text) {
@@ -737,7 +800,8 @@ document.getElementById('dateInput').addEventListener('change', syncDateForType)
 document.getElementById('convTo').addEventListener('change', () => { syncDateForType(); if (document.getElementById('convTo').value === 'אחר') document.getElementById('convOther').focus(); });
 syncTypeForMeat();
 
-function addWeight() {
+async function addWeight() {
+  if (dlgOpen) return;
   const meat = document.getElementById('meatSelect').value;
   const type = document.getElementById('typeSelect').value;
   const date = document.getElementById('dateInput').value;
@@ -754,8 +818,8 @@ function addWeight() {
     alert('אי אפשר לרשום לתאריך עתידי');
     return;
   }
-  if (type === 'sold' && date === ymd(new Date()) && !confirm('הנמכר של היום מגיע רק מחר. לרשום אותו בכל זאת לתאריך של היום?')) return;
-  if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
+  if (type === 'sold' && date === ymd(new Date()) && !await ask({ title: 'לרשום נמכר להיום?', text: 'הנמכר של היום מגיע בדרך כלל רק מחר.', ok: 'כן, להיום', cancel: 'לא', icon: 'warn' })) return;
+  if (type === 'close' && date === ymd(new Date()) && !await ask({ title: 'לרשום סגירה להיום?', text: 'הסגירה של היום נשקלת בדרך כלל רק מחר בבוקר.', ok: 'כן, להיום', cancel: 'לא', icon: 'warn' })) return;
   let convTarget = document.getElementById('convTo').value;
   if (type === 'conv' && convTarget === 'אחר') {
     convTarget = document.getElementById('convOther').value.replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff\u061c]/g, '').replace(/\s+/g, ' ').trim();
@@ -763,7 +827,7 @@ function addWeight() {
   }
   if (type === 'conv' || type === 'waste') {
     const st = stockFor(buildDays()[meat] || {}, date).stock;
-    if (weight > st + 0.005 && !confirm(`במלאי של ${names[meat]} יש רק ${f2(Math.max(0, st))} ק״ג, ורושמים ${f2(weight)}. לרשום בכל זאת?`)) return;
+    if (weight > st + 0.005 && !await ask({ title: 'זה יותר ממה שיש במלאי', html: `במלאי של ${esc(names[meat])} יש רק <b>${f2(Math.max(0, st))} ק״ג</b>, ורושמים <b>${f2(weight)} ק״ג</b>.`, ok: 'לרשום בכל זאת', cancel: 'חזרה', icon: 'warn' })) return;
   }
   const tLabel = type === 'conv' ? 'המרה ל' + convTarget : typeNames[type];
   const entry = { id: newId(), dev: myDev, by: worker, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: tLabel, weight: weight.toFixed(2) };
@@ -1101,20 +1165,21 @@ function renderWorker() {
     : `<button type="button" class="link-btn" onclick="openBranch(false, true)">הוסף את השם שלך</button> כדי שיראו מי רשם`;
 }
 
-function deleteLast() {
+async function deleteLast() {
   // removes the latest weighing made on this phone (never one another phone recorded)
   let idx = -1;
   history.forEach((h, i) => { if ((!h.dev || h.dev === myDev) && (idx < 0 || createdAt(h.id) > createdAt(history[idx].id))) idx = i; });
   if (idx < 0) { alert('אין שקילה שנרשמה בטלפון הזה'); return; }
   const h = history[idx];
-  if (!confirm(`למחוק את השקילה האחרונה שנרשמה בטלפון הזה?\n${h.date} ${h.time} · ${h.meat} (${h.type}) · ${h.weight} ק״ג`)) return;
+  if (!await ask({ title: 'למחוק את השקילה האחרונה?', icon: 'trash', ok: 'מחיקה', cancel: 'ביטול', danger: true,
+    html: `<div class="dl-box"><b>${esc(h.meat)} · ${esc(h.type)}</b><div class="dl-w">${esc(h.weight)} ק״ג</div><small>${esc(shortDate(h.date))} · ${esc(h.time)}${h.by ? ' · ' + esc(h.by) : ''}</small></div>` })) return;
   const removed = history.splice(idx, 1)[0];
   if (removed.id) queueOps([{ op:'del', id: removed.id }]);
   updateDisplay(); renderHistory(); saveData();
 }
 
-function resetAll() {
-  if (!confirm(branch.url ? 'לאפס את הנתונים בטלפון הזה? השקילות שבגיליון של החברה לא נמחקות ויחזרו בסנכרון הבא.' : 'לאפס הכל?')) return;
+async function resetAll() {
+  if (!await ask({ title: 'לאפס את הנתונים בטלפון הזה?', text: branch.url ? 'השקילות שבגיליון של החברה לא נמחקות, והן יחזרו בסנכרון הבא.' : 'כל השקילות בטלפון יימחקו.', ok: 'איפוס', cancel: 'ביטול', danger: true, icon: 'warn' })) return;
   history = [];
   updateDisplay(); renderHistory(); saveData();
 }
@@ -1342,11 +1407,11 @@ function calcUndo() {
   refreshRow(selectedProduct, true);
 }
 
-function calcClear() {
+async function calcClear() {
   if (!selectedProduct) return;
   const all = invOf(selectedProduct);
   if (!all.length) return;
-  if (!confirm('לאפס את ' + selectedProduct + ' לחודש הזה? זה מוחק גם ספירות של טלפונים אחרים בסניף.')) return;
+  if (!await ask({ title: 'לאפס את ' + selectedProduct + '?', text: 'זה מוחק את כל הספירה של המוצר לחודש הזה, גם מטלפונים אחרים בסניף.', ok: 'איפוס', cancel: 'ביטול', danger: true, icon: 'warn' })) return;
   const ids = new Set(all.map(e => e.id));
   invEvents = invEvents.filter(e => !ids.has(e.id));
   persistInventory();
@@ -1675,8 +1740,8 @@ async function mgrRefresh() {
     mgrStore(d); enterMgr(d);
   } catch(e) { renderMgrBar('אין חיבור · מוצג המידע מהעדכון האחרון'); }
 }
-function mgrExit(silent) {
-  if (!silent && !confirm('לצאת ממצב מנהל אזור?')) return;
+async function mgrExit(silent) {
+  if (!silent && !await ask({ title: 'לצאת ממצב מנהל אזור?', ok: 'יציאה', cancel: 'ביטול' })) return;
   try {
     localStorage.removeItem('appMode'); localStorage.removeItem('mgrCache');
     const info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); localStorage.setItem('mgrInfo', JSON.stringify({ url: info.url || '' }));
@@ -1793,7 +1858,7 @@ async function mgrSaveLoss() {
   if (Object.values(loss).some(v => v === null)) { msg.style.color = '#c62828'; msg.textContent = 'כל אחוז צריך להיות מספר בין 0 ל־99'; return; }
   const all = document.getElementById('mgAll').checked;
   const list = all ? mgr.branches.map(b => b.name) : [mgrBranch];
-  if (all && !confirm(`לקבוע את האחוזים האלה ל־${list.length} הסניפים שלך?`)) return;
+  if (all && !await ask({ title: `לקבוע את האחוזים ל־${list.length} הסניפים שלך?`, text: 'האחוזים יחולו על כל הסניפים שלך מעכשיו.', ok: 'כן, לכולם', cancel: 'ביטול', icon: 'warn' })) return;
   let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
   msg.style.color = '#1565C0'; msg.textContent = 'שומר…';
   try {
