@@ -2075,7 +2075,7 @@ function renderMgr() {
     const j = judgeIn(b, a);
     const miss = j.gap - j.exp; // missing beyond the allowed trim
     if (j.cls === 'bad' && a.went > 0 && miss >= KKG && miss / a.went * 100 >= KP)
-      kabat.push({ id: b.name + '|' + k + '|' + key, i, b, k, label, gap: j.gap, pct: j.gap / a.went * 100, end: lastEnd(segs[k], inP) });
+      kabat.push({ id: b.name + '|' + k + '|' + key, i, b, k, label, gap: j.gap, miss, pct: j.gap / a.went * 100, end: lastEnd(segs[k], inP) });
     if (j.cls === 'bad') alerts.push(`<button type="button" class="alert-row" onclick="mgrOpenAt(${i}, '${lastEnd(segs[k], inP)}')">🔴 <b>${esc(b.name)}</b> · ${pname[k]} · ${label} · ${j.text} · פער ${f2(a.went - a.sold)} ק״ג ←</button>`);
   })));
   document.getElementById('mgrAlerts').innerHTML = kabatHtml(kabat, pname) + (alerts.length
@@ -2107,7 +2107,7 @@ function kabatHtml(list, pname) {
   const ro = mgr.canEdit === false;
   const row = c => { const s = S[c.id] || {}, state = st(c), n = kabatCases.indexOf(c);
     return `<div class="kb-row kb-${state}">
-      <div class="kb-main" onclick="mgrOpenAt(${c.i}, '${c.end}')"><b>${esc(c.b.name)} · ${pname[c.k]}</b><span>${esc(c.label)} · חסר <b>${f2(c.gap)} ק״ג</b> (${c.pct.toFixed(1)}%)</span>
+      <div class="kb-main" onclick="mgrOpenAt(${c.i}, '${c.end}')"><b>${esc(c.b.name)} · ${pname[c.k]}</b><span>${esc(c.label)} · חסר <b>${f2(c.gap)} ק״ג</b> (${c.pct.toFixed(1)}%) · מתוכם <b>${f2(c.miss)}</b> מעבר לפחת המותר</span>
         ${state !== 'open' ? `<small>${{ progress: '🟡 בטיפול', done: '✓ טופל', ignore: 'סומן להתעלם' }[state]}${s.by ? ' · ' + esc(s.by) : ''}${s.at ? ' · ' + esc(s.at) : ''}</small>` : ''}</div>
       ${ro ? '' : `<div class="kb-btns">${state === 'open' ? `<button type="button" onclick="kabatSet(${n}, 'progress')">בטיפול</button>` : ''}${state === 'open' || state === 'progress' ? `<button type="button" class="ok" onclick="kabatSet(${n}, 'done')">טופל</button><button type="button" class="ign" onclick="kabatSet(${n}, 'ignore')">התעלם</button>` : `<button type="button" class="ign" onclick="kabatSet(${n}, 'open')">פתיחה מחדש</button>`}</div>`}
     </div>`; };
@@ -2453,17 +2453,26 @@ function slModel() {
   Object.keys(avg).filter(p => ['כבש', 'עוף', 'הודו'].includes(avg[p].g)).sort((a, b) => a.localeCompare(b, 'he')).forEach(p => list.push({ n: p, g: avg[p].g, kind: '' }));
   const zero = [0, 0, 0, 0, 0, 0];
   list.forEach(x => { x.avg = (avg[x.n] ? avg[x.n].a : zero).map(v => r1(v * mult(x.n))); x.mult = mult(x.n); x.hot = hot(x.n); x.box = box(x.n);
-    x.std = std[x.n] != null ? +std[x.n] : null; x.stock = slStockOf(x.n, stock); });
-  const ong = { avg: (avg['אונטריב'] ? avg['אונטריב'].a : zero).map(v => r1(v * mult('אונטריב'))), stock: slStockOf('אונטריב', stock) };
+    x.std = std[x.n] != null ? +std[x.n] : null; x.stock = slStockOf(x.n, stock, x.avg); });
+  const oa = (avg['אונטריב'] ? avg['אונטריב'].a : zero).map(v => r1(v * mult('אונטריב')));
+  const ong = { avg: oa, stock: slStockOf('אונטריב', stock, oa) };
   return { A, list, ong, morning, wd, hk, HF, manual, hasHolData: !!HF };
 }
 // what is on the shelf: typed in on this screen, or for entrecote / shoulder the latest close from the weighings
-function slStockOf(p, stock) {
+function slStockOf(p, stock, avg) {
   const s = stock[p], key = { 'אנטריקוט': 'entrecote', 'צלי כתף': 'shoulder' }[p];
   let fromClose = null;
-  if (key) { try { const dd = buildDays()[key] || {}, last = Object.keys(dd).filter(d => dd[d].hasClose).sort().pop(); if (last) fromClose = { kg: dd[last].close, at: new Date(last + 'T20:00:00').getTime(), close: true }; } catch (e) {} }
-  if (s && (!fromClose || s.at >= fromClose.at)) return { kg: +s.kg, at: s.at };
-  return fromClose || { kg: 0, at: 0, none: true };
+  if (key) { try { const dd = buildDays()[key] || {}, last = Object.keys(dd).filter(d => dd[d].hasClose).sort().pop();
+    if (last) fromClose = { kg: dd[last].close + Object.keys(dd).filter(d => d > last).reduce((t, d) => t + (dd[d].recv || 0), 0), at: new Date(last + 'T20:00:00').getTime(), close: true }; } catch (e) {} }
+  const res = s && (!fromClose || s.at >= fromClose.at) ? { kg: +s.kg, at: s.at } : fromClose || { kg: 0, at: 0, none: true };
+  // counted on an earlier day: take off what usually sells on the days in between (their sales report hasn't come yet)
+  if (avg && res.at && !res.none) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const d = new Date(res.at); d.setHours(0, 0, 0, 0);
+    let gone = 0; for (let n = 0; n < 14; n++) { d.setDate(d.getDate() + 1); if (d >= today) break; if (d.getDay() <= 5) gone += avg[d.getDay()] || 0; }
+    if (gone > 0) return Object.assign({}, res, { kg: Math.max(0, r1(res.kg - gone)), gone: r1(gone) });
+  }
+  return res;
 }
 const slSum = (a, days) => days.reduce((s, d) => s + (a[d] || 0), 0);
 const slToBox = (kg, b) => kg <= 0 ? 0 : Math.max(1, Math.round(kg / b + 0.15));
@@ -2867,7 +2876,12 @@ function spCompute(pack, period) {
   let lastDay = '';
   weeks.forEach(w => Object.values(peers).forEach(o => { const x = o[w]; if (x) x.t.forEach((v, k) => { if (v != null && v > 0) { const d = spDay(w, k); if (d > lastDay) lastDay = d; } }); }));
   if (!lastDay) return null;
-  const W = weekStartOf(lastDay), M = lastDay.slice(0, 7);
+  let W = weekStartOf(lastDay), M = lastDay.slice(0, 7);
+  // early in a new week / month only the first branches have uploaded: keep the previous one until half of them have
+  const nb = Object.keys(peers).filter(b => Object.keys(peers[b]).length).length;
+  const reported = f => Object.keys(peers).filter(b => Object.keys(peers[b]).some(w => peers[b][w].t.some((v, k) => v > 0 && f(w, k)))).length;
+  if (nb > 1 && period === 'week' && reported(w => w === W) * 2 <= nb) { const d = new Date(W + 'T00:00:00'); d.setDate(d.getDate() - 7); const P = ymd(d); if (reported(w => w === P)) W = P; }
+  if (nb > 1 && period === 'month' && reported((w, k) => spDay(w, k).slice(0, 7) === M) * 2 <= nb) { const d = new Date(M + '-01T00:00:00'); d.setMonth(d.getMonth() - 1); const P = ymd(d).slice(0, 7); if (reported((w, k) => spDay(w, k).slice(0, 7) === P)) M = P; }
   const inP = period === 'week' ? (w, k) => w === W : (w, k) => spDay(w, k).slice(0, 7) === M;
   const label = period === 'week' ? 'שבוע ' + spDm(W) + '–' + spDm(spDay(W, 5)) : SP_MONTHS[+M.slice(5) - 1] + ' ' + M.slice(0, 4);
   const rows = [], missing = [], champ = {};
@@ -2881,12 +2895,13 @@ function spCompute(pack, period) {
     Object.keys(per).forEach(n => { const s = per[n] / total * 100; if (per[n] > 0 && (!champ[n] || s > champ[n].s)) champ[n] = { b, s, kg: per[n] }; });
   });
   rows.sort((a, b) => b.pct - a.pct || b.kg - a.kg);
+  rows.forEach((r, i) => { r.rank = i && r.pct.toFixed(1) === rows[i - 1].pct.toFixed(1) ? rows[i - 1].rank : i + 1; }); // the same % on screen = the same place
   // sold more than usual: the latest week against the branch's own earlier weeks, on the same days
   const jumps = [];
   Object.keys(peers).forEach(b => {
     const cur = peers[b][W]; if (!cur) return;
     const days = cur.t.map((v, k) => v != null && v > 0 ? k : -1).filter(k => k >= 0); if (!days.length) return;
-    const prev = Object.keys(peers[b]).filter(w => w < W && days.every(k => peers[b][w].t[k] != null)).slice(-8);
+    const prev = Object.keys(peers[b]).sort().filter(w => w < W && days.every(k => peers[b][w].t[k] != null)).slice(-8);
     if (prev.length < 2) return;
     list.forEach(n => {
       const now = days.reduce((s, k) => s + (((cur.s || {})[n] || [])[k] || 0), 0);
@@ -2904,13 +2919,13 @@ function spHtml(pack, me, ctx) {
   const C = spCompute(pack, spPeriod);
   if (!C || !C.rows.length) return `<div class="sp-empty"><b>🏆 עוד אין מכר להשוואה</b><br>הדירוג יופיע אחרי שהסניפים יעלו דוח מכר במסך "מכר והזמנה".</div>`;
   const R = C.rows, max = R[0].pct || 1, f1 = v => v.toFixed(1);
-  const cell = (r, i) => r ? `<div class="sp-place p${i}${r.b === me ? ' me' : ''}"><span class="ic">${['', '👑', '🥈', '🥉'][i]}</span><div class="who">${esc(r.b)}</div>
-    <div class="blk"><div class="rk">${i}</div><div class="pc">${f1(r.pct)}%</div><div class="kg">${Math.round(r.kg)} ק״ג</div></div></div>` : '<div></div>';
+  const cell = (r, i) => r ? `<div class="sp-place p${i}${r.b === me ? ' me' : ''}"><span class="ic">${['', '👑', '🥈', '🥉'][r.rank] || ''}</span><div class="who">${esc(r.b)}</div>
+    <div class="blk"><div class="rk">${r.rank}</div><div class="pc">${f1(r.pct)}%</div><div class="kg">${Math.round(r.kg)} ק״ג</div></div></div>` : '<div></div>';
   const mi = me ? R.findIndex(r => r.b === me) : -1;
   let mine = '';
   if (me && mi >= 0) {
     const r = R[mi], tops = Object.keys(r.per).filter(n => r.per[n] > 0).sort((a, b) => r.per[b] - r.per[a]);
-    mine = `<div class="sp-mine"><div class="n">${mi + 1}</div><div class="t"><b>${esc(me)} · ${f1(r.pct)}%</b><br>${mi < 3 ? `🏆 אתם על הפודיום · מקום ${mi + 1} מתוך ${R.length}` : `מקום ${mi + 1} מתוך ${R.length} · עוד ${f1(R[2].pct - r.pct)}% לפודיום`}
+    mine = `<div class="sp-mine"><div class="n">${r.rank}</div><div class="t"><b>${esc(me)} · ${f1(r.pct)}%</b><br>${r.rank <= 3 ? `🏆 אתם על הפודיום · מקום ${r.rank} מתוך ${R.length}` : `מקום ${r.rank} מתוך ${R.length} · עוד ${f1(Math.max(0.1, R[2].pct - r.pct))}% לפודיום`}
       <br><span class="sub">${Math.round(r.kg)} ק״ג מיוחדים מתוך ${Math.round(r.total)} ק״ג מכר</span></div></div>
       ${tops.length ? `<h2 class="sp-h">המיוחדים אצלכם <small>${esc(C.label)}</small></h2><div class="sp-list">${tops.map(n => `<div class="sp-row two"><span class="name">${esc(n)}</span><span class="p">${f2(r.per[n])} ק״ג</span></div>`).join('')}</div>` : ''}`;
   } else if (me) mine = `<div class="sp-mine"><div class="n">–</div><div class="t"><b>${esc(me)}</b><br>אין לכם עוד מכר ב${spPeriod === 'week' ? 'שבוע הזה' : 'חודש הזה'} · מעלים דוח במסך "המכר"</div></div>`;
@@ -2920,7 +2935,7 @@ function spHtml(pack, me, ctx) {
     <p class="sp-sub">כמה מהמכר של המחלקה הם מוצרים מיוחדים · לפי ק״ג · ${esc(C.label)}</p>
     <div class="sp-podium">${cell(R[1], 2)}${cell(R[0], 1)}${cell(R[2], 3)}</div><div class="sp-floor"></div>
     ${mine}
-    ${R.length > 3 ? `<h2 class="sp-h">כל הסניפים <small>אחוז מיוחדים מתוך כל המכר</small></h2><div class="sp-list">${R.slice(3).map((r, k) => `<div class="sp-row${r.b === me ? ' me' : ''}"><span class="r">${k + 4}</span><span class="name">${esc(r.b)}</span><span class="bar"><i style="width:${Math.max(3, r.pct / max * 100)}%"></i></span><span class="p">${f1(r.pct)}%</span></div>`).join('')}</div>` : ''}
+    ${R.length > 3 ? `<h2 class="sp-h">כל הסניפים <small>אחוז מיוחדים מתוך כל המכר</small></h2><div class="sp-list">${R.slice(3).map((r, k) => `<div class="sp-row${r.b === me ? ' me' : ''}"><span class="r">${r.rank}</span><span class="name">${esc(r.b)}</span><span class="bar"><i style="width:${Math.max(3, r.pct / max * 100)}%"></i></span><span class="p">${f1(r.pct)}%</span></div>`).join('')}</div>` : ''}
     ${C.missing.length ? `<p class="sp-sub">עוד לא העלו דוח ל${spPeriod === 'week' ? 'שבוע הזה' : 'חודש הזה'}: ${C.missing.map(esc).join(', ')}</p>` : ''}
     ${champs ? `<h2 class="sp-h">אלופים לפי מוצר <small>מי מכר הכי הרבה ביחס למכר שלו</small></h2><div class="sp-champs">${champs}</div>` : ''}
     ${jumps ? `<h2 class="sp-h">מכרו מעל הרגיל השבוע <small>לעומת הממוצע של הסניף עצמו באותם ימים</small></h2><div class="sp-list">${jumps}</div>` : ''}
@@ -2962,7 +2977,9 @@ function spRenderMgr() {
   spBind(el, spRenderMgr);
   const qi = document.getElementById('spQ');
   if (qi) qi.oninput = () => { spEditQ = qi.value; const pos = qi.selectionStart; spRenderMgr(); const n = document.getElementById('spQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} };
-  el.querySelectorAll('.sp-item input').forEach(c => c.onchange = () => { if (c.checked) spEditSel.add(c.dataset.n); else spEditSel.delete(c.dataset.n); spRenderMgr(); });
+  // ticking keeps the list where it is (no re-render, so it doesn't jump back to the top)
+  el.querySelectorAll('.sp-item input').forEach(c => c.onchange = () => { if (c.checked) spEditSel.add(c.dataset.n); else spEditSel.delete(c.dataset.n);
+    c.closest('.sp-item').classList.toggle('on', c.checked); const b = document.getElementById('spSave'); if (b) b.textContent = 'שמירה · ' + spEditSel.size + ' נבחרו'; });
   const sv = document.getElementById('spSave'); if (sv) sv.onclick = spSave;
 }
 function spEditToggle() {
@@ -2979,6 +2996,7 @@ async function spSave() {
     const d = JSON.parse(await res.text());
     if (!d.ok) throw new Error(d.error);
     spEditOpen = false;
+    mgr.specials = Object.assign({}, mgr.specials, { list: d.list || list }); mgrStore(mgr); // saved, even if the refresh below fails
     showOk('✓ רשימת המיוחדים נשמרה · הסניפים יראו אותה בעדכון הבא');
     await mgrRefresh();   // brings the kg of the newly chosen items
     spRenderMgr();
