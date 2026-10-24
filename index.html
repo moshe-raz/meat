@@ -80,6 +80,7 @@
   .mg-price summary::after { content: ' ▾'; color: var(--muted); } .mg-price[open] summary::after { content: ' ▴'; }
   .mg-price summary span { font-weight: 400; color: var(--muted); }
   .mg-price .set-row, .mg-price .set-hint { padding: 0 12px; } .mg-price .set-hint { padding-bottom: 10px; }
+  .kb-cfg { margin: 0 0 14px; background: #fff; } .kb-cfg-btn { padding: 0 12px 12px; } .kb-cfg-btn .btn { width: 100%; margin: 0; }
   .mgr-money { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; background: #fff8e6; border: 1px solid #f0d9a0; color: #5a3d00; border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; font-size: 14.5px; text-align: right; }
   .mgr-money span:first-child { font-weight: 700; flex-basis: 100%; } .mgr-money b { font-size: 17px; }
   .mgr-money.none { display: block; font-size: 13px; color: #7a6a4a; background: #fbf8f1; border-style: dashed; }
@@ -2110,7 +2111,7 @@ function renderMgr() {
   all.forEach(x => { x.nisW = hasPr ? lossNis(x.b, x.segs, inWeek) : 0; x.nisM = hasPr ? lossNis(x.b, x.segs, inMonth) : 0; });
   const money = hasPr ? `<div class="mgr-money"><span>💰 פחת בכל הסניפים שלך</span><span>השבוע <b>${nis(all.reduce((s, x) => s + x.nisW, 0))}</b></span><span>החודש <b>${nis(all.reduce((s, x) => s + x.nisM, 0))}</b></span></div>`
     : mgr.canEdit !== false ? '<div class="mgr-money none">💰 כדי לראות את הפחת בשקלים, ממלאים מחיר לק״ג במסך "פחת ושקילות" (💰 מחיר לק״ג), או בלשונית "הגדרות" בגיליון (שורות 10–12).</div>' : '';
-  document.getElementById('mgrAlerts').innerHTML = money + kabatHtml(kabat, pname) + (alerts.length
+  document.getElementById('mgrAlerts').innerHTML = money + kabatCfgHtml() + kabatHtml(kabat, pname) + (alerts.length
     ? `<div class="alert-box"><h3>התראות · ${alerts.length}</h3>${alerts.join('')}</div>`
     : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`);
   // one card per branch: this week and this month for the three products
@@ -2127,6 +2128,31 @@ function renderMgr() {
 function invLine(b) {
   const m = defaultInvMonth(), d = (b.done || []).find(x => x.month === m);
   return `<div class="br-inv">ספירת מלאי ${+m.slice(5)}/${m.slice(0, 4)}: ${d ? `<b>✓ הסתיימה ${esc(doneWhen(d.at))}</b>` : '<span class="no">עוד לא הסתיימה</span>'}</div>`;
+}
+// ---------- the kabat thresholds: company-wide, only a district manager (above the area managers) changes them ----------
+let kabatCfgOpen = false;
+function kabatCfgHtml() {
+  if (!mgr || mgr.role !== 'senior') return '';
+  const s = mgr.settings || {}, p = Number(s.kabatPct) > 0 ? Number(s.kabatPct) : 10, kg = Number(s.kabatKg) >= 0 ? Number(s.kabatKg) : 5;
+  return `<details class="mg-price kb-cfg"${kabatCfgOpen ? ' open' : ''} ontoggle="kabatCfgOpen=this.open"><summary>🚨 ספי קב״ט לכל החברה<span>: ${p}% · ${kg} ק״ג</span></summary>
+    <label class="set-row">אחוז חסר מעבר לפחת המותר <span><input type="text" id="kbc_pct" inputmode="decimal" value="${p}"> %</span></label>
+    <label class="set-row">לפחות כמה ק״ג חסרים <span><input type="text" id="kbc_kg" inputmode="decimal" value="${kg}"> ק״ג</span></label>
+    <div class="set-hint">התראת קב״ט קופצת רק כששני התנאים מתקיימים · חל על כל הסניפים בחברה</div>
+    <div class="kb-cfg-btn"><button type="button" class="btn" onclick="kabatCfgSave()">שמירה</button></div></details>`;
+}
+async function kabatCfgSave() {
+  const num = id => parseFloat(String(document.getElementById(id).value).replace(',', '.').replace('%', '').trim());
+  const pct = num('kbc_pct'), kg = num('kbc_kg');
+  if (!(pct > 0 && pct < 100) || !(kg >= 0 && kg < 1000)) { alert('האחוז צריך להיות בין 1 ל־99, והק״ג מספר מ־0 ומעלה'); return; }
+  if (!await ask({ title: 'לשנות את ספי הקב״ט?', text: `מעכשיו התראה תקפוץ כשחסר יותר מ־${pct}% מעבר לפחת המותר, וגם לפחות ${kg} ק״ג. זה חל על כל הסניפים בחברה.`, ok: 'שמירה', cancel: 'ביטול', icon: 'warn' })) return;
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch (e) {}
+  try {
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrKabat', mcode: info.code, pct, kg }) });
+    const d = JSON.parse(await res.text());
+    if (!d.ok) throw new Error(d.error);
+    mgr.settings = Object.assign({}, mgr.settings, { kabatPct: pct, kabatKg: kg }); mgrStore(mgr);
+    kabatCfgOpen = false; renderMgr(); showOk('✓ ספי הקב״ט עודכנו לכל החברה');
+  } catch (e) { alert(e.message === 'read only' ? 'רק מנהל מחוז יכול לשנות את ספי הקב״ט' : e.message === 'bad key' || e.message === 'bad request' ? 'הגיליון עדיין לא מכיר את האפשרות הזו · צריך לעדכן בו את הקוד' : 'לא הצלחתי לשמור בגיליון. בדקו את החיבור ונסו שוב.'); }
 }
 // ---------- "צריך קב״ט": the manager marks each case: in progress / handled / ignored ----------
 let kabatShowDone = false, kabatCases = [];
