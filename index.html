@@ -74,6 +74,19 @@
   .mgr-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
   .mgr-pick { background: #fff; border-radius: 12px; padding: 8px; margin-bottom: 12px; text-align: center; font-size: 15px; }
   .mgr-pick select { font-weight: bold; min-width: 160px; }
+  .kb-box { background: #fff; border-radius: 16px; overflow: hidden; margin-bottom: 14px; border: 2px solid #b3261e; box-shadow: 0 4px 14px rgba(179,38,30,.18); }
+  .kb-box h3 { margin: 0; padding: 11px 14px; background: #b3261e; color: #fff; font-size: 17px; text-align: right; }
+  .kb-row { display: grid; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #f1d6d3; text-align: right; }
+  .kb-row:last-child { border-bottom: 0; }
+  .kb-row.kb-progress { background: #fffaeb; } .kb-row.kb-done, .kb-row.kb-ignore { background: #f6f6f6; opacity: .85; }
+  .kb-main { cursor: pointer; display: grid; gap: 2px; } .kb-main > b { font-size: 15.5px; } .kb-main span { font-size: 13.5px; color: #5b4a44; } .kb-main small { font-size: 12.5px; color: #7a5a00; font-weight: 600; }
+  .kb-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .kb-btns button { font: 700 13.5px inherit; font-family: inherit; border: 1px solid #e6c34d; background: #fff6d6; color: #6d4c00; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+  .kb-btns button.ok { border-color: #9fd3ae; background: #e3f4e8; color: #1b6b34; }
+  .kb-btns button.ign { border-color: #ddd; background: #fff; color: #777; }
+  .kb-more { display: block; width: 100%; font: 600 13px inherit; font-family: inherit; background: #fbf1f0; border: 0; border-top: 1px solid #f1d6d3; color: #8a3a33; padding: 9px; cursor: pointer; }
+  .kb-box.calm { border-color: #cfe5d6; box-shadow: none; } .kb-box.calm h3 { background: #e3f4e8; color: #1b6b34; font-size: 15px; }
+  .kb-none { padding: 12px 14px; color: #1b6b34; font-weight: 600; }
   .alert-box { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
   .alert-box h3 { margin: 0; padding: 10px; background: #cc0000; color: #fff; font-size: 16px; text-align: center; }
   .alert-box.clear h3 { background: #2e7d32; }
@@ -1989,16 +2002,22 @@ function renderMgr() {
   const pname = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור' };
   // red alerts: latest week and latest month, every branch
   const alerts = [];
-  const alertSets = alertWeeks.map(w => ['שבוע ' + weekLabel(w), s => weekStartOf(s.end) === w]).concat(alertMonths.map(m => ['חודש ' + mLabel(m), s => s.end.slice(0, 7) === m]));
-  all.forEach(({ b, segs }, i) => PK.forEach(k => alertSets.forEach(([label, inP]) => {
+  const alertSets = alertWeeks.map(w => ['שבוע ' + weekLabel(w), s => weekStartOf(s.end) === w, 'w' + w]).concat(alertMonths.map(m => ['חודש ' + mLabel(m), s => s.end.slice(0, 7) === m, 'm' + m]));
+  // a shortage this big is a case for the security officer (the thresholds are in the sheet's "הגדרות" tab)
+  const ks = mgr.settings || {}, KP = Number(ks.kabatPct) > 0 ? Number(ks.kabatPct) : 10, KKG = Number(ks.kabatKg) >= 0 ? Number(ks.kabatKg) : 5;
+  const kabat = [];
+  all.forEach(({ b, segs }, i) => PK.forEach(k => alertSets.forEach(([label, inP, key]) => {
     const a = aggregate(segs[k].filter(inP));
     if (!a.n) return;
     const j = judgeIn(b, a);
+    const miss = j.gap - j.exp; // missing beyond the allowed trim
+    if (j.cls === 'bad' && a.went > 0 && miss >= KKG && miss / a.went * 100 >= KP)
+      kabat.push({ id: b.name + '|' + k + '|' + key, i, b, k, label, gap: j.gap, pct: j.gap / a.went * 100, end: lastEnd(segs[k], inP) });
     if (j.cls === 'bad') alerts.push(`<button type="button" class="alert-row" onclick="mgrOpenAt(${i}, '${lastEnd(segs[k], inP)}')">🔴 <b>${esc(b.name)}</b> · ${pname[k]} · ${label} · ${j.text} · פער ${f2(a.went - a.sold)} ק״ג ←</button>`);
   })));
-  document.getElementById('mgrAlerts').innerHTML = alerts.length
+  document.getElementById('mgrAlerts').innerHTML = kabatHtml(kabat, pname) + (alerts.length
     ? `<div class="alert-box"><h3>התראות · ${alerts.length}</h3>${alerts.join('')}</div>`
-    : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`;
+    : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`);
   // one card per branch: this week and this month for the three products
   document.getElementById('mgrList').innerHTML = all.map(({ b, segs }, i) => {
     const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judgeIn(b, a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
@@ -2013,6 +2032,45 @@ function renderMgr() {
 function invLine(b) {
   const m = defaultInvMonth(), d = (b.done || []).find(x => x.month === m);
   return `<div class="br-inv">ספירת מלאי ${+m.slice(5)}/${m.slice(0, 4)}: ${d ? `<b>✓ הסתיימה ${esc(doneWhen(d.at))}</b>` : '<span class="no">עוד לא הסתיימה</span>'}</div>`;
+}
+// ---------- "צריך קב״ט": the manager marks each case: in progress / handled / ignored ----------
+let kabatShowDone = false, kabatCases = [];
+function kabatHtml(list, pname) {
+  kabatCases = list;
+  if (!list.length) return '';
+  const S = mgr.alerts || {}, st = c => (S[c.id] || {}).status || 'open';
+  const live = list.filter(c => ['open', 'progress'].includes(st(c))).sort((a, b) => (st(a) === 'open' ? 0 : 1) - (st(b) === 'open' ? 0 : 1) || b.gap - a.gap);
+  const closed = list.filter(c => ['done', 'ignore'].includes(st(c)));
+  const ro = mgr.canEdit === false;
+  const row = c => { const s = S[c.id] || {}, state = st(c), n = kabatCases.indexOf(c);
+    return `<div class="kb-row kb-${state}">
+      <div class="kb-main" onclick="mgrOpenAt(${c.i}, '${c.end}')"><b>${esc(c.b.name)} · ${pname[c.k]}</b><span>${esc(c.label)} · חסר <b>${f2(c.gap)} ק״ג</b> (${c.pct.toFixed(1)}%)</span>
+        ${state !== 'open' ? `<small>${{ progress: '🟡 בטיפול', done: '✓ טופל', ignore: 'סומן להתעלם' }[state]}${s.by ? ' · ' + esc(s.by) : ''}${s.at ? ' · ' + esc(s.at) : ''}</small>` : ''}</div>
+      ${ro ? '' : `<div class="kb-btns">${state === 'open' ? `<button type="button" onclick="kabatSet(${n}, 'progress')">בטיפול</button>` : ''}${state === 'open' || state === 'progress' ? `<button type="button" class="ok" onclick="kabatSet(${n}, 'done')">טופל</button><button type="button" class="ign" onclick="kabatSet(${n}, 'ignore')">התעלם</button>` : `<button type="button" class="ign" onclick="kabatSet(${n}, 'open')">פתיחה מחדש</button>`}</div>`}
+    </div>`; };
+  return `<div class="kb-box${live.length ? '' : ' calm'}"><h3>${live.length ? '🚨 צריך קב״ט · ' + live.length : '✓ קב״ט · אין מקרים פתוחים'}</h3>
+    ${live.map(row).join('')}
+    ${closed.length ? `<button type="button" class="kb-more" onclick="kabatShowDone=!kabatShowDone;renderMgr()">${kabatShowDone ? 'הסתרת' : 'הצגת'} מקרים שטופלו (${closed.length}) ${kabatShowDone ? '▴' : '▾'}</button>${kabatShowDone ? closed.map(row).join('') : ''}` : ''}
+  </div>`;
+}
+async function kabatSet(n, status) {
+  const c = kabatCases[n]; if (!c || mgr.canEdit === false) return;
+  if (status === 'ignore' && !await ask({ title: 'להתעלם מההתראה?', text: `${c.b.name} · ${c.label} · חסר ${f2(c.gap)} ק״ג. ההתראה תעבור לרשימת "טופלו" ותישאר שם לתיעוד.`, ok: 'התעלם', cancel: 'ביטול', icon: 'warn' })) return;
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch (e) {}
+  const prev = (mgr.alerts || {})[c.id];
+  mgr.alerts = Object.assign({}, mgr.alerts, { [c.id]: { status, by: mgr.name, at: new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) } });
+  renderMgr();
+  try {
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ mode: 'mgrAlert', mcode: info.code, id: c.id, status, branch: c.b.name, product: { entrecote: 'אנטריקוט', shoulder: 'צלי כתף', oven: 'אנטריקוט לתנור' }[c.k], period: c.label, gap: c.gap, pct: c.pct }) });
+    const d = JSON.parse(await res.text());
+    if (!d.ok) throw new Error(d.error);
+    try { localStorage.setItem('mgrCache', JSON.stringify(mgr)); } catch (e) {}
+    showOk({ progress: '🟡 סומן בטיפול', done: '✓ סומן שטופל', ignore: 'ההתראה הוסתרה', open: 'ההתראה נפתחה מחדש' }[status]);
+  } catch (e) {
+    mgr.alerts = Object.assign({}, mgr.alerts); if (prev) mgr.alerts[c.id] = prev; else delete mgr.alerts[c.id];
+    renderMgr(); alert(e.message === 'read only' ? 'לעוזר יש הרשאת צפייה בלבד' : 'לא הצלחתי לשמור בגיליון. בדקו את החיבור ונסו שוב.');
+  }
 }
 function mgrOpenAt(i, date) { mgrOpen(mgr.branches[i].name, date); }
 // the loss % used for a branch: the ones its area manager set, otherwise the company's
@@ -2256,6 +2314,7 @@ const SL_BEEF = [
   ['קדירה', ['צלי כתף', 'פילה מדומה', 'כתף בקר', 'צלעות פרמיום', 'אסאדו', 'שריר', 'בשר ראש', 'אסאדו ע.ע', 'אוסובוקו ע.ע']],
   ['טחינה', ['בשר לטחינה', 'מכסה הסטייק', 'צלעות לטחינה', 'חזה בקר', 'מכסה הצלע']]];
 const SL_SUBS = SL_BEEF.map(g => g[0]);
+const SL_CANON = { 'חזה עוף': 'עוף', 'חזה הודו': 'הודו' };   // products that collect several report items
 const SL_RULES = [[/אונטריב/, 'אונטריב'], [/סטייק\s*צלעות|צלעות\s*פרמיום/, 'צלעות פרמיום'], [/דנוור/, 'דנוור'], [/מכסה\s*ה?סטייק/, 'מכסה הסטייק'],
   [/מכסה\s*ה?צלע/, 'מכסה הצלע'], [/צלעות\s*לטחינה/, 'צלעות לטחינה'], [/אצבעות/, null], [/אנטריקוט/, 'אנטריקוט'], [/סינטה/, 'סינטה'], [/סטייק\s*עין|^עין\b/, 'סטייק עין'],
   [/שפיץ/, 'שפיץ צאך'], [/שייטל/, 'שייטל'], [/פילה\s*בקר/, 'פילה בקר'], [/פילה\s*מדומה/, 'פילה מדומה'], [/צלי\s*כתף/, 'צלי כתף'], [/כתף\s*(בקר|מניון)/, 'כתף בקר'],
@@ -2267,9 +2326,14 @@ const slPoultry = it => /הודו/.test(it.n) ? 'הודו' : /עוף|פרגי|ש
 function slProductOf(it) {
   const fix = slPref('map', {})[it.n];
   if (fix === '') return null;
-  if (fix) { const g = SL_BEEF.find(x => x[1].includes(fix)); return { p: fix, g: g ? g[0] : fix === 'אונטריב' ? 'קדירה' : fix }; }
+  if (fix) { const g = SL_BEEF.find(x => x[1].includes(fix)); return { p: fix, g: g ? g[0] : fix === 'אונטריב' ? 'קדירה' : SL_CANON[fix] || fix }; }
   if (slIsLamb(it)) return { p: it.n, g: 'כבש' };
-  const pg = slPoultry(it); if (pg) return { p: it.n, g: pg };
+  const pg = slPoultry(it);
+  // chicken breast is also cut into schnitzel and strips, and what is left is ground: all of it is ordered as breast
+  if (pg === 'עוף' && /חזה|שניצל|רצועות|טחון/.test(it.n)) return { p: 'חזה עוף', g: 'עוף' };
+  // ground turkey is made from turkey breast / turkey pieces
+  if (pg === 'הודו' && /חזה|טחון/.test(it.n)) return { p: 'חזה הודו', g: 'הודו' };
+  if (pg) return { p: it.n, g: pg };
   for (const [re, p] of SL_RULES) if (re.test(it.n)) { if (!p) return null; const g = SL_BEEF.find(x => x[1].includes(p)); return { p, g: g ? g[0] : 'קדירה' }; }
   return null;
 }
@@ -2596,7 +2660,7 @@ function slRow(x, c, val, M, poultry) {
   let line = '', badge = '', why = '', cov = [];
   if (poultry) {
     cov = c.o.cov;
-    line = `צפוי ${Math.round(c.exp)} ק״ג · ${stockIn}`;
+    line = `צפוי ${Math.round(c.exp)} ק״ג · ${stockIn}` + (x.n === 'חזה עוף' ? '<br>כולל מה שנעשה מחזה: שניצל, רצועות וטחון עוף' : x.n === 'חזה הודו' ? '<br>כולל טחון הודו' : '');
     why = `<span>מכר צפוי: ${c.o.cov.map(d => SL_DN[d]).join(', ')}</span><b>${Math.round(c.exp)}</b><span>ועוד לפתיחה ב${SL_DN[c.o.nx]} (${M.morning * 100}%)</span><b>${Math.round(c.morn)}</b><span>יישאר מהמלאי כשמגיע</span><b>${Math.max(0, Math.round(c.have))}</b><span class="eq">צריך בערך</span><b class="eq">${c.kg} ק״ג</b><span>ארגז כ־${x.box} ק״ג</span><b class="eq">${nb(c.rec)}</b>`;
   } else if (slOt === 'week') {
     cov = [0, 1, 2, 3, 4, 5];
@@ -2630,7 +2694,7 @@ function slRenderMap() {
   const items = Object.values(seen).sort((a, b) => a.n.localeCompare(b.n, 'he'));
   document.getElementById('slMapBtn').hidden = !items.length;
   el.hidden = !slMapOpen || !items.length; if (el.hidden) return;
-  const fix = slPref('map', {}), all = SL_BEEF.flatMap(g => g[1]).concat(['אונטריב']);
+  const fix = slPref('map', {}), all = SL_BEEF.flatMap(g => g[1]).concat(['אונטריב'], Object.keys(SL_CANON));
   el.innerHTML = `<div class="sl-note">כל פריט בדוח משויך למוצר בהמלצה לפי השם, ואפשר לתקן. כבש, עוף והודו: כל פריט מופיע בנפרד.</div>` + items.map(it => {
     const saved = fix[it.n]; delete fix[it.n]; const auto = slProductOf(it); if (saved !== undefined) fix[it.n] = saved;
     const own = auto && !all.includes(auto.p);
