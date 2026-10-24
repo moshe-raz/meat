@@ -1532,7 +1532,7 @@ function catOf(p) {
 }
 function invOf(p) { return invEvents.filter(e => e.month === invMonth && e.product === p).sort((a, b) => createdAt(a.id) - createdAt(b.id)); }
 function invValue(p) { return Math.round(invOf(p).reduce((a, e) => a + e.w, 0) * 1000) / 1000; }
-function persistInventory() { if (mgrMode) return; try { localStorage.setItem('invEvents', JSON.stringify(invEvents)); } catch(e) {} }
+function persistInventory() { if (mgrMode) return; try { localStorage.setItem('invEvents', JSON.stringify(invEvents)); } catch(e) { storageWarn(e); } }
 
 function invRow(p) {
   const i = products.indexOf(p);
@@ -1708,7 +1708,7 @@ function mergeRemoteInv(list, since) {
 // Only the department manager (the name in the branch details) finishes; the sheet then makes a separate file for that count.
 let invDone = {}; // month -> { by, at, total, missing, url, updated, pending }
 try { invDone = JSON.parse(localStorage.getItem('invDone') || '{}') || {}; } catch (e) {}
-function persistDone() { if (mgrMode) return; try { localStorage.setItem('invDone', JSON.stringify(invDone)); } catch (e) {} }
+function persistDone() { if (mgrMode) return; try { localStorage.setItem('invDone', JSON.stringify(invDone)); } catch (e) { storageWarn(e); } }
 const nameKey = s => cleanKey(s).replace(/\s+/g, ' ');
 function isDeptManager() { const m = nameKey(branch.manager); return !!m && nameKey(worker) === m; }
 function doneWhen(at) { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); }
@@ -1798,7 +1798,14 @@ function exportInventory() {
   XLSX.writeFile(wb, 'מלאי_' + branchFilePart() + invMonth + '.xlsx');
 }
 
-function saveData() { if (mgrMode) return; try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) {} }
+function saveData() { if (mgrMode) return; try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) { storageWarn(e); } }
+// the phone's storage for the app is full (after a long time with many weighings): say so once, instead of failing silently
+let storageWarned = false;
+function storageWarn(e) {
+  if (storageWarned || !e || !/quota|exceeded|full/i.test((e.name || '') + ' ' + (e.message || ''))) return;
+  storageWarned = true;
+  setTimeout(() => { try { alert('הזיכרון של האפליקציה בטלפון התמלא, ולכן ייתכן שהשינוי האחרון לא נשמר בטלפון. כל מה שנשלח לגיליון שמור שם. כדאי לבדוק שיש קליטה ושהסנכרון הצליח, ולפנות אלינו.'); } catch (x) {} }, 50);
+}
 // The phone keeps the last 13 months of weighings and 24 months of stock counts; everything stays in the company sheet.
 // Anything still waiting to be sent is never removed.
 function pruneOld() {
@@ -2225,7 +2232,7 @@ function mergeRemote(entries, since) {
 }
 let syncQueue = [], syncing = false, syncError = '';
 try { syncQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]'); } catch(e) {}
-function saveQueue() { try { localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); } catch(e) {} }
+function saveQueue() { try { localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); } catch(e) { storageWarn(e); } }
 function queueOps(ops) {
   if (!branch.url || mgrMode) return;
   syncQueue.push(...ops); saveQueue(); renderSync();
@@ -2306,7 +2313,7 @@ const SL_L = ['א','ב','ג','ד','ה','ו'], SL_WD = ['א׳','ב׳','ג׳','ד�
 let slWeeks = {}, slPrefs = {};
 try { slWeeks = JSON.parse(localStorage.getItem('salesWeeks') || '{}') || {}; } catch (e) {}
 try { slPrefs = JSON.parse(localStorage.getItem('salesPrefs') || '{}') || {}; } catch (e) {}
-function slStore() { if (mgrMode) return; try { localStorage.setItem('salesWeeks', JSON.stringify(slWeeks)); localStorage.setItem('salesPrefs', JSON.stringify(slPrefs)); } catch (e) {} }
+function slStore() { if (mgrMode) return; try { localStorage.setItem('salesWeeks', JSON.stringify(slWeeks)); localStorage.setItem('salesPrefs', JSON.stringify(slPrefs)); } catch (e) { if (typeof storageWarn === 'function') storageWarn(e); } }
 const slPref = (k, d) => slPrefs[k] && slPrefs[k].v !== undefined ? slPrefs[k].v : d;
 let slPrefTimer = null;
 function slSetPref(k, v) {
