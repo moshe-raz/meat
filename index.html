@@ -88,6 +88,23 @@
   .br-grid .h { color: #777; font-size: 12px; }
   .br-grid .pill { text-align: center; }
   #calcSteps { font-size: 13px; color: #555; min-height: 16px; margin-bottom: 6px; word-break: break-word; }
+
+/* ---------- opening screen: the scale weighs "מעדני" and "גורמה" ---------- */
+#splash { position: fixed; inset: 0; z-index: 9999; overflow: hidden; color: #fff;
+  background: radial-gradient(90% 55% at 50% 38%, #a8313a 0%, #6e1a22 48%, #3d0c12 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .6s ease, transform .6s ease; }
+#splash::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(40% 26% at 50% 40%, rgba(255,214,140,.22), transparent 70%); }
+#splash.out { opacity: 0; transform: scale(1.04); pointer-events: none; }
+#splash svg { width: 100%; max-width: 400px; overflow: visible; position: relative; z-index: 1; shape-rendering: geometricPrecision; text-rendering: geometricPrecision; }
+#splash .lock { position: relative; z-index: 1; text-align: center; margin-top: -6px; }
+#splash .brand { font-family: 'Frank Ruhl Libre', 'David', serif; font-weight: 900; font-size: 34px; letter-spacing: .5px;
+  background: linear-gradient(180deg, #fff3c4 0%, #e8c272 45%, #b07d1c 70%, #f4d68a 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  opacity: 0; transform: translateY(10px); transition: opacity .7s ease, transform .7s ease; }
+#splash .rule { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 6px 0 0; opacity: 0; transition: opacity .7s .2s; }
+#splash .rule i { display: block; height: 1px; width: 54px; background: linear-gradient(90deg, transparent, #e8c272, transparent); }
+#splash .rule span { font-size: 13px; letter-spacing: 2.5px; color: #f3e3c3; font-weight: 500; }
+#splash.done .brand { opacity: 1; transform: none; } #splash.done .rule { opacity: 1; }
+#splash .skip { position: absolute; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 0; right: 0; text-align: center; color: rgba(243,227,195,.38); font-size: 11.5px; z-index: 1; }
 </style>
 
 <style>
@@ -300,13 +317,143 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
 .inventory-item.empty .inv-val { color: #b9aca2 !important; font-weight: 500; font-size: 13px; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@900&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#962a2a">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+<div id="splash" role="img" aria-label="מעדני גורמה · שקילות בשר ומלאי">
+  <svg viewBox="0 0 512 470" aria-hidden="true">
+      <defs>
+        <linearGradient id="brassV" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff1bf"/><stop offset=".28" stop-color="#e6bd62"/><stop offset=".55" stop-color="#a87418"/><stop offset=".78" stop-color="#e9c46f"/><stop offset="1" stop-color="#8a5c0f"/>
+        </linearGradient>
+        <linearGradient id="brassH" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#8a5c0f"/><stop offset=".3" stop-color="#e9c46f"/><stop offset=".5" stop-color="#fff1bf"/><stop offset=".7" stop-color="#d9a945"/><stop offset="1" stop-color="#7c520c"/>
+        </linearGradient>
+        <linearGradient id="dish" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f7dc95"/><stop offset=".5" stop-color="#b9842a"/><stop offset="1" stop-color="#6e4709"/>
+        </linearGradient>
+        <radialGradient id="dishTop" cx=".5" cy=".4" r=".7">
+          <stop offset="0" stop-color="#6b1c22"/><stop offset="1" stop-color="#3f0e13"/>
+        </radialGradient>
+        <radialGradient id="ball" cx=".35" cy=".3" r=".75">
+          <stop offset="0" stop-color="#fffbe6"/><stop offset=".35" stop-color="#f0cd7a"/><stop offset="1" stop-color="#8a5c0f"/>
+        </radialGradient>
+        <linearGradient id="wordGold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff6d2"/><stop offset=".5" stop-color="#f0cc7c"/><stop offset="1" stop-color="#c08a26"/>
+        </linearGradient>
+        <radialGradient id="floor"><stop offset="0" stop-color="#14020a" stop-opacity=".6"/><stop offset="1" stop-color="#14020a" stop-opacity="0"/></radialGradient>
+        <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#1a0306" flood-opacity=".55"/></filter>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <g id="panShape">
+          <circle cx="0" cy="0" r="6" fill="none" stroke="url(#brassH)" stroke-width="3.5"/>
+          
+          <path d="M0 5 L-66 74 M0 5 L66 74" stroke="#d9a945" stroke-width="3.6" stroke-linecap="round" fill="none"/>
+          <path d="M-0.8 5 L-66.8 74 M0.8 5 L65.2 74" stroke="#fff1bf" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".8"/>
+          <path d="M-72 76 Q-70 106 0 108 Q70 106 72 76 Z" fill="url(#dish)"/>
+          <ellipse cx="0" cy="76" rx="72" ry="9" fill="url(#dishTop)" stroke="url(#brassH)" stroke-width="3"/>
+          <path d="M-54 92 Q0 100 54 92" stroke="rgba(255,240,190,.45)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </g>
+      </defs>
+      <ellipse cx="256" cy="436" rx="150" ry="13" fill="url(#floor)"/>
+      <g>
+        <path d="M186 430 Q186 414 206 410 L306 410 Q326 414 326 430 Z" fill="url(#brassV)"/>
+        <rect x="214" y="398" width="84" height="14" rx="5" fill="url(#brassH)"/>
+        <path d="M232 400 Q240 378 248 372 L264 372 Q272 378 280 400 Z" fill="url(#brassH)"/>
+        <rect x="248" y="166" width="16" height="210" rx="4" fill="url(#brassH)"/>
+        <rect x="243" y="360" width="26" height="8" rx="3" fill="url(#brassH)"/>
+        <rect x="243" y="190" width="26" height="7" rx="3" fill="url(#brassH)"/>
+      </g>
+      <g id="beam">
+        <path d="M150 175 Q256 166 362 175 Q256 186 150 175 Z" fill="url(#brassV)"/>
+        <path d="M156 172.5 Q256 165 356 172.5" stroke="rgba(255,248,215,.75)" stroke-width="1.6" fill="none"/>
+        <circle cx="148" cy="175" r="7.5" fill="url(#ball)"/><circle cx="364" cy="175" r="7.5" fill="url(#ball)"/>
+      </g>
+      <circle cx="256" cy="174" r="11" fill="url(#ball)"/>
+      <path d="M256 128 L262 150 L250 150 Z" fill="url(#brassH)"/>
+      <circle cx="256" cy="154" r="9" fill="url(#ball)"/>
+      <g id="panR"><use href="#panShape"/></g>
+      <g id="panL"><use href="#panShape"/></g>
+      <g id="sparks"></g>
+      <text id="wR" text-anchor="middle" font-family="Frank Ruhl Libre, David, serif" font-weight="900" font-size="27" fill="url(#wordGold)" stroke="#3d0c12" stroke-width="2.4" stroke-linejoin="round" paint-order="stroke">מעדני</text>
+      <text id="wL" text-anchor="middle" font-family="Frank Ruhl Libre, David, serif" font-weight="900" font-size="27" fill="url(#wordGold)" stroke="#3d0c12" stroke-width="2.4" stroke-linejoin="round" paint-order="stroke">גורמה</text>
+    </svg>
+  <div class="lock"><div class="brand">מעדני גורמה</div><div class="rule"><i></i><span>שקילות בשר ומלאי</span><i></i></div></div>
+  <div class="skip">נגיעה במסך מדלגת</div>
+</div>
+<script>
+// The full animation once a day; on later opens the scale is already balanced and the screen leaves within a second.
+(() => {
+  const today = new Date().toDateString();
+  let seen = ''; try { seen = localStorage.getItem('splashDay') || ''; localStorage.setItem('splashDay', today); } catch (e) {}
+  const quick = seen === today || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const PIV = { x: 256, y: 175 }, HALF = 108;
+  const $ = id => document.getElementById(id);
+  const beam = $('beam'), panR = $('panR'), panL = $('panL'), wR = $('wR'), wL = $('wL'), splash = $('splash'), sparksG = $('sparks');
+  const SIT = 71;  // a word rests on the dish, just above its rim
+  const NS = 'http://www.w3.org/2000/svg';
+  let raf = 0, timers = [];
+  function run() {
+    cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = [];
+    splash.classList.remove('out', 'done'); sparksG.innerHTML = '';
+    let th = 0, vel = 0, sw = 0, swv = 0, t0 = performance.now(), last = t0;
+    const sparks = [];
+    const words = [
+      { el: wR, side: 1, at: 500, y: -70, v: 0, landed: false },   // מעדני: right pan, first
+      { el: wL, side: -1, at: 1700, y: -70, v: 0, landed: false }  // גורמה: left pan, second
+    ];
+    
+    const burst = (x, y) => { for (let i = 0; i < 16; i++) {
+      const a = Math.PI + Math.random() * Math.PI, sp = 70 + Math.random() * 150, c = document.createElementNS(NS, 'circle');
+      c.setAttribute('r', (1 + Math.random() * 2.2).toFixed(1)); c.setAttribute('fill', i % 3 ? '#ffe7a6' : '#fff8e6'); sparksG.appendChild(c);
+      sparks.push({ c, x: x + (Math.random() - .5) * 70, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1 }); } };
+    function frame(now) {
+      const dt = Math.min(0.032, (now - last) / 1000); last = now; const t = now - t0;
+      const onR = words[0].landed, onL = words[1].landed;
+      const target = onR && !onL ? 0.24 : 0;
+      const acc = -34 * (th - target) - (onR && onL ? 2.6 : 4) * vel;
+      vel += acc * dt; th += vel * dt;
+      swv += (-60 * sw - 5 * swv - acc * 0.9) * dt; sw += swv * dt;   // pans swing a little behind the beam
+      beam.setAttribute('transform', `rotate(${th * 180 / Math.PI} ${PIV.x} ${PIV.y})`);
+      const hook = s => ({ x: PIV.x + s * HALF * Math.cos(th), y: PIV.y + s * HALF * Math.sin(th) });
+      const r = hook(1), l = hook(-1), deg = sw * 180 / Math.PI;
+      panR.setAttribute('transform', `translate(${r.x} ${r.y}) rotate(${deg})`);
+      panL.setAttribute('transform', `translate(${l.x} ${l.y}) rotate(${deg})`);
+      words.forEach(w => {
+        const p = w.side > 0 ? r : l;
+        const rx = p.x - Math.sin(sw) * SIT, ry = p.y + Math.cos(sw) * SIT;
+        if (t < w.at) { w.el.setAttribute('opacity', 0); return; }
+        let y;
+        if (!w.landed) {
+          w.v += 2400 * dt; w.y += w.v * dt; y = w.y;
+          if (w.y >= ry) { w.landed = true; w.b = 1; vel += w.side * 2.1; swv += w.side * 1.2; burst(rx, ry); y = ry; }
+          w.el.setAttribute('opacity', Math.min(1, (t - w.at) / 160));
+        } else {
+          w.el.setAttribute('opacity', 1);
+          w.b = Math.max(0, w.b - dt * 3.2);
+          y = ry - Math.sin((1 - w.b) * Math.PI) * 9 * w.b;
+        }
+        w.el.setAttribute('x', w.landed ? rx : p.x); w.el.setAttribute('y', y);
+        w.el.setAttribute('transform', w.landed ? `rotate(${deg} ${rx} ${y})` : '');
+      });
+      sparks.forEach(s => { if (s.life <= 0) return; s.vy += 420 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt * 1.4;
+        s.c.setAttribute('cx', s.x); s.c.setAttribute('cy', s.y); s.c.setAttribute('opacity', Math.max(0, s.life)); });
+      if (t > 3200 && !splash.classList.contains('done')) splash.classList.add('done');
+      if (t < 5600) raf = requestAnimationFrame(frame);
+    }
+    if (quick) { words.forEach(w => { w.landed = true; w.b = 0; w.at = 0; }); splash.classList.add('done'); }
+    raf = requestAnimationFrame(frame);
+    timers.push(setTimeout(leave, quick ? 1100 : 4900));
+  }
+  const leave = () => { if (splash.classList.contains('out')) return; splash.classList.add('out'); setTimeout(() => { cancelAnimationFrame(raf); splash.remove(); }, 650); };
+  splash.addEventListener('click', leave);
+  run();
+})();
+</script>
+
 <h1>שקילות בשר ומלאי</h1>
 <button type="button" class="gear-btn" aria-label="הגדרות" onclick="showPage('settings')"></button>
 <div class="branch-bar"><span id="branchText"></span></div>
