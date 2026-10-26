@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שקילות בשר ומלאי</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 10px; direction: rtl; }
+  h1 { text-align: center; color: #1F4E79; font-size: 22px; }
+  .nav { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; }
+  .nav button { padding: 10px 20px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; background: #ddd; }
+  .nav button.active { background: #2E75B6; color: white; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .meat-card { background: white; border-radius: 12px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  .meat-header { background: #2E75B6; color: white; padding: 10px; font-weight: bold; text-align: center; }
+  .meat-body { display: grid; grid-template-columns: 1fr 1fr; }
+  .section.stock { background: #f5f3ff; }
+  .stock .total { color: #5e35b1; }
+  .prep .total { font-size: 22px; }
+  .sub { font-size: 12px; color: #555; margin-top: 3px; line-height: 1.4; }
+  .section { flex: 1; padding: 12px; text-align: center; }
+  .section.prep { background: #f0f7ff; }
+  .section.close { background: #fff8f0; }
+  .section.sold { background: #f0fff0; }
+  .total { font-size: 28px; font-weight: bold; }
+  .prep .total { color: #2E7D32; }
+  .close .total { color: #E65100; }
+  .sold .total { color: #1565C0; }
+  .period { background: #f8f9fa; padding: 8px; text-align: center; font-size: 13px; }
+  .controls { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+  select, input { font-size: 16px; padding: 8px; margin: 4px; border-radius: 6px; border: 1px solid #ccc; }
+  button.btn { background: #2E75B6; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 4px; }
+  .inventory-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; margin-bottom: 6px; border-radius: 8px; }
+  .inventory-item input { width: 100px; text-align: center; }
+  .analysis { padding: 10px 12px; border-top: 1px solid #e5e8eb; font-size: 14px; display: grid; gap: 8px; }
+  .an-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  .an-label { font-weight: bold; min-width: 52px; }
+  .an-nums { color: #333; flex-basis: 100%; min-width: 0; line-height: 1.5; padding-inline-start: 4px; }
+  .an-row { padding-bottom: 6px; border-bottom: 1px dashed #eceff1; }
+  .pill { border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: bold; white-space: nowrap; }
+  .pill.ok { background: #e8f5e9; color: #1b5e20; }
+  .pill.warn { background: #fff3e0; color: #e65100; }
+  .pill.bad { background: #ffebee; color: #b71c1c; }
+  .pill.none { background: #eceff1; color: #546e7a; }
+  .pill.neg { background: #e3f2fd; color: #0d47a1; }
+  .branch-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
+  body.setup-mode .nav, body.setup-mode .page, body.setup-mode .branch-bar, body.setup-mode #syncStatus { display: none !important; }
+  body.setup-mode #branchPanel { max-width: 460px; margin: 0 auto 15px; }
+  .link-btn { background: none; border: none; color: #2E75B6; text-decoration: underline; font-size: 14px; cursor: pointer; padding: 8px 6px; }
+  .br-row { display: flex; flex-direction: column; max-width: 320px; margin: 8px auto; text-align: right; font-size: 14px; gap: 2px; }
+  .br-row input { margin: 0; width: 100%; }
+  .inv-tabs { display: flex; gap: 8px; justify-content: center; margin: 4px 0 12px; }
+  .inv-tabs button { flex: 1; max-width: 160px; padding: 10px; font-size: 17px; border: none; border-radius: 8px; background: #ddd; cursor: pointer; }
+  .inv-tabs button.active { background: #2E75B6; color: #fff; }
+  .inv-group { font-weight: bold; color: #1F4E79; margin: 16px 4px 6px; padding-bottom: 3px; border-bottom: 2px solid #2E75B6; }
+  .inv-group:first-child { margin-top: 0; }
+  .inv-totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 10px; }
+  .inv-totals div { background: #eef4fb; border-radius: 8px; padding: 6px 4px; font-size: 12px; color: #1F4E79; }
+  .inv-totals b { display: block; font-size: 17px; color: #1F4E79; }
+  .processed { background: #fff3e0; }
+  input[readonly] { background: #eceff1; color: #555; border-style: dashed; }
+  #calcPanel { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15); text-align: center; }
+  body.mgr-mode .nav { gap: 6px; }
+  body.mgr-mode .nav button { flex: 1; padding: 10px 4px; white-space: nowrap; font-size: 15px; }
+  .inventory-item.selected { outline: 3px solid #2E75B6; }
+  .inventory-item.flash { animation: flash 0.8s; }
+  @keyframes flash { from { background: #c8e6c9; } }
+  body.mgr-mode .entry-only, body.mgr-mode .branch-bar, body.mgr-mode #syncStatus { display: none !important; }
+  body:not(.mgr-mode) .mgr-only { display: none !important; }
+  .mgr-entry { border-top: 1px solid #e5e8eb; margin-top: 14px; padding-top: 10px; font-size: 14px; color: #555; }
+  .mgr-entry button { background: #fff; color: #1F4E79; border: 2px solid #1F4E79; border-radius: 8px; padding: 8px 16px; font-size: 15px; cursor: pointer; margin-top: 4px; }
+  .mgr-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
+  .mgr-pick { background: #fff; border-radius: 12px; padding: 8px; margin-bottom: 12px; text-align: center; font-size: 15px; }
+  .mgr-pick select { font-weight: bold; min-width: 160px; }
+  .alert-box { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  .alert-box h3 { margin: 0; padding: 10px; background: #cc0000; color: #fff; font-size: 16px; text-align: center; }
+  .alert-box.clear h3 { background: #2e7d32; }
+  .alert-row { display: block; width: 100%; text-align: right; background: none; border: none; border-bottom: 1px solid #f1d4d4; padding: 10px 12px; font-size: 14px; cursor: pointer; color: #b71c1c; }
+  .alert-row b { color: #000; }
+  .alert-row:last-child { border-bottom: none; }
+  .br-card { background: #fff; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); cursor: pointer; overflow: hidden; }
+  .br-card-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #eef4fb; }
+  .br-card-head b { font-size: 17px; color: #1F4E79; }
+  .br-card-head span { font-size: 13px; color: #555; }
+  .br-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px 8px; padding: 10px 12px; font-size: 13px; align-items: center; }
+  .br-grid .h { color: #777; font-size: 12px; }
+  .br-grid .pill { text-align: center; }
+  #calcSteps { font-size: 13px; color: #555; min-height: 16px; margin-bottom: 6px; word-break: break-word; }
+</style>
+
+<style>
+/* ===== look: burgundy, white tiles, bottom bar ===== */
+/* ---- new look: shared layout, colors come from the variables of each variant ---- */
+body { background: var(--bg); color: var(--ink); font-family: var(--font); padding: 12px 14px 24px; -webkit-font-smoothing: antialiased; }
+h1 { color: var(--ink); font-size: 22px; font-weight: 800; margin: 6px 0 2px; letter-spacing: -0.2px; }
+.branch-bar { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.link-btn { color: var(--pri); text-decoration: none; font-weight: 600; font-family: inherit; }
+.nav { background: var(--seg); padding: 4px; border-radius: 999px; gap: 4px; max-width: 440px; margin: 0 auto 16px; }
+.nav button { flex: 1; background: transparent; color: var(--muted); border-radius: 999px; font-weight: 700; padding: 10px 8px; font-size: 15px; font-family: inherit; white-space: nowrap; }
+.nav button.active { background: var(--card); color: var(--pri); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.controls { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px 14px; border: 1px solid var(--line); }
+select, input { border: 1px solid var(--line); border-radius: 12px; background: var(--field); padding: 11px 12px; font-size: 16px; color: var(--ink); font-family: inherit; }
+select:focus, input:focus { outline: 2px solid var(--pri); outline-offset: 0; border-color: transparent; }
+#page-weigh .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+#page-weigh .controls > * { margin: 0; }
+#dateInput, #meatSelect, #typeSelect, #weightInput { width: calc(50% - 4px); }
+#soldNote, #workerLine, #page-weigh .controls > div { width: 100%; text-align: center; }
+button.btn { border-radius: 12px; font-weight: 700; padding: 12px 16px; background: var(--pri); font-family: inherit; box-shadow: none; }
+button[onclick="addWeight()"] { width: 100%; font-size: 18px; padding: 14px; }
+button[onclick="deleteLast()"], button[onclick="exportToExcel()"], button[onclick="resetAll()"], button[onclick="exportInventory()"], button[onclick="calcClear()"], button[onclick="calcUndo()"] {
+  background: var(--card) !important; color: var(--ink); border: 1px solid var(--line); flex: 1; font-size: 14px; padding: 10px 8px; }
+button[onclick="exportToExcel()"], button[onclick="exportInventory()"] { color: #1d7a3e; }
+button[onclick="resetAll()"] { color: #c62828; }
+.meat-card { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); border: 1px solid var(--line); margin-bottom: 14px; }
+.meat-header { background: var(--head); color: var(--head-ink); text-align: right; padding: 12px 16px; font-size: 17px; font-weight: 800; }
+.meat-body { gap: 8px; padding: 12px; }
+.section { border-radius: 14px; padding: 12px 8px; }
+.section > div:first-child { font-size: 13px; color: var(--muted); font-weight: 600; }
+.section.stock { background: var(--t-stock); } .stock .total { color: var(--c-stock); }
+.section.close { background: var(--t-close); } .close .total { color: var(--c-close); }
+.section.sold { background: var(--t-sold); } .sold .total { color: var(--c-sold); }
+.section.prep { background: var(--t-prep); } .prep .total { color: var(--c-prep); }
+.total { font-size: 27px; font-weight: 800; letter-spacing: -0.5px; }
+.prep .total { font-size: 22px; }
+.sub { color: var(--muted); }
+.analysis { border-top: 1px solid var(--line); padding: 12px 14px; }
+.an-row { border-bottom: 1px solid var(--line); }
+.an-row:last-of-type { border-bottom: none; }
+.an-nums { color: var(--ink2); }
+.pill { padding: 4px 12px; }
+.pill.ok { background: #e3f4e8; color: #1b6b34; } .pill.warn { background: #fff0db; color: #b45309; }
+.pill.bad { background: #fde4e4; color: #b42318; } .pill.none { background: var(--seg); color: var(--muted); } .pill.neg { background: #e4eefc; color: #1e4fa8; }
+.period { background: transparent; color: var(--muted); border-top: 1px solid var(--line); padding: 10px; }
+#historyList { background: var(--card) !important; border-radius: var(--r) !important; border: 1px solid var(--line); box-shadow: var(--shadow); padding: 4px 14px !important; }
+#historyList > div { border-bottom: 1px solid var(--line) !important; padding: 9px 0 !important; color: var(--ink2); }
+.inv-tabs { background: var(--seg); padding: 4px; border-radius: 999px; gap: 4px; }
+.inv-tabs button { background: transparent; border-radius: 999px; color: var(--muted); font-weight: 700; font-family: inherit; font-size: 16px; }
+.inv-tabs button.active { background: var(--card); color: var(--pri); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+#page-inventory h3 { margin: 2px 0 12px; font-size: 18px; }
+.inventory-item { background: var(--card); border-radius: 12px; border: 1px solid var(--line); padding: 13px 14px; margin-bottom: 8px; }
+.inventory-item .inv-val { color: var(--pri) !important; }
+.inventory-item.processed { background: var(--processed); }
+.inventory-item.selected { outline: 2px solid var(--pri); }
+.inv-group { color: var(--ink); border-bottom: none; font-size: 15px; margin-top: 18px; }
+.inv-totals div { background: var(--pri-soft); color: var(--muted); border-radius: 12px; }
+.inv-totals b { color: var(--ink); }
+#calcPanel { background: var(--calc) !important; border-radius: var(--r) !important; border: 1px solid var(--line); }
+#calcCurrent { color: var(--ink); }
+:root { --font: 'Rubik', Arial, sans-serif; --bg:#f6f3ef; --card:#fff; --field:#f8f5f1; --ink:#2f2622; --ink2:#463a34; --muted:#857469; --line:#ebe3da; --seg:#efe8e0;
+  --pri:#9f2d2d; --pri-soft:#f6eae7; --r:18px; --shadow:0 2px 12px rgba(70,40,25,.07);
+  --head:#fff; --head-ink:#2f2622; --processed:#fdf3e7; --calc:#fff;
+  --t-stock:#fff; --c-stock:#5b3fb8; --t-close:#fff; --c-close:#3f5168; --t-sold:#fff; --c-sold:#1f5aa8; --t-prep:#fff; --c-prep:#0f6f69; }
+body { padding: 0 14px 130px; }
+/* burgundy top band */
+h1 { background: linear-gradient(135deg, #8e2626, #b23a3a); color: #fff; margin: 0 -14px; padding: 22px 16px 4px; font-size: 24px; }
+.branch-bar { background: linear-gradient(135deg, #8e2626, #b23a3a); color: #f4dada; margin: 0 -14px 16px; padding: 0 16px 16px; border-radius: 0 0 22px 22px; }
+.branch-bar .link-btn { color: #fff; text-decoration: underline; }
+/* bottom bar with a big + in the middle */
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; margin: 0; max-width: none; border-radius: 0; background: #fff; border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 16px rgba(0,0,0,.06); padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)); gap: 0; align-items: flex-end; }
+.nav button { flex: 1; background: transparent !important; box-shadow: none !important; color: var(--muted); font-size: 12px; padding: 30px 4px 4px; border-radius: 12px;
+  background-repeat: no-repeat !important; background-position: center 4px !important; background-size: 24px !important; }
+.nav button.active { color: var(--pri); }
+#btnWeigh { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23857469' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18'/%3E%3Cpath d='M5 7h14'/%3E%3Cpath d='M5 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M19 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M8 21h8'/%3E%3C/svg%3E") !important; } #btnWeigh.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239f2d2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18'/%3E%3Cpath d='M5 7h14'/%3E%3Cpath d='M5 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M19 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M8 21h8'/%3E%3C/svg%3E") !important; }
+#btnInv { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23857469' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='4' width='12' height='17' rx='2'/%3E%3Cpath d='M9 4V3h6v1'/%3E%3Cpath d='M9 10h6M9 14h6M9 18h4'/%3E%3C/svg%3E") !important; } #btnInv.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239f2d2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='4' width='12' height='17' rx='2'/%3E%3Cpath d='M9 4V3h6v1'/%3E%3Cpath d='M9 10h6M9 14h6M9 18h4'/%3E%3C/svg%3E") !important; }
+#btnMgr { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23857469' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21V9l9-6 9 6v12'/%3E%3Cpath d='M9 21v-6h6v6'/%3E%3C/svg%3E") !important; } #btnMgr.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239f2d2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21V9l9-6 9 6v12'/%3E%3Cpath d='M9 21v-6h6v6'/%3E%3C/svg%3E") !important; }
+.nav .plus { flex: 0 0 auto; width: 58px; height: 58px; margin: -24px 18px 2px; padding: 0; border-radius: 50%; background: var(--pri) !important; color: #fff; font-size: 34px; line-height: 1;
+  box-shadow: 0 6px 16px rgba(159,45,45,.35) !important; display: flex; align-items: center; justify-content: center; }
+/* product cards: white tiles with a coloured label and icon */
+.meat-card { background: transparent; border: none; box-shadow: none; }
+.meat-header { background: transparent; padding: 4px 4px 8px; font-size: 19px; color: var(--ink); }
+.meat-body { padding: 0; gap: 10px; }
+.section { background: #fff !important; border: 1px solid var(--line); box-shadow: var(--shadow); padding: 0 0 12px; overflow: hidden; }
+.section > div:first-child { padding: 8px 10px 8px 34px; margin-bottom: 8px; font-weight: 700; font-size: 14px; text-align: right;
+  background-repeat: no-repeat; background-position: left 10px center; background-size: 18px; }
+.section.stock > div:first-child { background-color: #f1edfb; color: #5b3fb8; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b3fb8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8l-9-5-9 5 9 5 9-5z'/%3E%3Cpath d='M3 8v8l9 5 9-5V8'/%3E%3Cpath d='M12 13v8'/%3E%3C/svg%3E"); }
+.section.close > div:first-child { background-color: #edf0f4; color: #3f5168; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f5168' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/%3E%3C/svg%3E"); }
+.section.sold  > div:first-child { background-color: #eaf1fb; color: #1f5aa8; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f5aa8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='20' r='1.5'/%3E%3Ccircle cx='18' cy='20' r='1.5'/%3E%3Cpath d='M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 7H6'/%3E%3C/svg%3E"); }
+.section.prep  > div:first-child { background-color: #e6f4f2; color: #0f6f69; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f6f69' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 16h18'/%3E%3Cpath d='M5 16a7 7 0 0 1 14 0'/%3E%3Cpath d='M12 7v2'/%3E%3Cpath d='M2 20h20'/%3E%3C/svg%3E"); }
+.total { font-size: 28px; }
+.analysis { background: transparent; border-top: none; padding: 10px 0 0; gap: 8px; }
+.an-row { background: #fff; border: 1px solid var(--line) !important; border-radius: 14px; padding: 10px 12px 10px 12px; box-shadow: var(--shadow); }
+.an-label { padding-inline-start: 24px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239f2d2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E") no-repeat right center / 16px; min-width: 0; }
+.an-row .pill { margin-inline-start: auto; }
+.an-nums { font-size: 13px; color: var(--muted); padding-inline-start: 0; }
+.analysis > div:last-child:not(.an-row) { padding: 0 6px; }
+.period { border-top: none; }
+.controls { border-radius: 20px; }
+#calcPanel { background: #fff !important; }
+/* settings button in the burgundy band */
+.gear-btn { position: absolute; top: 14px; left: 10px; width: 44px; height: 44px; border: none; border-radius: 50%; background: rgba(255,255,255,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'/%3E%3C/svg%3E") no-repeat center / 22px; cursor: pointer; z-index: 5; }
+body.mgr-mode .gear-btn, body.setup-mode .gear-btn { display: none; }
+/* product switcher above the cards */
+.prod-tabs { display: flex; gap: 6px; background: var(--seg); padding: 4px; border-radius: 999px; margin: 4px 0 12px; }
+.prod-tabs button { flex: 1; border: none; background: transparent; border-radius: 999px; padding: 9px 4px; font: 700 14px var(--font); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.prod-tabs button.active { background: var(--card); color: var(--pri); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #c9c2bb; flex: none; }
+.dot.ok { background: #2e9d55; } .dot.warn { background: #f08c00; } .dot.bad { background: #d92d20; } .dot.neg { background: #3b6fd8; }
+#cards .meat-card { display: none; }
+#cards .meat-card.shown { display: block; }
+#cards .meat-header { display: none; }
+/* settings page */
+#page-settings h3 { margin: 0 0 12px; font-size: 19px; }
+#page-settings h4 { margin: 18px 0 8px; font-size: 15px; color: var(--muted); text-align: right; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); text-align: right; }
+.set-row:last-of-type { border-bottom: none; }
+.set-row input { width: 74px; text-align: center; margin: 0; }
+.set-hint { font-size: 12px; color: var(--muted); text-align: right; margin-top: 6px; line-height: 1.5; }
+button.btn.danger { background: #fff !important; color: #c62828; border: 1px solid #f0c9c9; width: 100%; }
+/* a short "saved" note after adding */
+#okToast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); opacity: 0; background: #1f2a24; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 70; transition: opacity .2s, transform .2s; pointer-events: none; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#okToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+h1 { position: relative; }
+/* area-manager bar sits in the burgundy band like the branch line */
+.mgr-bar { background: linear-gradient(135deg, #8e2626, #b23a3a); color: #f4dada; margin: 0 -14px 16px; padding: 0 16px 16px; border-radius: 0 0 22px 22px; }
+.mgr-bar .link-btn { color: #fff; text-decoration: underline; }
+body.mgr-mode .branch-bar { display: none !important; }
+/* the small lines under each number in the product tiles */
+.section .sub { margin: 6px 10px 0; display: grid; gap: 3px; }
+.kv { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; font-size: 12.5px; padding: 3px 8px; background: #f8f5f1; border-radius: 8px; }
+.kv span { color: var(--muted); }
+.kv b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.kv-note { font-size: 12px; color: var(--muted); }
+.kv-chip { justify-self: center; font-size: 12px; color: var(--muted); background: #f3efe9; border-radius: 999px; padding: 3px 10px; }
+/* weighings list: a heading per day, a coloured tag per type */
+#historyList { max-height: 340px !important; padding: 0 12px 8px !important; }
+#historyList > div.h-day { position: sticky; top: 0; background: var(--card); z-index: 1; display: flex; align-items: center; gap: 8px; padding: 14px 2px 8px !important; border-bottom: 2px solid var(--pri-soft) !important; }
+.h-day .d-rel { background: var(--pri); color: #fff; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+.h-day .d-name { font-size: 16px; font-weight: 800; color: var(--ink); }
+.h-day .d-date { font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.h-day .d-count { margin-inline-start: auto; font-size: 12px; color: var(--muted); background: var(--seg); border-radius: 999px; padding: 2px 9px; }
+#historyList > div.h-row:last-child { border-bottom: none !important; }
+#historyList > div.h-row { display: grid; grid-template-columns: 62px 1fr 72px 58px; align-items: center; gap: 8px; padding: 8px 2px !important; font-size: 14px; color: var(--ink); }
+.h-type { border-radius: 999px; padding: 2px 0; font-size: 12px; font-weight: 700; text-align: center; }
+.h-type.t-prep { background: #e6f4f2; color: #0f6f69; } .h-type.t-close { background: #edf0f4; color: #3f5168; }
+.h-type.t-sold { background: #eaf1fb; color: #1f5aa8; } .h-type.t-recv { background: #f1edfb; color: #5b3fb8; } .h-type.t-xfer { background: #f3efe9; color: #857469; }
+.h-type.t-conv { background: #fdf1e3; color: #9a5b13; } .h-type.t-waste { background: #3b302b; color: #fff; }
+#convTo, #convOther { width: 100%; }
+.h-meat small { color: var(--muted); font-size: 12px; }
+.h-w { font-variant-numeric: tabular-nums; font-size: 15px; }
+.h-time { color: var(--muted); font-size: 12px; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.3; white-space: nowrap; }
+.h-w { text-align: left; }
+.h-time span { font-size: 11.5px !important; } /* who recorded it, under the time */
+body.mgr-ro #mgrLoss { display: none !important; }
+#page-weigh #mgrLoss { display: block; margin-top: 4px; }
+body:not(.mgr-mode) #page-weigh #mgrLoss { display: none; }
+#mgrLoss h3 { font-size: 17px; text-align: right; }
+body.mgr-mode .nav button { padding: 30px 2px 4px; font-size: 12px; white-space: nowrap; }
+#syncStatus { margin: -8px 0 12px !important; }
+body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
+.alert-box, .br-card, .mgr-pick { border: 1px solid var(--line); box-shadow: var(--shadow); }
+.br-card-head { background: var(--pri-soft); }
+.br-card-head b { color: var(--pri); }
+/* ===== round 4: compact loss line, labelled +, calmer colours, stock count progress ===== */
+.an-label small { display: block; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+.an-nums { font-size: 13px; color: var(--muted); }
+.an-nums b { color: var(--ink); font-weight: 600; }
+.an-nums .allow { color: var(--muted); }
+.an-note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* the + gets a word under it like the other buttons */
+.nav .plus { margin-bottom: 18px !important; position: relative; overflow: visible; }
+.nav .plus::after { content: 'שקילה'; position: absolute; top: 62px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--pri); white-space: nowrap; }
+/* burgundy only for the header, the main buttons and the +; red stays for problems */
+:root { --sel: #3b302b; }
+.nav button.active, .prod-tabs button.active, .inv-tabs button.active { color: var(--sel) !important; }
+#btnWeigh.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b302b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18'/%3E%3Cpath d='M5 7h14'/%3E%3Cpath d='M5 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M19 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M8 21h8'/%3E%3C/svg%3E") !important; }
+#btnInv.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b302b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='4' width='12' height='17' rx='2'/%3E%3Cpath d='M9 4V3h6v1'/%3E%3Cpath d='M9 10h6M9 14h6M9 18h4'/%3E%3C/svg%3E") !important; }
+.nav button.active { font-weight: 800; }
+.link-btn { color: #5a4a42; }
+.branch-bar .link-btn, .mgr-bar .link-btn { color: #fff; }
+.inventory-item .inv-val { color: var(--ink) !important; font-weight: 700; }
+.inventory-item.selected { outline: 2px solid var(--sel); }
+.h-day .d-rel { background: var(--sel); }
+.an-label { background-image: none !important; padding-inline-start: 0 !important; }
+/* stock count */
+.inv-progress { display: flex; align-items: center; gap: 10px; margin: 2px 2px 10px; font-size: 13px; color: var(--muted); }
+.ip-bar { flex: 1; height: 8px; border-radius: 99px; background: var(--seg); overflow: hidden; display: flex; direction: rtl; }
+.ip-bar i { display: block; height: 100%; background: #2e9d55; border-radius: 99px; transition: width .3s; }
+#invSearch { width: 100%; margin: 0 0 10px; }
+.inventory-item.empty { background: #faf8f5; }
+.inventory-item.empty span { color: #a99a8f; }
+.inventory-item.empty .inv-val { color: #b9aca2 !important; font-weight: 500; font-size: 13px; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#962a2a">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<h1>שקילות בשר ומלאי</h1>
+<button type="button" class="gear-btn" aria-label="הגדרות" onclick="showPage('settings')"></button>
+<div class="branch-bar"><span id="branchText"></span></div>
+<div id="okToast" role="status"></div>
+<div id="syncStatus" style="text-align:center;font-size:13px;margin:-6px 0 10px" hidden></div>
+<div class="mgr-bar mgr-only"><span id="mgrText"></span><button type="button" class="link-btn" onclick="mgrRefresh()">רענון</button><button type="button" class="link-btn" onclick="mgrExit()">יציאה</button></div>
+<div id="mgrLogin" class="controls" hidden>
+  <h3 style="margin-top:0">כניסה למנהל אזור</h3>
+  <div style="font-size:14px;color:#555">את הכתובת ואת הקוד האישי שלך מקבלים מהחברה. רואים את כל הסניפים שלך, רק לצפייה.</div>
+  <label class="br-row">כתובת חיבור<input type="url" id="mgUrl" autocomplete="off" dir="ltr" placeholder="https://script.google.com/..."></label>
+  <label class="br-row">קוד מנהל אזור<input type="text" id="mgCode" autocomplete="off" dir="ltr"></label>
+  <div id="mgrMsg" style="color:#c62828;font-size:13px;min-height:16px"></div>
+  <button class="btn" id="mgrGo" onclick="mgrLogin()">כניסה</button>
+  <button class="btn" style="background:#6c757d" onclick="closeMgrLogin()">חזרה</button>
+</div>
+<div id="branchPanel" class="controls" hidden>
+  <h3 style="margin-top:0" id="brTitle">פרטי סניף</h3>
+  <div style="font-size:14px;color:#555" id="brIntro">הפרטים נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל</div>
+  <label class="br-row">שם הסניף<input type="text" id="brName" autocomplete="off"></label>
+  <label class="br-row">שם מנהל המחלקה<input type="text" id="brManager" autocomplete="off"></label>
+  <label class="br-row">שם מנהל האזור<input type="text" id="brArea" autocomplete="off"></label>
+  <label class="br-row">השם שלך<input type="text" id="brWorker" autocomplete="off" placeholder="מי רושם בטלפון הזה"></label>
+  <div style="font-size:13px;color:#555;margin-top:12px">חיבור לגיליון של החברה (מקבלים ממנהל האזור · אפשר להשאיר ריק)</div>
+  <label class="br-row">כתובת חיבור<input type="url" id="brUrl" autocomplete="off" dir="ltr" placeholder="https://script.google.com/..."></label>
+  <label class="br-row">קוד חברה<input type="text" id="brKey" autocomplete="off" dir="ltr"></label>
+  <div id="branchMsg" style="color:#c62828;font-size:13px;min-height:16px"></div>
+  <button class="btn" id="branchSave" onclick="saveBranch()">שמור</button>
+  <button class="btn" id="branchCancel" style="background:#6c757d" onclick="skipBranch()">ביטול</button>
+  <div class="mgr-entry">מנהל אזור?<br><button type="button" onclick="openMgrLogin()">כניסה למנהל אזור</button></div>
+</div>
+<div class="nav">
+  <button id="btnMgr" class="mgr-only" onclick="showPage('mgr')">סניפים</button>
+  <button id="btnWeigh" class="active" onclick="showPage('weigh')">שקילות</button>
+  <button id="btnPlus" class="plus entry-only" type="button" aria-label="הוספת שקילה" onclick="goAdd()">+</button>
+  <button id="btnInv" onclick="showPage('inventory')">ספירת מלאי</button>
+</div>
+
+<div id="mgrBranchPick" class="mgr-pick mgr-only" hidden>סניף: <select id="mgrBranchSel" onchange="mgrOpen(this.value)"></select> <span id="mgrBranchMgr" style="font-size:13px;color:#555"></span></div>
+
+<!-- AREA MANAGER: all his branches -->
+<div id="page-mgr" class="page"><div id="mgrAlerts"></div><div id="mgrList"></div></div>
+
+<!-- WEIGHING PAGE -->
+<div id="page-weigh" class="page active">
+  <div class="controls">
+    <input type="date" id="dateInput">
+    <select id="meatSelect" class="entry-only">
+      <option value="entrecote">אנטריקוט</option>
+      <option value="shoulder">צלי כתף</option>
+      <option value="oven">אנטריקוט לתנור</option>
+      <option value="iron">איירון סטייק</option>
+    </select>
+    <select id="typeSelect" class="entry-only">
+      <option value="prep">הכנות</option>
+      <option value="close">סגירה</option>
+      <option value="sold">נמכר</option>
+      <option value="recv">סחורה שנכנסה</option>
+      <option value="xfer">העברה לאנטריקוט</option>
+      <option value="xfer2">העברה לתנור</option>
+      <option value="conv">המרה</option>
+      <option value="waste">השמדה</option>
+    </select>
+    <select id="convTo" class="entry-only" hidden aria-label="המרה ל">
+      <option value="טחון">המרה לטחון</option>
+      <option value="אחר">המרה למוצר אחר…</option>
+    </select>
+    <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב">
+    <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal">
+    <div class="entry-only" style="font-size:12px;color:#888;margin-top:-2px">כמה מגשים? כותבים עם רווח: 5.2 4.8 6.1 והם יחוברו</div>
+    <div id="soldNote" class="entry-only" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
+    <button class="btn entry-only" onclick="addWeight()">הוסף</button>
+    <div id="workerLine" class="entry-only" style="font-size:13px;color:#555;margin:4px 0"></div>
+    <button class="btn entry-only" style="background:#6c757d" onclick="deleteLast()">מחק אחרון</button>
+    <button class="btn" style="background:#28a745" onclick="exportToExcel()">ייצא לאקסל</button>
+  </div>
+
+  <div id="prodTabs" class="prod-tabs"></div>
+  <div id="cards"></div>
+
+  <div id="mgrLoss" class="controls mgr-only">
+    <h3 style="margin:0 0 8px">אחוזי פחת · <span id="mgrLossBranch"></span></h3>
+    <label class="set-row">אנטריקוט <span><input type="text" id="mg_entrecote" inputmode="decimal"> %</span></label>
+    <label class="set-row">צלי כתף <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mg_oven" inputmode="decimal"> %</span></label>
+    <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
+    <label class="set-row" style="justify-content:flex-start;gap:8px"><input type="checkbox" id="mgAll" style="width:auto"> לקבוע את אותם אחוזים לכל הסניפים שלי</label>
+    <button class="btn" style="width:100%" onclick="mgrSaveLoss()">שמירה</button>
+    <div id="mgLossMsg" class="set-hint" style="text-align:center"></div>
+  </div>
+
+  <div id="historyList" style="background:white;padding:10px;border-radius:8px;max-height:200px;overflow:auto;margin-top:10px;"></div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div id="page-settings" class="page">
+  <div class="controls">
+    <h3>הגדרות</h3>
+    <div class="set-row"><span id="setBranch"></span><button type="button" class="link-btn" onclick="openBranch()">עריכה</button></div>
+    <div class="set-row"><span id="setWorker"></span><button type="button" class="link-btn" onclick="openBranch(false, true)">שינוי</button></div>
+    <h4>פחת מותר (קליפה)</h4>
+    <label class="set-row">אנטריקוט <span><input type="text" id="allow_entrecote" inputmode="decimal"> %</span></label>
+    <label class="set-row">צלי כתף <span><input type="text" id="allow_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row">אנטריקוט לתנור <span><input type="text" id="allow_oven" inputmode="decimal"> %</span></label>
+    <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="ironAllow" inputmode="decimal"> %</span></label>
+    <div class="set-hint">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14% · עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div>
+    <div id="allowNote" class="set-hint" style="color:#1565C0" hidden>האחוזים נקבעים על ידי מנהל האזור או החברה ומתעדכנים לבד</div>
+    <h4>מחיקה</h4>
+    <button class="btn danger" onclick="resetAll()">איפוס כל השקילות בטלפון הזה</button>
+    <div class="set-hint">השקילות שכבר בגיליון של החברה לא נמחקות ויחזרו בסנכרון הבא.</div>
+    <button type="button" class="btn" style="width:100%;margin-top:16px" onclick="showPage('weigh')">חזרה</button>
+  </div>
+</div>
+
+<!-- INVENTORY PAGE -->
+<div id="page-inventory" class="page">
+  <div class="controls">
+    <h3>ספירת מלאי סוף חודש</h3>
+    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button></div>
+    <div style="margin:0 0 10px;font-size:15px">ספירה לחודש: <input type="month" id="invMonth" style="font-size:15px" onchange="setInvMonth(this.value)"></div>
+    <div id="invTotals" class="inv-totals"></div>
+    <div class="inv-progress"><div class="ip-bar"><i id="ipFill"></i></div><span id="ipText"></span></div>
+    <input type="search" id="invSearch" placeholder="🔍 חיפוש מוצר…" oninput="renderInventory()" autocomplete="off">
+    <button class="btn entry-only" onclick="saveInventory()">שמור מלאי</button>
+    <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
+  </div>
+  <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:0 0 10px;">
+      <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
+      <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
+      <div id="calcSteps" dir="ltr"></div>
+      <input type="text" id="calcInput" class="entry-only" placeholder="משקל" style="width:170px; font-size:18px; text-align:center" inputmode="decimal" enterkeyhint="done">
+      <button class="btn entry-only" onclick="calcAdd()">הוסף לסכום</button>
+      <button class="btn entry-only" style="background:#ff9800" onclick="calcUndo()">בטל אחרון</button>
+      <button class="btn entry-only" style="background:#6c757d" onclick="calcClear()">נקה</button>
+      <div class="entry-only" style="font-size:12px;color:#666;margin-top:4px">אפשר כמה משקלים בבת אחת עם רווח ביניהם, למשל: 30 15 14.742</div>
+  </div>
+  <div id="inventoryList"></div>
+</div>
+
+<script>
+const beefProducts = [
+  "בשר לטחינה","אנטריקוט","סינטה","דנוור","סטייק עין","אנטריקוט לתנור","צלי כתף","פילה מדומה","אסאדו ללא עצם","כתף בקר","אונטריב","שריר","חזה בקר","בשר ראש","אוסובוקו","אסאדו ע.ע","צוואר ע.ע","צלעות ע.ע","אנטריקוט ע.ע","שייטל","שפיץ צאך","פילה בקר","אצבעות אנטריקוט","כבד בקר","ריאות","שקדי בקר","אשכי בקר","זנב בקר","לב בקר","לשון","עצמות","עצם מוח","גידים",
+  "בשר לטחינה מעובד","אנטריקוט מעובד","סינטה מעובד","דנוור מעובד","סטייק עין מעובד","אנטריקוט לתנור מעובד","צלי כתף מעובד","פילה מדומה מעובד","אסאדו ללא עצם מעובד","כתף בקר מעובד","אונטריב מעובד","שריר מעובד","חזה בקר מעובד","בשר ראש מעובד","אוסובוקו מעובד","אסאדו ע.ע מעובד","צוואר ע.ע מעובד","צלעות ע.ע מעובד","אנטריקוט ע.ע מעובד","שייטל מעובד","שפיץ צאך מעובד","פילה בקר מעובד","אצבעות אנטריקוט מעובד","לשון מעובד","גידים מעובד"
+];
+const poultryGroups = [
+  ['עוף', ["חזה עוף","שניצל","עוף שלם","עוף צעיר","כרעיים","כרעיים מקוצב","יריכיים","שוקיים","כרעיים ללא גב","יריכיים ללא גב",
+           "כנפיים","שוקיית","כנפית","פרגית","מעורב ירושלמי","מעורב ישראלי","רצועות חזה","דואט למרק",
+           "קורקבן עוף","לבבות עוף","כבד עוף","טחול עוף","גרון עוף"]],
+  ['הודו', ["הודו שלם","גרון הודו","חזה הודו","ירך הודו","שוקיים הודו","כנפיים הודו","שווארמה הודו","רצועות שווראמה",
+            "קורקבן הודו","לבבות הודו","כבד הודו","טחול הודו","אשכי הודו"]],
+  ['ארוזים', ["כרעיים ארוז","שוקיים ארוז","חזה ארוז","שניצל ארוז","פרגית ארוז"]]
+];
+const poultryProducts = poultryGroups.flatMap(g => g[1]);
+const lambGroups = [
+  ['כבש', ["רבע כבש","שוק כבש","חזה כבש","צוואר כבש","צלעות כבש","שומן כבש"]],
+  ['כבש מעובד', ["רבע כבש מעובד","שוק כבש מעובד","חזה כבש מעובד","צוואר כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
+];
+const lambProducts = lambGroups.flatMap(g => g[1]);
+const products = beefProducts.concat(lambProducts, poultryProducts); // one list, so every product has a fixed index
+// beef and lamb are reported together, chicken and turkey together
+function familyOf(cat) { return ['עוף', 'הודו', 'ארוזים'].includes(cat) ? 'poultry' : 'meat'; }
+let invTab = 'beef';
+
+const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
+const typeNames = { prep:'הכנות', close:'סגירה', sold:'נמכר', recv:'סחורה', xfer:'העברה לאנטריקוט', xfer2:'העברה לתנור', conv:'המרה', waste:'השמדה' };
+let history = [];
+let prodStatus = {}, cardSel = 'entrecote', cardsBuilt = false; // which product card is shown
+// Area manager mode: read only, shows his branches from the company sheet; nothing is saved or sent
+let mgrMode = false;
+try { mgrMode = localStorage.getItem('appMode') === 'manager'; } catch(e) {}
+
+document.getElementById('dateInput').value = ymd(new Date()); // local date (valueAsDate would give yesterday before 03:00)
+document.getElementById('dateInput').max = ymd(new Date());
+document.getElementById('dateInput').addEventListener('change', updateDisplay);
+
+let okTimer;
+function showOk(text) {
+  const el = document.getElementById('okToast'); el.textContent = text; el.classList.add('show');
+  clearTimeout(okTimer); okTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+// the + in the bottom bar: straight to the weight field, from anywhere
+function goAdd() {
+  showPage('weigh');
+  window.scrollTo(0, 0);
+  setTimeout(() => document.getElementById('weightInput').focus(), 50);
+}
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const nb = { weigh:'btnWeigh', inventory:'btnInv', mgr:'btnMgr' }[page];
+  if (nb) document.getElementById(nb).classList.add('active');
+  if (page === 'settings') { renderSettings(); window.scrollTo(0, 0); }
+  document.getElementById('mgrBranchPick').hidden = !mgrMode || page === 'mgr';
+  if (page === 'inventory') { renderInventory(); if (branch.url) syncNow(); }
+}
+
+function canEnterSold(dateStr) {
+  // Allow sold entry more freely - only block if date is in the future
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return d <= today;
+}
+
+// Iron steak is weighed only as "sold" (it comes out of the shoulder prep)
+function syncTypeForMeat() {
+  const isIron = document.getElementById('meatSelect').value === 'iron';
+  const typeSel = document.getElementById('typeSelect');
+  const meat = document.getElementById('meatSelect').value;
+  // iron steak: sold only · transfer to entrecote: only from entrecote for the oven
+  Array.from(typeSel.options).forEach(o => {
+    const off = (isIron && o.value !== 'sold') || (o.value === 'xfer' && meat !== 'oven') || (o.value === 'xfer2' && meat !== 'entrecote');
+    o.disabled = off; o.hidden = off;
+  });
+  if (isIron) typeSel.value = 'sold';
+  else if ((typeSel.value === 'xfer' && meat !== 'oven') || (typeSel.value === 'xfer2' && meat !== 'entrecote')) typeSel.value = 'prep';
+  setCard(meat === 'iron' ? 'shoulder' : meat);
+}
+// Sales figures arrive the next working day: Thursday's on Friday, Friday's on Sunday.
+// So "sold" is recorded under the day the meat was sold, not the day you type it in.
+function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function prevWorkDay(d) {
+  const p = new Date(d); p.setDate(p.getDate() - 1);
+  if (p.getDay() === 6) p.setDate(p.getDate() - 1); // Saturday -> Friday
+  return p;
+}
+const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+function heDate(ds) { const d = new Date(ds + 'T00:00:00'); return 'יום ' + dayNames[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth()+1); }
+// Sold and close both belong to the previous work day (sales page and morning weigh-in come the day after)
+const backdated = t => t === 'sold' || t === 'close';
+let lastType = document.getElementById('typeSelect').value;
+let autoDate = true; // stops moving the date once you pick one yourself
+document.getElementById('dateInput').addEventListener('change', () => { autoDate = false; });
+function syncDateForType() {
+  const type = document.getElementById('typeSelect').value;
+  const dateEl = document.getElementById('dateInput');
+  if (type !== lastType) {
+    if (autoDate && backdated(type) && !backdated(lastType)) dateEl.value = ymd(prevWorkDay(new Date()));
+    else if (autoDate && !backdated(type) && backdated(lastType)) dateEl.value = ymd(new Date());
+    lastType = type;
+    updateDisplay();
+  }
+  const note = document.getElementById('soldNote');
+  const notes = {
+    sold: 'הנמכר יירשם למכירות של ',
+    close: 'שוקלים את כל המלאי (כולל ארגזים) לפני שמכניסים סחורה · נרשם כסגירה של ',
+    recv: 'סחורה שהגיעה ב',
+    xfer: 'יורד מאנטריקוט לתנור ונוסף לאנטריקוט · ',
+    xfer2: 'יורד מאנטריקוט ונוסף לאנטריקוט לתנור · ',
+    conv: 'יוצא מהמלאי למוצר אחר · לא נחשב פחת · ',
+    waste: 'בשר שנזרק · יוצא מהמלאי ולא נחשב פחת · ',
+  };
+  document.getElementById('convTo').hidden = type !== 'conv';
+  document.getElementById('convOther').hidden = type !== 'conv' || document.getElementById('convTo').value !== 'אחר';
+  if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value) + (type === 'sold' ? ' · לא נמכר כלום? רושמים 0' : ''); note.hidden = false; }
+  else note.hidden = true;
+}
+document.getElementById('meatSelect').addEventListener('change', () => { syncTypeForMeat(); syncDateForType(); });
+document.getElementById('typeSelect').addEventListener('change', syncDateForType);
+document.getElementById('dateInput').addEventListener('change', syncDateForType);
+document.getElementById('convTo').addEventListener('change', () => { syncDateForType(); if (document.getElementById('convTo').value === 'אחר') document.getElementById('convOther').focus(); });
+syncTypeForMeat();
+
+function addWeight() {
+  const meat = document.getElementById('meatSelect').value;
+  const type = document.getElementById('typeSelect').value;
+  const date = document.getElementById('dateInput').value;
+  // one weight, or several trays at once: "5.2 4.8 6.1" (or with +) are added into one weighing
+  const parts = document.getElementById('weightInput').value.trim().split(/[\s+;]+/).filter(Boolean).map(x => x.replace(',', '.').replace(/\.$/, ''));
+  if (!date || !parts.length || parts.some(x => !/^\d+(\.\d+)?$/.test(x))) { alert('נא למלא תאריך ומשקל (מספרים בלבד, למשל 12.5 או כמה מגשים: 5.2 4.8)'); return; }
+  const nums = parts.map(Number);
+  const weight = Math.round(nums.reduce((a, n) => a + n, 0) * 1000) / 1000;
+  if (nums.some(n => n <= 0) && !(type === 'sold' && nums.length === 1)) { alert('המשקל צריך להיות גדול מ־0'); return; }
+  if (meat === 'iron' && type !== 'sold') { alert('איירון סטייק נרשם רק בנמכר'); return; }
+  if (type === 'xfer' && meat !== 'oven') { alert('העברה לאנטריקוט נרשמת רק מאנטריקוט לתנור'); return; }
+  if (type === 'xfer2' && meat !== 'entrecote') { alert('העברה לתנור נרשמת רק מאנטריקוט'); return; }
+  if (!canEnterSold(date)) {
+    alert('אי אפשר לרשום לתאריך עתידי');
+    return;
+  }
+  if (type === 'sold' && date === ymd(new Date()) && !confirm('הנמכר של היום מגיע רק מחר. לרשום אותו בכל זאת לתאריך של היום?')) return;
+  if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
+  let convTarget = document.getElementById('convTo').value;
+  if (type === 'conv' && convTarget === 'אחר') {
+    convTarget = document.getElementById('convOther').value.replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e]/g, '').replace(/\s+/g, ' ').trim();
+    if (!convTarget) { alert('כתבו לאיזה מוצר הומר הבשר (למשל אונטריב)'); document.getElementById('convOther').focus(); return; }
+  }
+  const tLabel = type === 'conv' ? 'המרה ל' + convTarget : typeNames[type];
+  const entry = { id: newId(), dev: myDev, by: worker, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: tLabel, weight: weight.toFixed(2) };
+  history.unshift(entry);
+  queueOps([{ op:'add', entry }]);
+  document.getElementById('weightInput').value = '';
+  updateDisplay();
+  renderHistory();
+  saveData();
+  showOk(`✓ נשמר: ${entry.meat} · ${entry.type} · ${entry.weight} ק״ג` + (nums.length > 1 ? ` (${nums.length} מגשים)` : ''));
+  if (history.length > 12000) pruneOld();
+}
+
+// ---------- Stock model ----------
+// close  = all stock left (boxes + what came back), weighed the next morning, recorded under the day it closes
+// recv   = delivery that arrived (from the delivery note), recorded under the day it arrived
+// stock for a day = previous close + deliveries since
+// went   = stock − this close  (compared with sold; shoulder sold includes iron steak)
+const PK = ['entrecote','shoulder','oven'];
+const cardDefs = [['entrecote','אנטריקוט'],['shoulder','צלי כתף'],['oven','אנטריקוט לתנור']];
+const f2 = n => (Math.round(n * 100) / 100).toFixed(2);
+function shortDate(ds) { const d = new Date(ds + 'T00:00:00'); return dayNames[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth()+1); }
+function dm(ds) { const d = new Date(ds + 'T00:00:00'); return d.getDate() + '.' + (d.getMonth()+1); }
+
+function buildCards() {
+  cardsBuilt = true;
+  document.getElementById('cards').innerHTML = cardDefs.map(([k, n]) => `
+  <div class="meat-card" data-k="${k}">
+    <div class="meat-header">${n}</div>
+    <div class="meat-body">
+      <div class="section stock"><div>מלאי ליום</div><div class="total" id="${k}-stock">0.00</div><div class="sub" id="${k}-stock-sub"></div></div>
+      <div class="section close"><div>סגירה</div><div class="total" id="${k}-close">0.00</div><div class="sub" id="${k}-close-sub"></div></div>
+      <div class="section sold"><div>נמכר${k === 'shoulder' ? ' (צלי בלבד)' : ''}</div><div class="total" id="${k}-sold">0.00</div><div class="sub" id="${k}-sold-sub"></div></div>
+      <div class="section prep"><div>הכנות</div><div class="total" id="${k}-prep">0.00</div><div class="sub"><span class="kv-chip">לוויטרינה · לידיעה</span></div></div>
+    </div>
+    <div class="analysis" id="${k}-analysis"></div>
+    <div class="period">הכנות שבועי: <span id="${k}-week">0</span> | חודשי: <span id="${k}-month">0</span></div>
+  </div>`).join('');
+}
+
+function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, xfer:0, conv:0, waste:0, hasClose:false }; }
+function keyOf(h) { return Object.keys(names).find(k => names[k] === h.meat); }
+const TYPE_KEYS = { 'הכנות':'prep', 'סגירה':'close', 'נמכר':'sold', 'סחורה':'recv', 'העברה לאנטריקוט':'xfer', 'העברה לתנור':'xfer2', 'השמדה':'waste' };
+// anything else is ignored, like in the sheet; "המרה לטחון" / "המרה לאונטריב" … are conversions
+function typeOf(h) { return TYPE_KEYS[h.type] || (/^המרה/.test(h.type || '') ? 'conv' : null); }
+
+function buildDays() {
+  const days = { entrecote:{}, shoulder:{}, oven:{} };
+  history.forEach(h => {
+    const orig = keyOf(h); if (!orig) return;
+    const t = typeOf(h), w = parseFloat(h.weight) || 0;
+    if (!t) return;
+    let k = orig;
+    if (orig === 'iron') { if (t !== 'sold') return; k = 'shoulder'; }
+    if (t === 'xfer' || t === 'xfer2') { // meat moved between entrecote and oven entrecote: leaves one stock, joins the other
+      const [from, to] = t === 'xfer' ? ['oven', 'entrecote'] : ['entrecote', 'oven'];
+      if (orig !== from) return;
+      (days[from][h.date] || (days[from][h.date] = emptyDay())).xfer -= w;
+      (days[to][h.date] || (days[to][h.date] = emptyDay())).xfer += w;
+      return;
+    }
+    const d = days[k][h.date] || (days[k][h.date] = emptyDay());
+    d[t] += w;
+    if (t === 'close') d.hasClose = true;
+    if (orig === 'iron') d.iron += w;
+    if (t === 'sold' && orig !== 'iron') d.hasSold = true; // the product's own sales line for that day is in
+  });
+  return days;
+}
+
+function workdaysBetween(a, b) { // exclusive, skips Saturday
+  const out = [], d = new Date(a + 'T00:00:00'), end = new Date(b + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  while (d < end) { if (d.getDay() !== 6) out.push(ymd(d)); d.setDate(d.getDate() + 1); }
+  return out;
+}
+
+// One segment per pair of consecutive closes; days without a close are folded into the next one
+function segmentsFor(dd, k) {
+  const dates = Object.keys(dd).sort();
+  const closes = dates.filter(d => dd[d].hasClose);
+  const segs = [];
+  for (let i = 1; i < closes.length; i++) {
+    const c0 = closes[i-1], c1 = closes[i];
+    const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0, pending: !dd[c1].hasSold };
+    s.xfer = 0; s.conv = 0; s.waste = 0;
+    dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; s.conv += dd[d].conv; s.waste += dd[d].waste; } });
+    s.stock = s.open + s.recv + s.xfer - s.conv - s.waste; // converted or destroyed meat left the stock with a known reason
+    s.went = s.stock - s.close;
+    s.missing = workdaysBetween(c0, c1);
+    segs.push(s);
+  }
+  return segs;
+}
+
+function stockFor(dd, date) {
+  const prev = Object.keys(dd).filter(d => d < date && dd[d].hasClose).sort().pop();
+  let recv = 0, xfer = 0, conv = 0, waste = 0;
+  Object.keys(dd).forEach(d => { if ((!prev || d > prev) && d <= date) { recv += dd[d].recv; xfer += dd[d].xfer; conv += dd[d].conv; waste += dd[d].waste; } });
+  return { prev, open: prev ? dd[prev].close : 0, recv, xfer, conv, waste, stock: (prev ? dd[prev].close : 0) + recv + xfer - conv - waste };
+}
+
+function updateDisplay() {
+  const sel = document.getElementById('dateInput').value;
+  if (!sel) return;
+  const days = buildDays();
+  PK.forEach(k => {
+    const dd = days[k], t = dd[sel] || emptyDay(), st = stockFor(dd, sel);
+    document.getElementById(k+'-stock').textContent = f2(st.stock);
+    // the small lines under the numbers: label on one side, value on the other
+    const kv = (label, value) => `<div class="kv"><span>${label}</span><b>${value}</b></div>`;
+    document.getElementById(k+'-stock-sub').innerHTML = (st.prev ? kv('סגירה ' + shortDate(st.prev), f2(st.open)) : '<div class="kv-note">אין סגירה קודמת</div>')
+      + (st.recv ? kv('+ סחורה', f2(st.recv)) : '')
+      + (st.xfer ? kv(st.xfer > 0 ? '+ העברות' : '− העברות', f2(Math.abs(st.xfer))) : '')
+      + (st.conv ? kv('− המרות', f2(st.conv)) : '') + (st.waste ? kv('− השמדה', f2(st.waste)) : '');
+    document.getElementById(k+'-close').textContent = t.hasClose ? f2(t.close) : '—';
+    document.getElementById(k+'-close-sub').innerHTML = `<span class="kv-chip">${t.hasClose ? 'כולל ארגזים' : 'נשקלת בבוקר שאחרי'}</span>`;
+    document.getElementById(k+'-prep').textContent = f2(t.prep);
+    if (k === 'shoulder') {
+      document.getElementById(k+'-sold').textContent = f2(t.sold - t.iron);
+      document.getElementById(k+'-sold-sub').innerHTML = kv('איירון', f2(t.iron)) + kv('כולל איירון', f2(t.sold));
+    } else {
+      document.getElementById(k+'-sold').textContent = f2(t.sold);
+      document.getElementById(k+'-sold-sub').textContent = '';
+    }
+  });
+  updatePeriodTotals();
+  updateAnalysis(days);
+  renderProdTabs();
+}
+
+function updatePeriodTotals() {
+  const sel = document.getElementById('dateInput').value;
+  const now = sel ? new Date(sel + 'T00:00:00') : new Date();
+  const cm = now.getMonth(), cy = now.getFullYear();
+  const dow = now.getDay();
+  const sow = new Date(now); sow.setDate(now.getDate()-dow); sow.setHours(0,0,0,0);
+  const eow = new Date(sow); eow.setDate(sow.getDate()+6); eow.setHours(23,59,59,999);
+  const week = {entrecote:0,shoulder:0,oven:0}, month = {entrecote:0,shoulder:0,oven:0};
+  history.forEach(h => {
+    if (h.type !== 'הכנות') return;
+    const d = new Date(h.date+'T00:00:00');
+    const w = parseFloat(h.weight)||0;
+    let key = Object.keys(names).find(k => names[k]===h.meat);
+    if (!key || !(key in week)) return;
+    if (d.getMonth()===cm && d.getFullYear()===cy) month[key]+=w;
+    if (d>=sow && d<=eow) week[key]+=w;
+  });
+  ['entrecote','shoulder','oven'].forEach(k => {
+    document.getElementById(k+'-week').textContent = week[k].toFixed(1);
+    document.getElementById(k+'-month').textContent = month[k].toFixed(1);
+  });
+}
+
+// ---------- Loss analysis ----------
+const lossAllow = { entrecote:0, shoulder:5, oven:5 }; // regular trim waste per product, % of what went
+let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of the raw shoulder used
+let SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
+let WARN_X = 2;    // up to this many times the expected waste = check, above = suspicion
+let sheetRules = false; // connected branches use the company's percentages from the sheet
+function syncAllowField() {
+  PK.forEach(k => { const el = document.getElementById('allow_' + k); el.value = lossAllow[k]; el.readOnly = sheetRules; });
+  const ia = document.getElementById('ironAllow'); ia.value = ironAllow; ia.readOnly = sheetRules;
+  document.getElementById('allowNote').hidden = !sheetRules;
+}
+function renderSettings() {
+  const parts = [branch.name ? 'סניף ' + branch.name : 'לא הוזנו פרטי סניף'];
+  if (branch.url) parts.push('מחובר לגיליון');
+  document.getElementById('setBranch').textContent = parts.join(' · ');
+  document.getElementById('setWorker').textContent = worker ? 'רושם בטלפון הזה: ' + worker : 'לא הוזן שם עובד';
+  syncAllowField();
+}
+function applySheetSettings(s) {
+  if (!s || !s.loss) return;
+  const save = (id, v) => { try { localStorage.setItem(id, v); } catch(e) {} };
+  PK.forEach(k => { if (isFinite(s.loss[k])) { lossAllow[k] = Number(s.loss[k]); save('lossAllow_' + k, lossAllow[k]); } });
+  if (isFinite(s.iron)) { ironAllow = Number(s.iron); save('ironAllow', ironAllow); }
+  if (isFinite(s.tol)) { SCALE_TOL = Number(s.tol); save('scaleTol', SCALE_TOL); }
+  if (Number(s.warnX) > 0) { WARN_X = Number(s.warnX); save('warnX', WARN_X); }
+  sheetRules = true; save('sheetRules', '1');
+  syncAllowField(); updateAnalysis(buildDays()); renderProdTabs();
+}
+function loadAllow() {
+  try {
+    PK.forEach(k => { const v = parseFloat(localStorage.getItem('lossAllow_' + k)); if (!isNaN(v)) lossAllow[k] = v; });
+    const w = parseFloat(localStorage.getItem('ironAllow')); if (!isNaN(w)) ironAllow = w;
+  } catch(e) {}
+  const save = (id, v) => { try { localStorage.setItem(id, v); } catch(e) {} };
+  const num = el => { const v = parseFloat(el.value.replace(',', '.')); return !isNaN(v) && v >= 0 && v < 100 ? v : null; };
+  const ia = document.getElementById('ironAllow');
+  try {
+    const t = parseFloat(localStorage.getItem('scaleTol')); if (!isNaN(t)) SCALE_TOL = t;
+    const x = parseFloat(localStorage.getItem('warnX')); if (x > 0) WARN_X = x;
+    sheetRules = localStorage.getItem('sheetRules') === '1';
+  } catch(e) {}
+  PK.forEach(k => {
+    const el = document.getElementById('allow_' + k);
+    el.addEventListener('input', () => { if (sheetRules) return; const v = num(el); if (v !== null) { lossAllow[k] = v; save('lossAllow_' + k, v); updateAnalysis(buildDays()); } });
+    el.addEventListener('blur', () => { el.value = lossAllow[k]; }); // a bad value goes back to the one in use
+  });
+  ia.addEventListener('input', () => { if (sheetRules) return; const v = num(ia); if (v !== null) { ironAllow = v; save('ironAllow', v); updateAnalysis(buildDays()); } });
+  // leaving a field with a bad value puts back the value actually used
+  ia.addEventListener('blur', () => { ia.value = ironAllow; });
+  syncAllowField();
+}
+
+// Expected trim in kg: iron needs raw = iron / (1 − ironAllow%); the rest of what went gets the product's regular %.
+// Never below the scale tolerance, so a 0% product isn't flagged for normal weighing noise.
+function expectedWaste(x) {
+  const r = ironAllow / 100;
+  const ironRaw = x.iron > 0 ? x.iron / (1 - r) : 0;
+  const trim = (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * (lossAllow[x.k] ?? 5) / 100;
+  return Math.max(trim, Math.max(0, x.went) * SCALE_TOL / 100);
+}
+
+function judge(x) {
+  // compared in whole grams so numbers that look equal on screen are treated as equal
+  const r2 = n => Math.round(n * 100) / 100;
+  const gap = r2(r2(x.went) - r2(x.sold));
+  const pct = x.went > 0 ? gap / x.went * 100 : 0;
+  const exp = r2(expectedWaste(x));
+  const nums = `הלך <b>${f2(x.went)}</b> · נמכר <b>${f2(x.sold)}</b> · פער <b>${f2(gap)}</b> <span class="allow">(מותר ${f2(exp)})</span>`;
+  if (x.pending) return { cls:'none', text:'ממתין לנמכר', nums:`הלך ${f2(x.went)} ק״ג<br>הנמכר של ${x.end ? dm(x.end) : 'היום האחרון'} עוד לא נרשם` };
+  if (gap < 0 && -gap > r2(Math.max(0, x.went) * SCALE_TOL / 100)) return { cls:'neg', text:`נמכר יותר ב־${f2(-gap)}`, nums: nums + '<br>בדוק שקילות', gap, exp };
+  const p = pct.toFixed(1) + '%';
+  if (gap <= exp) return { cls:'ok', text:'תקין ' + p, nums, gap, exp };
+  if (gap <= exp * WARN_X) return { cls:'warn', text:'לבדוק ' + p, nums, gap, exp };
+  return { cls:'bad', text:'חשד ' + p, nums, gap, exp };
+}
+
+// Sum segments; a segment whose sold isn't in yet is left out so it doesn't look like loss
+function aggregate(segs) {
+  const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, conv:0, waste:0, n:0, waiting:0, missing:[] };
+  segs.forEach(s => {
+    a.missing.push(...s.missing);
+    a.conv += s.conv || 0; a.waste += s.waste || 0;
+    if (s.pending) { a.waiting++; return; }
+    a.went += s.went; a.sold += s.sold; a.iron += s.iron; a.recv += s.recv; a.prep += s.prep; a.n += 1 + s.missing.length;
+  });
+  return a;
+}
+
+// converted / destroyed meat, shown apart from the loss
+function outNote(x) {
+  const parts = [];
+  if (x.conv > 0) parts.push('הומר ' + f2(x.conv));
+  if (x.waste > 0) parts.push('הושמד ' + f2(x.waste));
+  return parts.length ? `<div class="an-note">${parts.join(' · ')} ק״ג · לא נחשב פחת</div>` : '';
+}
+function missingText(list) {
+  if (!list.length) return '';
+  return ' · חסרה סגירה: ' + list.slice(0, 4).map(dm).join(', ') + (list.length > 4 ? ` ועוד ${list.length - 4}` : '');
+}
+
+function setCard(k) { cardSel = k; if (cardsBuilt) renderProdTabs(); }
+function renderProdTabs() {
+  const el = document.getElementById('prodTabs'); if (!el) return;
+  el.innerHTML = cardDefs.map(([k, n]) => `<button type="button" class="${k === cardSel ? 'active' : ''}" onclick="setCard('${k}')"><span class="dot ${prodStatus[k] || 'none'}"></span>${k === 'oven' ? 'לתנור' : n}</button>`).join('');
+  document.querySelectorAll('#cards .meat-card').forEach(c => c.classList.toggle('shown', c.dataset.k === cardSel));
+}
+function updateAnalysis(days) {
+  const sel = document.getElementById('dateInput').value;
+  if (!sel) return;
+  const d0 = new Date(sel + 'T00:00:00');
+  const sow = new Date(d0); sow.setDate(d0.getDate() - d0.getDay());
+  const eow = new Date(sow); eow.setDate(sow.getDate() + 6);
+  const ws = ymd(sow), we = ymd(eow), mo = sel.slice(0, 7);
+  PK.forEach(k => {
+    const dd = days[k], segs = segmentsFor(dd, k);
+    const row = (label, cls, text, nums) => `<div class="an-row"><span class="an-label">${label}</span><span class="pill ${cls}">${text}</span><span class="an-nums">${nums}</span></div>`;
+    let html = '';
+    // Day
+    const seg = segs.find(s => s.end === sel);
+    if (seg) {
+      const j = judge(seg);
+      const span = (seg.missing.length ? `<div class="an-note">מחושב יחד מ־${dm(seg.start)} · חסרה סגירה: ${seg.missing.map(dm).join(', ')}</div>` : '') + outNote(seg);
+      html += row('יום', j.cls, j.text, j.nums + span);
+    } else if (dd[sel] && dd[sel].hasClose) {
+      html += row('יום', 'none', 'אין סגירה קודמת', 'צריך סגירה של יום עבודה קודם כדי לחשב');
+    } else {
+      const st = stockFor(dd, sel);
+      html += row('יום', 'none', 'ממתין לסגירה', `מלאי ${f2(st.stock)} ק״ג<br>הסגירה נשקלת בבוקר שאחרי`);
+    }
+    // Week / month
+    [['שבוע', s => s.end >= ws && s.end <= we], ['חודש', s => s.end.slice(0, 7) === mo]].forEach(([label, inP]) => {
+      const a = aggregate(segs.filter(inP));
+      if (!a.n) { html += row(label, 'none', a.waiting ? 'ממתין לנמכר' : 'אין נתונים', a.waiting ? '' : 'צריך לפחות שתי סגירות'); return; }
+      const j = judge(a);
+      const note = (a.waiting ? 'יום אחרון ממתין לנמכר' : '') + (a.missing.length ? (a.waiting ? ' · ' : '') + missingText(a.missing).replace(/^ · /, '') : '');
+      html += row(label + `<small>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}</small>`, j.cls, j.text, j.nums + (note ? `<div class="an-note">${note}</div>` : '') + outNote(a));
+    });
+    if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · הפחת הצפוי כולל ניקוי לאיירון</div>';
+    document.getElementById(k + '-analysis').innerHTML = html;
+    // the worst status of day / week / month shows as a dot on the product switcher
+    const rank = { none: 0, ok: 1, neg: 2, warn: 3, bad: 4 };
+    prodStatus[k] = (html.match(/pill (\w+)/g) || []).map(x => x.slice(5)).reduce((w, c) => (rank[c] || 0) > (rank[w] || 0) ? c : w, 'none');
+  });
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  if (!history.length) { el.innerHTML = '<div style="color:#999;text-align:center">אין שקילות</div>'; return; }
+  // the latest 40, grouped by the day they belong to, newest day first; each type has its own colour
+  const days = {};
+  history.slice(0, 40).forEach(h => (days[h.date] = days[h.date] || []).push(h));
+  const tcls = { 'הכנות':'prep', 'סגירה':'close', 'נמכר':'sold', 'סחורה':'recv', 'העברה לאנטריקוט':'xfer', 'העברה לתנור':'xfer', 'השמדה':'waste' };
+  const tname = t => t.startsWith('העברה') ? 'העברה' : t.startsWith('המרה') ? 'המרה' : t;
+  const today = ymd(new Date()), y = new Date(); y.setDate(y.getDate() - 1); const yest = ymd(y);
+  const dayHead = d => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return `<span class="d-name">${esc(d)}</span>`;
+    const dt = new Date(d + 'T00:00:00'), rel = d === today ? 'היום' : d === yest ? 'אתמול' : '';
+    return (rel ? `<span class="d-rel">${rel}</span>` : '') + `<span class="d-name">יום ${dayNames[dt.getDay()]}</span><span class="d-date">${dt.getDate()}.${dt.getMonth() + 1}</span>`
+      + `<span class="d-count">${days[d].length === 1 ? 'שקילה אחת' : days[d].length + ' שקילות'}</span>`;
+  };
+  el.innerHTML = Object.keys(days).sort().reverse().map(d => `<div class="h-day">${dayHead(d)}</div>`
+    + days[d].sort((a, b) => String(b.time).localeCompare(String(a.time))).map(h =>
+      `<div class="h-row"><span class="h-type t-${tcls[h.type] || (String(h.type).startsWith('המרה') ? 'conv' : 'xfer')}">${esc(tname(h.type))}</span><span class="h-meat">${esc(h.meat)}${h.type.startsWith('העברה') ? ' <small>' + (h.type === 'העברה לתנור' ? '→ תנור' : '→ אנטריקוט') + '</small>' : h.type.startsWith('המרה ל') ? ' <small>→ ' + esc(h.type.slice(6)) + '</small>' : ''}</span><b class="h-w">${h.weight}</b><span class="h-time">${esc(h.time)}${whoTag(h)}</span></div>`).join('')).join('');
+}
+// Shows who recorded a weighing, unless it is the person using this phone now
+function whoTag(h) {
+  const other = h.dev && h.dev !== myDev;
+  if (h.by && (other || h.by !== worker)) return ` <span style="color:#1565C0;font-size:12px">· ${esc(h.by)}</span>`;
+  return other ? ' <span style="color:#1565C0;font-size:12px">· טלפון אחר</span>' : '';
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function renderWorker() {
+  const el = document.getElementById('workerLine');
+  el.innerHTML = worker
+    ? `רושם: <b>${esc(worker)}</b> · <button type="button" class="link-btn" onclick="openBranch(false, true)">החלף</button>`
+    : `<button type="button" class="link-btn" onclick="openBranch(false, true)">הוסף את השם שלך</button> כדי שיראו מי רשם`;
+}
+
+function deleteLast() {
+  // removes the latest weighing made on this phone (never one another phone recorded)
+  let idx = -1;
+  history.forEach((h, i) => { if ((!h.dev || h.dev === myDev) && (idx < 0 || createdAt(h.id) > createdAt(history[idx].id))) idx = i; });
+  if (idx < 0) { alert('אין שקילה שנרשמה בטלפון הזה'); return; }
+  const h = history[idx];
+  if (!confirm(`למחוק את השקילה האחרונה שנרשמה בטלפון הזה?\n${h.date} ${h.time} · ${h.meat} (${h.type}) · ${h.weight} ק״ג`)) return;
+  const removed = history.splice(idx, 1)[0];
+  if (removed.id) queueOps([{ op:'del', id: removed.id }]);
+  updateDisplay(); renderHistory(); saveData();
+}
+
+function resetAll() {
+  if (!confirm(branch.url ? 'לאפס את הנתונים בטלפון הזה? השקילות שבגיליון של החברה לא נמחקות ויחזרו בסנכרון הבא.' : 'לאפס הכל?')) return;
+  history = [];
+  updateDisplay(); renderHistory(); saveData();
+}
+
+function exportToExcel() {
+  if (typeof XLSX === 'undefined') { alert('טוען ספרייה...'); return; }
+  if (!history.length) { alert('אין נתונים'); return; }
+  const wb = XLSX.utils.book_new();
+  wb.Workbook = { Views: [{ RTL: true }] };
+  addBranchSheet(wb);
+  const r2 = n => Math.round(n * 100) / 100;
+  const days = buildDays();
+  const segs = {}; PK.forEach(k => segs[k] = segmentsFor(days[k], k));
+  const dates = [...new Set(history.map(h => h.date))].sort();
+  const weekStart = ds => { const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() - d.getDay()); return ymd(d); };
+  const addSheet = (rows, name, widths) => {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = widths.map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  };
+
+  // --- One sheet per product (short headers so it reads well on a phone) ---
+  const shortD = ds => { const [y, m, d] = ds.split('-'); return +d + '.' + +m + '.' + y.slice(2); };
+  const dayShort = ds => dayNames[new Date(ds + 'T00:00:00').getDay()];
+  PK.forEach(k => {
+    const isSh = k === 'shoulder';
+    const head = isSh
+      ? ['תאריך','יום','הכנות','סחורה','המרה','השמדה','מלאי ליום','סגירה','הלך','נמכר צלי','איירון','נמכר כולל איירון','פער','מצב','הכנות שבועי','נמכר צלי שבועי','כולל איירון שבועי','נמכר צלי חודשי','כולל איירון חודשי','הערה']
+      : ['תאריך','יום','הכנות','סחורה','העברות (+נכנס −יצא)','המרה','השמדה','מלאי ליום','סגירה','הלך','נמכר','פער','מצב','הכנות שבועי','נמכר שבועי','נמכר חודשי','הערה'];
+    const rows = [head];
+    let wk = { prep:0, sold:0, all:0 }, mon = { sold:0, all:0 }, curWeek = null, curMonth = null;
+    dates.forEach(date => {
+      const x = days[k][date] || emptyDay();
+      if (weekStart(date) !== curWeek) { if (curWeek !== null) rows.push([]); curWeek = weekStart(date); wk = { prep:0, sold:0, all:0 }; }
+      if (date.slice(0, 7) !== curMonth) { curMonth = date.slice(0, 7); mon = { sold:0, all:0 }; }
+      const own = x.sold - x.iron;
+      wk.prep += x.prep; wk.sold += own; wk.all += x.sold; mon.sold += own; mon.all += x.sold;
+      const seg = segs[k].find(s => s.end === date);
+      const gap = seg ? r2(r2(seg.went) - r2(seg.sold)) : '';
+      const status = seg ? judge(seg).text : (x.hasClose ? '' : (x.sold || x.recv || x.prep ? 'חסרה סגירה' : ''));
+      const note = seg && seg.missing.length ? 'מחושב יחד מ־' + dm(seg.start) : '';
+      const xf = isSh ? [] : [r2(x.xfer)];
+      const base = [shortD(date), dayShort(date), r2(x.prep), r2(x.recv), ...xf, x.conv ? r2(x.conv) : '', x.waste ? r2(x.waste) : '', r2(stockFor(days[k], date).stock), x.hasClose ? r2(x.close) : '', seg ? r2(seg.went) : ''];
+      rows.push(isSh
+        ? [...base, r2(own), r2(x.iron), r2(x.sold), gap, status, r2(wk.prep), r2(wk.sold), r2(wk.all), r2(mon.sold), r2(mon.all), note]
+        : [...base, r2(x.sold), gap, status, r2(wk.prep), r2(wk.sold), r2(mon.sold), note]);
+    });
+    addSheet(rows, names[k], isSh ? [8,6,7,7,7,7,9,7,7,8,7,9,6,12,9,9,9,9,9,16] : [8,6,7,7,13,7,7,9,7,7,7,6,12,9,9,9,16]);
+  });
+
+  // --- Weekly & monthly check ---
+  const periodSheet = (title, keyOfDate, labelOf) => {
+    const rows = [[title,'מוצר','הכנות','סחורה','המרה','השמדה','הלך','נמכר','מתוכו איירון','פער ק״ג','פער %','פחת צפוי ק״ג','מצב','ימים','חסרה סגירה']];
+    [...new Set(dates.map(keyOfDate))].forEach(p => {
+      PK.forEach(k => {
+        const a = aggregate(segs[k].filter(s => keyOfDate(s.end) === p));
+        let prep = 0, recv = 0, conv = 0, waste = 0;
+        Object.keys(days[k]).forEach(d => { if (keyOfDate(d) === p) { prep += days[k][d].prep; recv += days[k][d].recv; conv += days[k][d].conv; waste += days[k][d].waste; } });
+        if (!a.n && !prep && !recv && !conv && !waste) return;
+        const cw = [conv ? r2(conv) : '', waste ? r2(waste) : ''];
+        const name = names[k] + (k === 'shoulder' ? ' (נמכר כולל איירון)' : '');
+        if (!a.n) { rows.push([labelOf(p), name, r2(prep), r2(recv), ...cw, '', '', '', '', '', '', a.waiting ? 'ממתין לנמכר' : 'חסרות סגירות', '', a.missing.map(dm).join(', ')]); return; }
+        const j = judge(a), gap = j.gap;
+        rows.push([labelOf(p), name, r2(prep), r2(recv), ...cw, r2(a.went), r2(a.sold), k === 'shoulder' ? r2(a.iron) : '', gap, a.went > 0 ? r2(gap / a.went * 100) : '', j.exp, j.text, a.n, a.missing.map(dm).join(', ')]);
+      });
+      rows.push([]);
+    });
+    return rows;
+  };
+  addSheet(periodSheet('שבוע', weekStart, w => { const e = new Date(w + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(w) + '–' + dm(ymd(e)); }), 'שבועי', [12,26,9,9,8,8,9,9,11,9,8,12,14,6,18]);
+  addSheet(periodSheet('חודש', d => d.slice(0, 7), m => m.slice(5) + '/' + m.slice(0, 4)), 'חודשי', [9,26,9,9,8,8,9,9,11,9,8,12,14,6,18]);
+
+  // --- Every weighing ---
+  const hist = [['תאריך','שעה','מוצר','סוג שקילה','משקל','עובד'], ...history.slice().reverse().map(h => [h.date, h.time, h.meat, h.type, parseFloat(h.weight), h.by || ''])];
+  addSheet(hist, 'היסטוריה', [11,7,16,9,9,12]);
+
+  XLSX.writeFile(wb, 'שקילות_בשר_' + branchFilePart() + ymd(new Date()) + '.xlsx');
+}
+
+let selectedProduct = null;
+// Every counted weight is its own record, so counts from several phones of a branch add up
+// { id, month:'2026-10', product, w, dev, cat, ord }
+let invEvents = [];
+function fmt(n) { const s = (Math.round(n * 1000) / 1000).toFixed(3); return s.endsWith('0') ? s.slice(0, -1) : s; } // 59.742 stays 59.742, 30 shows 30.00
+function defaultInvMonth() { // the first week of a month still counts as the end of the previous month
+  const d = new Date(); if (d.getDate() <= 7) d.setMonth(d.getMonth() - 1, 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+let invMonth = defaultInvMonth();
+function catOf(p) {
+  if (beefProducts.includes(p)) return p.includes('מעובד') ? 'בקר מעובד' : 'בקר';
+  const g = poultryGroups.concat(lambGroups).find(([, items]) => items.includes(p));
+  return g ? g[0] : '';
+}
+function invOf(p) { return invEvents.filter(e => e.month === invMonth && e.product === p).sort((a, b) => createdAt(a.id) - createdAt(b.id)); }
+function invValue(p) { return Math.round(invOf(p).reduce((a, e) => a + e.w, 0) * 1000) / 1000; }
+function persistInventory() { if (mgrMode) return; try { localStorage.setItem('invEvents', JSON.stringify(invEvents)); } catch(e) {} }
+
+function invRow(p) {
+  const i = products.indexOf(p);
+  let cls = p.includes('מעובד') ? 'inventory-item processed' : 'inventory-item';
+  if (!invValue(p)) cls += ' empty'; // not counted yet
+  if (p === selectedProduct) cls += ' selected';
+  return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
+      <span>${p}</span>
+      <span class="inv-val">${invValue(p) ? fmt(invValue(p)) + ' ק״ג' : 'לא נספר'}</span>
+    </div>`;
+}
+
+function renderInventory() {
+  const el = document.getElementById('inventoryList');
+  const q = (document.getElementById('invSearch') || {}).value || '';
+  const groups = g => g.map(([name, items]) => { const shown = items.filter(p => p.includes(q.trim())); return shown.length ? `<div class="inv-group">${name}</div>` + shown.map(invRow).join('') : ''; }).join('');
+  const beefGroups = [['בקר', beefProducts.filter(p => !p.includes('מעובד'))], ['בקר מעובד', beefProducts.filter(p => p.includes('מעובד'))]];
+  el.innerHTML = (invTab === 'beef' ? groups(beefGroups) : invTab === 'lamb' ? groups(lambGroups) : groups(poultryGroups)) || '<div class="kv-note" style="text-align:center;padding:20px">לא נמצא מוצר</div>';
+  const m = document.getElementById('invMonth'); if (m && m.value !== invMonth) m.value = invMonth;
+  renderInvTotals();
+}
+
+function invTotals() {
+  const t = { meat: 0, poultry: 0 };
+  invEvents.forEach(e => { if (e.month === invMonth && products.includes(e.product)) t[familyOf(catOf(e.product))] += e.w; });
+  return { meat: t.meat, poultry: t.poultry, all: t.meat + t.poultry };
+}
+function renderProgress() {
+  const list = invTab === 'beef' ? beefProducts : invTab === 'lamb' ? lambProducts : poultryProducts;
+  const done = list.filter(p => invValue(p) > 0).length;
+  const fill = document.getElementById('ipFill'); if (!fill) return;
+  fill.style.width = (done / list.length * 100) + '%';
+  document.getElementById('ipText').textContent = `נספרו ${done} מתוך ${list.length}`;
+}
+function renderInvTotals() {
+  renderProgress();
+  const t = invTotals(), el = document.getElementById('invTotals');
+  if (!el) return;
+  el.innerHTML = `<div>בקר וכבש<b>${fmt(t.meat)}</b></div><div>עוף והודו<b>${fmt(t.poultry)}</b></div><div>סה״כ כולל<b>${fmt(t.all)}</b></div>`;
+}
+
+function setInvTab(t) {
+  invTab = t;
+  document.getElementById('tabBeef').classList.toggle('active', t === 'beef');
+  document.getElementById('tabChicken').classList.toggle('active', t === 'chicken');
+  document.getElementById('tabLamb').classList.toggle('active', t === 'lamb');
+  selectedProduct = null;
+  document.getElementById('calcPanel').style.display = 'none';
+  renderInventory();
+}
+
+function setInvMonth(v) {
+  if (!/^\d{4}-\d{2}$/.test(v)) return;
+  invMonth = v;
+  selectedProduct = null;
+  document.getElementById('calcPanel').style.display = 'none';
+  renderInventory();
+}
+
+// Update one row in place, so the list never shows a stale number
+function refreshRow(product, flash) {
+  const i = products.indexOf(product);
+  const row = document.querySelector(`#inventoryList [data-idx="${i}"]`);
+  if (!row) { renderInventory(); return; }
+  row.querySelector('.inv-val').textContent = fmt(invValue(product)) + ' ק״ג';
+  if (flash) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+  renderInvTotals();
+}
+
+function refreshCalc() {
+  const p = selectedProduct;
+  if (!p) return;
+  document.getElementById('calcCurrent').textContent = fmt(invValue(p));
+  const steps = invOf(p).map(e => e.w);
+  document.getElementById('calcSteps').textContent = steps.length > 1 ? steps.join(' + ') + ' = ' + fmt(invValue(p)) : '';
+}
+
+function selectProduct(i) {
+  selectedProduct = products[i];
+  document.getElementById('calcPanel').style.display = 'block';
+  document.getElementById('calcProductName').textContent = selectedProduct;
+  document.querySelectorAll('#inventoryList .inventory-item').forEach(r => r.classList.toggle('selected', r.dataset.idx == i));
+  refreshCalc();
+  const input = document.getElementById('calcInput');
+  input.value = '';
+  input.focus();
+}
+
+// Accepts one number or several: "30 15 14.742", "30+15+14.742", "30;15", "14,742"
+function parseNumbers(raw) {
+  return raw.replace(/,/g, '.').split(/[\s+;]+/).filter(Boolean).map(Number);
+}
+
+function calcAdd() {
+  if (!selectedProduct) { alert('בחר מוצר מהרשימה'); return; }
+  const input = document.getElementById('calcInput');
+  const nums = parseNumbers(input.value.trim());
+  if (!nums.length) return;
+  if (nums.some(n => isNaN(n) || n <= 0)) { alert('מספר לא תקין'); return; }
+  const p = selectedProduct, cat = catOf(p), ord = products.indexOf(p);
+  const added = nums.map(n => ({ id: newId(), month: invMonth, product: p, w: n, dev: myDev, by: worker, cat, ord }));
+  invEvents.push(...added);
+  input.value = '';
+  input.focus();
+  persistInventory();
+  queueOps(added.map(e => ({ op: 'invAdd', e })));
+  refreshCalc();
+  refreshRow(p, true);
+}
+
+function calcUndo() {
+  if (!selectedProduct) return;
+  const mine = invOf(selectedProduct).filter(e => e.dev === myDev);
+  if (!mine.length) { if (invOf(selectedProduct).length) alert('אפשר לבטל רק שקילה שנרשמה בטלפון הזה'); return; }
+  const last = mine[mine.length - 1];
+  invEvents = invEvents.filter(e => e.id !== last.id);
+  persistInventory();
+  queueOps([{ op: 'invDel', id: last.id }]);
+  refreshCalc();
+  refreshRow(selectedProduct, true);
+}
+
+function calcClear() {
+  if (!selectedProduct) return;
+  const all = invOf(selectedProduct);
+  if (!all.length) return;
+  if (!confirm('לאפס את ' + selectedProduct + ' לחודש הזה? זה מוחק גם ספירות של טלפונים אחרים בסניף.')) return;
+  const ids = new Set(all.map(e => e.id));
+  invEvents = invEvents.filter(e => !ids.has(e.id));
+  persistInventory();
+  queueOps([...ids].map(id => ({ op: 'invDel', id })));
+  refreshCalc();
+  refreshRow(selectedProduct, true);
+}
+
+document.getElementById('calcInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); calcAdd(); }
+});
+
+// Counts from the other phones of the branch; same rules as for weighings
+function mergeRemoteInv(list, since) {
+  const remote = new Map(list.map(e => [e.id, e]));
+  const pending = new Set(syncQueue.filter(o => o.op === 'invAdd').map(o => o.e.id));
+  const deleting = new Set(syncQueue.filter(o => o.op === 'invDel').map(o => o.id));
+  let changed = false;
+  invEvents = invEvents.filter(e => {
+    const r = remote.get(e.id);
+    if (r && r.deleted) { changed = true; return false; }
+    if (!r && e.dev !== myDev && !pending.has(e.id) && (!since || e.month >= since)) { changed = true; return false; }
+    return true;
+  });
+  const local = new Set(invEvents.map(e => e.id));
+  list.forEach(r => {
+    if (r.deleted || local.has(r.id) || deleting.has(r.id)) return;
+    const prod = r.product;
+    invEvents.push({ id: r.id, month: r.month, product: prod, w: Number(r.w) || 0, dev: r.dev || 'other', by: r.by || '', cat: products.includes(prod) ? catOf(prod) : r.cat, ord: products.includes(prod) ? products.indexOf(prod) : Number(r.ord) });
+    changed = true;
+  });
+  if (changed) {
+    persistInventory();
+    if (document.getElementById('page-inventory').classList.contains('active')) { renderInventory(); refreshCalc(); }
+  }
+}
+
+function saveInventory(silent) {
+  persistInventory();
+  if (!silent) alert('מלאי נשמר' + (branch.url ? ' · נשלח גם לגיליון של החברה' : ''));
+}
+
+function exportInventory() {
+  if (typeof XLSX === 'undefined') { alert('טוען...'); return; }
+  saveInventory(true);
+  const row = p => [p, invValue(p), invOf(p).map(e => e.w).join(' + ')];
+  const beefRows = [['מוצר','משקל (ק״ג)','פירוט'], ...beefProducts.map(row)];
+  const poultryRows = [['מוצר','משקל (ק״ג)','פירוט']];
+  poultryGroups.forEach(([g, items], n) => { if (n) poultryRows.push([]); poultryRows.push([g]); items.forEach(p => poultryRows.push(row(p))); });
+  const lambRows = [['מוצר','משקל (ק״ג)','פירוט']];
+  lambGroups.forEach(([g, items], n) => { if (n) lambRows.push([]); lambRows.push([g]); items.forEach(p => lambRows.push(row(p))); });
+  const wb = XLSX.utils.book_new();
+  wb.Workbook = { Views: [{ RTL: true }] };
+  const t = invTotals(), r3 = n => Math.round(n * 1000) / 1000;
+  addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)], ['סה״כ בקר וכבש (ק״ג)', r3(t.meat)], ['סה״כ עוף והודו (ק״ג)', r3(t.poultry)], ['סה״כ כולל (ק״ג)', r3(t.all)]]);
+  [[beefRows, 'בקר'], [lambRows, 'כבש'], [poultryRows, 'עוף']].forEach(([rows, name]) => {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  });
+  XLSX.writeFile(wb, 'מלאי_' + branchFilePart() + invMonth + '.xlsx');
+}
+
+function saveData() { if (mgrMode) return; try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) {} }
+// The phone keeps the last 13 months of weighings and 24 months of stock counts; everything stays in the company sheet.
+// Anything still waiting to be sent is never removed.
+function pruneOld() {
+  if (mgrMode) return;
+  const d = new Date(); d.setMonth(d.getMonth() - 13); const since = ymd(d);
+  const m = new Date(); m.setMonth(m.getMonth() - 24, 1); const sinceMonth = ymd(m).slice(0, 7);
+  const waiting = new Set(syncQueue.map(o => o.entry ? o.entry.id : o.e ? o.e.id : o.id));
+  const h0 = history.length, i0 = invEvents.length;
+  history = history.filter(h => !h.date || h.date >= since || waiting.has(h.id));
+  invEvents = invEvents.filter(e => !e.month || e.month >= sinceMonth || waiting.has(e.id));
+  // a safety limit on the phone: the oldest rows go first (the sheet keeps them)
+  if (history.length > 12000) { const keep = history.filter(h => waiting.has(h.id)), rest = history.filter(h => !waiting.has(h.id)); rest.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)); history = keep.concat(rest.slice(0, 12000 - keep.length)); sortHistory(); }
+  if (history.length !== h0) saveData();
+  if (invEvents.length !== i0) persistInventory();
+}
+function loadData() {
+  try {
+    const s = localStorage.getItem('meatWeighing');
+    if (s) { history = JSON.parse(s).history || []; }
+    let added = false;
+    history.forEach(h => { if (!h.id) { h.id = newId(); added = true; } if (!h.dev) { h.dev = myDev; added = true; } });
+    if (added) saveData();
+    const ev = localStorage.getItem('invEvents');
+    if (ev) invEvents = JSON.parse(ev);
+    pruneOld();
+  } catch(e){}
+  updateDisplay(); renderHistory();
+}
+// ---------- Branch details ----------
+let branch = { name:'', manager:'', area:'', url:'', key:'' };
+let worker = ''; // the person recording on this phone; kept only on this phone
+try { worker = localStorage.getItem('workerName') || ''; } catch(e) {}
+function loadBranch() {
+  try { const b = JSON.parse(localStorage.getItem('branchInfo') || 'null'); if (b) branch = Object.assign(branch, b); } catch(e) {}
+  branch.url = cleanUrl(branch.url); branch.key = cleanKey(branch.key); branch.name = cleanName(branch.name);
+  renderBranch(); renderWorker();
+  let skipped = false;
+  try { skipped = localStorage.getItem('branchSkipped') === '1'; } catch(e) {}
+  if (!branch.name && !skipped && !mgrMode) openBranch(true); // first open: branch details come before anything else
+}
+function renderBranch() {
+  const parts = [];
+  if (branch.name) parts.push('סניף ' + branch.name);
+  if (branch.manager) parts.push('מנהל מחלקה: ' + branch.manager);
+  if (branch.area) parts.push('מנהל אזור: ' + branch.area);
+  document.getElementById('branchText').textContent = parts.length ? parts.join(' · ') : 'לא הוזנו פרטי סניף';
+}
+let returnPage = 'weigh';
+function openBranch(first, focusWorker) {
+  const cur = document.querySelector('.page.active'); returnPage = cur && cur.id !== 'page-mgr' ? cur.id.replace('page-', '') : 'weigh';
+  document.getElementById('brName').value = branch.name;
+  document.getElementById('brManager').value = branch.manager;
+  document.getElementById('brArea').value = branch.area;
+  document.getElementById('brUrl').value = branch.url || '';
+  document.getElementById('brKey').value = branch.key || '';
+  document.getElementById('brWorker').value = worker;
+  document.getElementById('branchMsg').textContent = '';
+  document.getElementById('brTitle').textContent = first ? 'ברוכים הבאים' : 'פרטי סניף';
+  document.getElementById('brIntro').textContent = first
+    ? 'לפני שמתחילים, מלאו את פרטי הסניף. הם נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל. אפשר גם לדלג ולמלא אחר כך דרך "עריכת פרטי סניף".'
+    : 'הפרטים נשמרים בטלפון הזה ומופיעים בכל קובץ אקסל';
+  document.getElementById('branchSave').textContent = first ? 'שמור והמשך' : 'שמור';
+  document.getElementById('branchCancel').textContent = first ? 'דלג' : 'ביטול';
+  document.body.classList.add('setup-mode');
+  document.getElementById('branchPanel').hidden = false;
+  window.scrollTo(0, 0);
+  document.getElementById(focusWorker ? 'brWorker' : 'brName').focus();
+}
+// Leave the details screen and land on the weighing screen
+function cleanUrl(s) { const c = String(s || '').replace(/[^\x21-\x7E]/g, ''); const m = c.match(/https:\/\/script\.google\.com\/[\x21-\x7E]*/); return m ? m[0] : c; }
+function cleanName(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+function cleanKey(s) { return String(s || '').replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff\u061c]/g, '').trim(); }
+function closeBranch() {
+  document.getElementById('branchPanel').hidden = true;
+  document.body.classList.remove('setup-mode');
+  showPage(returnPage);
+  window.scrollTo(0, 0);
+}
+function skipBranch() {
+  try { localStorage.setItem('branchSkipped', '1'); } catch(e) {}
+  closeBranch();
+}
+function saveBranch() {
+  const name = cleanName(document.getElementById('brName').value);
+  const w = document.getElementById('brWorker').value.trim();
+  if (!name && w && !document.getElementById('brUrl').value.trim()) { // only the worker's name: save it without branch details
+    worker = w; try { localStorage.setItem('workerName', worker); localStorage.setItem('branchSkipped', '1'); } catch(e) {}
+    renderWorker(); renderHistory(); closeBranch(); return;
+  }
+  if (!name) { document.getElementById('branchMsg').textContent = 'צריך למלא לפחות את שם הסניף'; return; }
+  // copying from WhatsApp often adds invisible direction marks or spaces; strip them
+  const url = cleanUrl(document.getElementById('brUrl').value), key = cleanKey(document.getElementById('brKey').value);
+  if (url && !/^https:\/\/script\.google\.com\//.test(url)) { document.getElementById('branchMsg').textContent = 'כתובת החיבור צריכה להתחיל ב־https://script.google.com/'; return; }
+  if (url && !key) { document.getElementById('branchMsg').textContent = 'חסר קוד חברה'; return; }
+  const newConn = url && (url !== branch.url || key !== branch.key);
+  branch = { name, manager: document.getElementById('brManager').value.trim(), area: document.getElementById('brArea').value.trim(), url, key };
+  try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) {}
+  worker = document.getElementById('brWorker').value.trim();
+  try { localStorage.setItem('workerName', worker); } catch(e) {}
+  renderWorker(); renderHistory();
+  // On a new connection, send what this phone recorded (the sheet skips what it already has); deletes still waiting are kept
+  if (newConn) {
+    const keep = syncQueue.filter(o => o.op === 'del' || o.op === 'invDel');
+    const mine = x => !x.dev || x.dev === myDev;
+    syncQueue = [];
+    queueOps(history.filter(mine).reverse().map(entry => ({ op:'add', entry })).concat(invEvents.filter(mine).map(e => ({ op:'invAdd', e })), keep));
+  }
+  if (!url) { sheetRules = false; try { localStorage.removeItem('sheetRules'); } catch(e) {} syncAllowField(); }
+  renderBranch();
+  closeBranch();
+  renderSync();
+  syncNow();
+}
+function shownBranch() { return mgrMode && mgrView ? mgrView : branch; } // in area-manager mode: the branch he is looking at
+function addBranchSheet(wb, extra) {
+  const bi = shownBranch();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['סניף', bi.name], ['מנהל מחלקה', bi.manager], ['מנהל אזור', bi.area], ...(extra || []),
+    ['תאריך ייצוא', new Date().toLocaleDateString('he-IL') + ' ' + new Date().toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' })]
+  ]);
+  ws['!cols'] = [{ wch: 14 }, { wch: 28 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'פרטים');
+}
+function branchFilePart() {
+  const n = (shownBranch().name || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+  return n ? n + '_' : '';
+}
+
+// ---------- Area manager ----------
+// He logs in with the sheet address and his own code (tab "מנהלי אזור" in the sheet) and sees only his branches.
+let mgr = null, mgrBranch = '', mgrView = null;
+function openMgrLogin() {
+  let info = {};
+  try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
+  document.getElementById('mgUrl').value = info.url || branch.url || '';
+  document.getElementById('mgCode').value = '';
+  document.getElementById('mgrMsg').textContent = '';
+  document.getElementById('branchPanel').hidden = true;
+  document.getElementById('mgrLogin').hidden = false;
+  document.body.classList.add('setup-mode');
+  window.scrollTo(0, 0);
+}
+function closeMgrLogin() {
+  document.getElementById('mgrLogin').hidden = true;
+  document.getElementById('branchPanel').hidden = false;
+}
+async function mgrFetch(url, code) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'manager', mcode: code }) });
+  try { return JSON.parse(await res.text()); } catch(e) { return { ok: false, error: 'no answer', status: res.status }; }
+}
+function mgrError(d) {
+  if (d.error === 'bad manager code') return 'קוד מנהל אזור שגוי';
+  if (d.error === 'read only') return 'לעוזר יש הרשאת צפייה בלבד';
+  if (d.error === 'too many tries') return 'יותר מדי ניסיונות שגויים · נסו שוב בעוד 10 דקות';
+  if (d.error === 'bad key') return 'הגיליון עדיין לא מכיר כניסת מנהל אזור · צריך לעדכן בו את הקוד';
+  if (d.error === 'no answer') return `הכתובת לא החזירה תשובה מהגיליון (${d.status}) · בדוק את הכתובת`;
+  return 'הגיליון החזיר שגיאה';
+}
+async function mgrLogin() {
+  const url = cleanUrl(document.getElementById('mgUrl').value), code = cleanKey(document.getElementById('mgCode').value);
+  const msg = document.getElementById('mgrMsg');
+  if (!/^https:\/\/script\.google\.com\//.test(url)) { msg.textContent = 'כתובת החיבור צריכה להתחיל ב־https://script.google.com/'; return; }
+  if (!code) { msg.textContent = 'חסר קוד מנהל אזור'; return; }
+  msg.style.color = '#1565C0'; msg.textContent = 'מתחבר…';
+  let d;
+  try { d = await mgrFetch(url, code); } catch(e) { msg.style.color = '#c62828'; msg.textContent = 'אין חיבור לגיליון כרגע'; return; }
+  msg.style.color = '#c62828';
+  if (!d.ok) { msg.textContent = mgrError(d); return; }
+  try {
+    localStorage.setItem('mgrInfo', JSON.stringify({ url, code }));
+    localStorage.setItem('appMode', 'manager');
+  } catch(e) {}
+  msg.textContent = '';
+  mgrMode = true;
+  mgrStore(d);
+  enterMgr(d);
+}
+function mgrStore(d) { d.at = Date.now(); try { localStorage.setItem('mgrCache', JSON.stringify(d)); } catch(e) {} }
+function startMgr() {
+  if (!mgrMode) return;
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem('mgrCache') || 'null'); } catch(e) {}
+  if (d) enterMgr(d);
+  mgrRefresh();
+}
+async function mgrRefresh() {
+  let info = {};
+  try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
+  if (!info.url) return;
+  document.getElementById('mgrText').textContent = (mgr ? roleName() + ': ' + mgr.name + ' · ' : '') + 'מעדכן…';
+  try {
+    const d = await mgrFetch(info.url, info.code);
+    if (!d.ok) { if (d.error === 'bad manager code') { alert('הקוד שלך כבר לא פעיל · פנה לחברה'); mgrExit(true); } else renderMgrBar(mgrError(d)); return; }
+    mgrStore(d); enterMgr(d);
+  } catch(e) { renderMgrBar('אין חיבור · מוצג המידע מהעדכון האחרון'); }
+}
+function mgrExit(silent) {
+  if (!silent && !confirm('לצאת ממצב מנהל אזור?')) return;
+  try {
+    localStorage.removeItem('appMode'); localStorage.removeItem('mgrCache');
+    const info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); localStorage.setItem('mgrInfo', JSON.stringify({ url: info.url || '' }));
+  } catch(e) {}
+  location.reload();
+}
+// manager, assistant (view only) or district manager, as set in the sheet's "מנהלי אזור" tab
+function roleName() { return { assistant: 'עוזר מנהל אזור', senior: 'מנהל מחוז' }[mgr && mgr.role] || 'מנהל אזור'; }
+function renderMgrBar(note) {
+  if (!mgr) return;
+  const t = mgr.at ? new Date(mgr.at) : null;
+  const n = mgr.branches.length;
+  document.getElementById('mgrText').textContent = roleName() + ': ' + mgr.name + (mgr.canEdit === false ? ' · צפייה בלבד' : '') + ' · ' + (n === 1 ? 'סניף אחד' : n + ' סניפים')
+    + (note ? ' · ' + note : t ? ' · עודכן ' + t.toLocaleDateString('he-IL', { day:'numeric', month:'numeric' }) + ' ' + t.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' }) : '');
+}
+function enterMgr(d) {
+  const first = !mgr;
+  mgr = d;
+  d.branches.forEach(b => {
+    b.entries.forEach(h => { h.weight = (Number(h.weight) || 0).toFixed(2); h.dev = h.dev || 'other'; });
+    b.entries.sort((x, y) => (y.date + y.time).localeCompare(x.date + x.time) || createdAt(y.id) - createdAt(x.id)); // newest day first
+    b.inv.forEach(e => { e.w = Number(e.w) || 0; if (products.includes(e.product)) { e.cat = catOf(e.product); e.ord = products.indexOf(e.product); } });
+  });
+  const s = d.settings || {};
+  if (s.loss) PK.forEach(k => { if (isFinite(s.loss[k])) lossAllow[k] = Number(s.loss[k]); });
+  if (isFinite(s.iron)) ironAllow = Number(s.iron);
+  if (isFinite(s.tol)) SCALE_TOL = Number(s.tol);
+  if (Number(s.warnX) > 0) WARN_X = Number(s.warnX);
+  document.body.classList.remove('setup-mode');
+  document.body.classList.add('mgr-mode');
+  document.body.classList.toggle('mgr-ro', d.canEdit === false); // an assistant only looks
+  document.getElementById('branchPanel').hidden = true;
+  document.getElementById('mgrLogin').hidden = true;
+  document.getElementById('btnWeigh').textContent = 'פחת ושקילות';
+  document.getElementById('btnInv').textContent = 'ספירות מלאי';
+  document.getElementById('mgrBranchSel').innerHTML = d.branches.map(b => `<option value="${esc(b.name)}">${esc(b.name)}</option>`).join('');
+  renderMgrBar();
+  renderMgr();
+  const keep = d.branches.find(b => b.name === mgrBranch);
+  if (keep || d.branches.length) mgrOpen((keep || d.branches[0]).name, null, !first);
+  if (first) showPage('mgr');
+  else if (document.getElementById('page-inventory').classList.contains('active')) renderInventory();
+}
+// Loss segments of one branch, with the same calculation as the branch's own phone
+function mgrSegs(b) {
+  const saved = history; history = b.entries;
+  const days = buildDays(); history = saved;
+  const out = {}; PK.forEach(k => out[k] = segmentsFor(days[k], k));
+  return out;
+}
+function weekStartOf(ds) { const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() - d.getDay()); return ymd(d); }
+function weekLabel(ws) { const e = new Date(ws + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(ws) + ' עד ' + dm(ymd(e)); }
+function renderMgr() {
+  const all = mgr.branches.map(b => ({ b, segs: mgrSegs(b) }));
+  const judgeIn = (b, a) => { useSettings(b.settings || mgr.settings); return judge(a); };
+  const ends = all.flatMap(x => PK.flatMap(k => x.segs[k].map(s => s.end))).sort();
+  const lastWeek = ends.map(weekStartOf).sort().pop(), lastMonth = ends.map(e => e.slice(0, 7)).sort().pop();
+  // alerts look at the last two weeks (so a new week doesn't wipe last week's) and the latest month,
+  // plus the month before during the first week of a month — the same as the sheet
+  const alertWeeks = [...new Set(ends.map(weekStartOf))].slice(-2);
+  const alertMonths = lastMonth ? [lastMonth] : [];
+  if (ends.length && +ends[ends.length - 1].slice(8) <= 7) { const d = new Date(lastMonth + '-01T00:00:00'); d.setMonth(d.getMonth() - 1); alertMonths.unshift(ymd(d).slice(0, 7)); }
+  const mLabel = m => +m.slice(5) + '/' + m.slice(0, 4);
+  const inWeek = s => weekStartOf(s.end) === lastWeek, inMonth = s => s.end.slice(0, 7) === lastMonth;
+  const lastEnd = (segs, inP) => segs.filter(inP).map(s => s.end).sort().pop();
+  const pname = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור' };
+  // red alerts: latest week and latest month, every branch
+  const alerts = [];
+  const alertSets = alertWeeks.map(w => ['שבוע ' + weekLabel(w), s => weekStartOf(s.end) === w]).concat(alertMonths.map(m => ['חודש ' + mLabel(m), s => s.end.slice(0, 7) === m]));
+  all.forEach(({ b, segs }, i) => PK.forEach(k => alertSets.forEach(([label, inP]) => {
+    const a = aggregate(segs[k].filter(inP));
+    if (!a.n) return;
+    const j = judgeIn(b, a);
+    if (j.cls === 'bad') alerts.push(`<button type="button" class="alert-row" onclick="mgrOpenAt(${i}, '${lastEnd(segs[k], inP)}')">🔴 <b>${esc(b.name)}</b> · ${pname[k]} · ${label} · ${j.text} · פער ${f2(a.went - a.sold)} ק״ג ←</button>`);
+  })));
+  document.getElementById('mgrAlerts').innerHTML = alerts.length
+    ? `<div class="alert-box"><h3>התראות · ${alerts.length}</h3>${alerts.join('')}</div>`
+    : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`;
+  // one card per branch: this week and this month for the three products
+  document.getElementById('mgrList').innerHTML = all.map(({ b, segs }, i) => {
+    const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judgeIn(b, a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
+    const end = PK.map(k => lastEnd(segs[k], inWeek)).filter(Boolean).sort().pop();
+    return `<div class="br-card" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">
+      <div class="br-card-head"><b>${esc(b.name)}</b><span>${b.manager ? 'מנהל מחלקה: ' + esc(b.manager) + ' · ' : ''}פתח ←</span></div>
+      <div class="br-grid"><span></span><span class="h">שבוע ${lastWeek ? weekLabel(lastWeek) : ''}</span><span class="h">חודש ${lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''}</span>
+      ${PK.map(k => `<span>${pname[k]}</span>${cell(k, inWeek)}${cell(k, inMonth)}`).join('')}</div></div>`;
+  }).join('') || '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
+}
+function mgrOpenAt(i, date) { mgrOpen(mgr.branches[i].name, date); }
+// the loss % used for a branch: the ones its area manager set, otherwise the company's
+function useSettings(s) {
+  if (!s || !s.loss) return;
+  PK.forEach(k => { if (isFinite(s.loss[k])) lossAllow[k] = Number(s.loss[k]); });
+  if (isFinite(s.iron)) ironAllow = Number(s.iron);
+  if (isFinite(s.tol)) SCALE_TOL = Number(s.tol);
+  if (Number(s.warnX) > 0) WARN_X = Number(s.warnX);
+}
+function renderMgrLoss() {
+  document.getElementById('mgrLossBranch').textContent = mgrBranch;
+  PK.forEach(k => { document.getElementById('mg_' + k).value = lossAllow[k]; });
+  document.getElementById('mg_iron').value = ironAllow;
+  document.getElementById('mgAll').checked = false;
+  document.getElementById('mgLossMsg').textContent = '';
+}
+async function mgrSaveLoss() {
+  const msg = document.getElementById('mgLossMsg');
+  const read = id => { const v = parseFloat(document.getElementById(id).value.replace(',', '.')); return isNaN(v) || v < 0 || v >= 100 ? null : v; };
+  const loss = { entrecote: read('mg_entrecote'), shoulder: read('mg_shoulder'), oven: read('mg_oven'), iron: read('mg_iron') };
+  if (Object.values(loss).some(v => v === null)) { msg.style.color = '#c62828'; msg.textContent = 'כל אחוז צריך להיות מספר בין 0 ל־99'; return; }
+  const all = document.getElementById('mgAll').checked;
+  const list = all ? mgr.branches.map(b => b.name) : [mgrBranch];
+  if (all && !confirm(`לקבוע את האחוזים האלה ל־${list.length} הסניפים שלך?`)) return;
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
+  msg.style.color = '#1565C0'; msg.textContent = 'שומר…';
+  try {
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrSet', mcode: info.code, branches: list, loss }) });
+    let d; try { d = JSON.parse(await res.text()); } catch(e) { d = { ok: false }; }
+    if (!d.ok) { msg.style.color = '#c62828'; msg.textContent = d.error === 'busy' ? 'הגיליון עסוק · נסה שוב בעוד רגע' : d.error === 'bad key' ? 'הגיליון עדיין לא מכיר את האפשרות הזו · צריך לעדכן בו את הקוד' : 'השמירה לא הצליחה'; return; }
+    msg.style.color = '#2e7d32'; msg.textContent = '✓ נשמר · הטלפונים בסניף יקבלו את האחוזים בסנכרון הבא';
+    await mgrRefresh();
+    document.getElementById('mgLossMsg').style.color = '#2e7d32';
+    document.getElementById('mgLossMsg').textContent = '✓ נשמר · הטלפונים בסניף יקבלו את האחוזים בסנכרון הבא';
+  } catch(e) { msg.style.color = '#c62828'; msg.textContent = 'אין חיבור לגיליון כרגע'; }
+}
+// Shows one branch in the weighing and stock count screens (read only)
+function mgrOpen(name, date, stay) {
+  const b = mgr && mgr.branches.find(x => x.name === name);
+  if (!b) return;
+  mgrBranch = name;
+  useSettings(b.settings || mgr.settings);
+  history = b.entries.slice();
+  invEvents = b.inv.slice();
+  mgrView = { name: b.name, manager: b.manager, area: mgr.name }; // for the Excel files (the phone's own branch details stay as they are)
+  document.getElementById('mgrBranchSel').value = name;
+  document.getElementById('mgrBranchMgr').textContent = b.manager ? 'מנהל מחלקה: ' + b.manager : '';
+  const lastClose = history.filter(h => h.type === 'סגירה').map(h => h.date).sort().pop();
+  if (date || !stay) { document.getElementById('dateInput').value = date || lastClose || ymd(new Date()); autoDate = false; }
+  selectedProduct = null;
+  document.getElementById('calcPanel').style.display = 'none';
+  updateDisplay(); renderHistory(); renderMgrLoss();
+  if (!stay) { showPage(document.getElementById('page-inventory').classList.contains('active') ? 'inventory' : 'weigh'); window.scrollTo(0, 0); }
+  else if (document.getElementById('page-inventory').classList.contains('active')) renderInventory();
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && mgrMode && mgr && Date.now() - (mgr.at || 0) > 5 * 60000) mgrRefresh(); });
+
+// ---------- Sync to the company sheet ----------
+// Every weighing gets an id; changes wait in a queue on the phone and are sent when there is internet.
+function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7).padEnd(5, '0'); }
+function createdAt(id) { return parseInt(String(id).slice(0, -5), 36) || 0; }
+let myDev = '';
+try { myDev = localStorage.getItem('deviceId') || ''; if (!myDev) { myDev = 'd' + newId(); localStorage.setItem('deviceId', myDev); } } catch(e) { myDev = 'd' + newId(); }
+function sortHistory() {
+  history.sort((a, b) => createdAt(b.id) - createdAt(a.id)); // newest recorded first, from any phone
+}
+// Bring in what other phones of the branch recorded, and drop what was deleted on any phone.
+// Weighings made on this phone are kept until the sheet says they were deleted.
+function mergeRemote(entries, since) {
+  const remote = new Map(entries.map(e => [e.id, e]));
+  const pending = new Set(syncQueue.filter(o => o.op === 'add').map(o => o.entry.id));
+  const deleting = new Set(syncQueue.filter(o => o.op === 'del').map(o => o.id)); // deleted here, the sheet doesn't know yet
+  let changed = false;
+  history = history.filter(h => {
+    const r = remote.get(h.id);
+    if (r && r.deleted) { changed = true; return false; }
+    if (!r && h.dev && h.dev !== myDev && !pending.has(h.id) && (!since || h.date >= since)) { changed = true; return false; } // older than the sheet sends: keep
+    return true;
+  });
+  const local = new Set(history.map(h => h.id));
+  entries.forEach(r => {
+    if (r.deleted || local.has(r.id) || deleting.has(r.id)) return;
+    history.push({ id: r.id, date: r.date, time: r.time, meat: r.meat, type: r.type, weight: (Number(r.weight) || 0).toFixed(2), dev: r.dev || 'other', by: r.by || '' });
+    changed = true;
+  });
+  if (changed) { sortHistory(); saveData(); updateDisplay(); renderHistory(); }
+}
+let syncQueue = [], syncing = false, syncError = '';
+try { syncQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]'); } catch(e) {}
+function saveQueue() { try { localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); } catch(e) {} }
+function queueOps(ops) {
+  if (!branch.url || mgrMode) return;
+  syncQueue.push(...ops); saveQueue(); renderSync();
+  setTimeout(syncNow, 300);
+}
+function renderSync() {
+  const el = document.getElementById('syncStatus');
+  if (!branch.url || mgrMode) { el.hidden = true; return; }
+  el.hidden = false;
+  if (syncing) { el.style.color = '#1565C0'; el.textContent = 'שולח לגיליון של החברה…'; return; }
+  const waiting = syncQueue.length === 1 ? 'ממתין עדכון אחד' : `ממתינים ${syncQueue.length} עדכונים`;
+  if (syncError) { el.style.color = '#c62828'; el.textContent = syncError + (syncQueue.length ? ' · ' + waiting : ''); return; }
+  if (syncQueue.length) { el.style.color = '#e65100'; el.textContent = waiting + ' לשליחה · יישלחו כשיהיה אינטרנט'; return; }
+  el.style.color = '#2e7d32';
+  el.textContent = '✓ מסונכרן עם הגיליון של החברה' + (lastPull ? ' · עודכן ' + lastPull.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' }) : '');
+}
+// Sends what is waiting, and with the last batch brings back the whole branch from the sheet
+async function syncNow() {
+  if (mgrMode) return;
+  if (!branch.url || syncing) { renderSync(); return; }
+  if (navigator.onLine === false) { syncError = ''; renderSync(); return; }
+  syncing = true; syncError = ''; renderSync();
+  // the branch details are copied once, so nothing that changes on screen meanwhile can send under another name
+  const conn = { url: branch.url, key: branch.key, info: { name: branch.name, manager: branch.manager, area: branch.area } };
+  const errors = { 'bad key': 'קוד החברה שגוי · בדוק בפרטי הסניף', 'busy': 'הגיליון עסוק כרגע · ינסה שוב לבד', 'no branch': 'חסר שם סניף בפרטי הסניף' };
+  try {
+    do {
+      if (mgrMode) break;
+      const batch = syncQueue.slice(0, 200);
+      const last = batch.length === syncQueue.length;
+      const res = await fetch(conn.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
+        body: JSON.stringify({ key: conn.key, dev: myDev, pull: last, branch: conn.info, ops: batch })
+      });
+      let data;
+      try { data = JSON.parse(await res.text()); }
+      catch(err) { syncError = `הכתובת לא החזירה תשובה מהגיליון (${res.status}) · בדוק את כתובת החיבור`; break; }
+      if (!data.ok) { syncError = errors[data.error] || 'הגיליון החזיר שגיאה'; break; }
+      syncQueue.splice(0, batch.length); saveQueue();
+      if (mgrMode) break; // switched to area-manager screens while waiting: keep his screens clean
+      if (data.settings) applySheetSettings(data.settings);
+      if (last && Array.isArray(data.entries)) { mergeRemote(data.entries, data.since); lastPull = new Date(); }
+      if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv, data.invSince);
+    } while (syncQueue.length);
+  } catch(e) {
+    syncError = 'אין חיבור לגיליון כרגע';
+  }
+  syncing = false; renderSync();
+}
+let lastPull = null;
+window.addEventListener('online', syncNow);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { document.getElementById('dateInput').max = ymd(new Date()); syncNow(); } });
+setInterval(syncNow, 60000);
+
+buildCards();
+loadBranch();
+loadAllow();
+loadData();
+renderSync();
+syncNow();
+startMgr();
+
+// Service worker: always fetch the latest version when online, so code updates reach the phone
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(() => {});
+}
+</script>
+</body>
+</html>
