@@ -2489,6 +2489,7 @@ function slProductOf(it) {
   if (slIsLamb(it)) return { p: it.n, g: 'כבש' };
   const pg = slPoultry(it);
   // chicken breast is also cut into schnitzel and strips, and what is left is ground: all of it is ordered as breast
+  if (pg === 'עוף' && /רצועות\s*פרגי/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' }; // thigh strips are made from thigh, not breast
   if (pg === 'עוף' && /חזה|שניצל|רצועות|טחון/.test(it.n)) return { p: 'חזה עוף', g: 'עוף' };
   // products made from thigh (ירך ב.ע.ג / ירך ללא עצם / פרגית לתנור) — not ordered separately
   if (pg === 'עוף' && /שווארמה\s*פרגית|שיפוד(י)?\s*פרגי|פרגית/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' };
@@ -2786,7 +2787,7 @@ async function slSaveImport() {
 // the three weighed products (and iron steak, which counts as shoulder) get their "נמכר" for every reported day.
 // these entries are written by "דוח מכר"; a newer report replaces them, so nothing is counted twice.
 const SL_REP_BY = 'דוח מכר';
-const SL_SOLD_MAP = [[/סטייק\s*עין|רוסביף|אנטריקוט\s*לתנור/, 'oven'], [/א[י]?ירון/, 'iron'], [/צלי\s*כתף/, 'shoulder'], [/אנטריקוט/, 'entrecote']];
+const SL_SOLD_MAP = [[/סטייק\s*עין|רוסט?ביף|אנטריקוט\s*לתנור/, 'oven'], [/א[י]?ירון/, 'iron'], [/צלי\s*כתף/, 'shoulder'], [/אנטריקוט/, 'entrecote']];
 function slSoldOf(n) { if (/אצבעות|שיפוד/.test(n)) return null; const m = SL_SOLD_MAP.find(([re]) => re.test(n)); return m ? m[1] : null; }
 async function slSoldFromReport(w, items) {
   if (mgrMode) return 0;
