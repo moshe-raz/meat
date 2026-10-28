@@ -74,6 +74,30 @@
   .mgr-bar { text-align: center; font-size: 14px; color: #1F4E79; margin: -8px 0 12px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px; }
   .mgr-pick { background: #fff; border-radius: 12px; padding: 8px; margin-bottom: 12px; text-align: center; font-size: 15px; }
   .mgr-pick select { font-weight: bold; min-width: 160px; }
+  .mg-price { margin: 4px 0 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--field); }
+  .mg-price summary { cursor: pointer; padding: 10px 12px; font-weight: 700; text-align: right; list-style: none; }
+  .mg-price summary::-webkit-details-marker { display: none; }
+  .mg-price summary::after { content: ' ▾'; color: var(--muted); } .mg-price[open] summary::after { content: ' ▴'; }
+  .mg-price summary span { font-weight: 400; color: var(--muted); }
+  .mg-price .set-row, .mg-price .set-hint { padding: 0 12px; } .mg-price .set-hint { padding-bottom: 10px; }
+  .kb-cfg { margin: 0 0 14px; background: #fff; } .kb-cfg-btn { padding: 0 12px 12px; } .kb-cfg-btn .btn { width: 100%; margin: 0; }
+  .mgr-money { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; background: #fff8e6; border: 1px solid #f0d9a0; color: #5a3d00; border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; font-size: 14.5px; text-align: right; }
+  .mgr-money span:first-child { font-weight: 700; flex-basis: 100%; } .mgr-money b { font-size: 17px; }
+  .mgr-money.none { display: block; font-size: 13px; color: #7a6a4a; background: #fbf8f1; border-style: dashed; }
+  .br-money { padding: 8px 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: #5a3d00; text-align: right; } .br-money b { font-size: 14.5px; }
+  .kb-box { background: #fff; border-radius: 16px; overflow: hidden; margin-bottom: 14px; border: 2px solid #b3261e; box-shadow: 0 4px 14px rgba(179,38,30,.18); }
+  .kb-box h3 { margin: 0; padding: 11px 14px; background: #b3261e; color: #fff; font-size: 17px; text-align: right; }
+  .kb-row { display: grid; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #f1d6d3; text-align: right; }
+  .kb-row:last-child { border-bottom: 0; }
+  .kb-row.kb-progress { background: #fffaeb; } .kb-row.kb-done, .kb-row.kb-ignore { background: #f6f6f6; opacity: .85; }
+  .kb-main { cursor: pointer; display: grid; gap: 2px; } .kb-main > b { font-size: 15.5px; } .kb-main span { font-size: 13.5px; color: #5b4a44; } .kb-main small { font-size: 12.5px; color: #7a5a00; font-weight: 600; }
+  .kb-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .kb-btns button { font: 700 13.5px inherit; font-family: inherit; border: 1px solid #e6c34d; background: #fff6d6; color: #6d4c00; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+  .kb-btns button.ok { border-color: #9fd3ae; background: #e3f4e8; color: #1b6b34; }
+  .kb-btns button.ign { border-color: #ddd; background: #fff; color: #777; }
+  .kb-more { display: block; width: 100%; font: 600 13px inherit; font-family: inherit; background: #fbf1f0; border: 0; border-top: 1px solid #f1d6d3; color: #8a3a33; padding: 9px; cursor: pointer; }
+  .kb-box.calm { border-color: #cfe5d6; box-shadow: none; } .kb-box.calm h3 { background: #e3f4e8; color: #1b6b34; font-size: 15px; }
+  .kb-none { padding: 12px 14px; color: #1b6b34; font-weight: 600; }
   .alert-box { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
   .alert-box h3 { margin: 0; padding: 10px; background: #cc0000; color: #fff; font-size: 16px; text-align: center; }
   .alert-box.clear h3 { background: #2e7d32; }
@@ -88,6 +112,225 @@
   .br-grid .h { color: #777; font-size: 12px; }
   .br-grid .pill { text-align: center; }
   #calcSteps { font-size: 13px; color: #555; min-height: 16px; margin-bottom: 6px; word-break: break-word; }
+
+/* ---------- opening screen: the scale weighs "מעדני" and "גורמה" ---------- */
+#splash { position: fixed; inset: 0; z-index: 9999; overflow: hidden; color: #fff;
+  background: radial-gradient(90% 55% at 50% 38%, #a8313a 0%, #6e1a22 48%, #3d0c12 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .6s ease, transform .6s ease; }
+#splash::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(40% 26% at 50% 40%, rgba(255,214,140,.22), transparent 70%); }
+#splash.out { opacity: 0; transform: scale(1.04); pointer-events: none; }
+#splash svg { width: 100%; max-width: 400px; overflow: visible; position: relative; z-index: 1; shape-rendering: geometricPrecision; text-rendering: geometricPrecision; }
+#splash .lock { position: relative; z-index: 1; text-align: center; margin-top: -6px; }
+#splash .brand { font-family: 'Frank Ruhl Libre', 'David', serif; font-weight: 900; font-size: 34px; letter-spacing: .5px;
+  background: linear-gradient(180deg, #ffe8a0 0%, #f5d060 35%, #d4a017 60%, #b8860b 85%, #8b6914 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  opacity: 0; transform: translateY(10px); transition: opacity .7s ease, transform .7s ease; }
+#splash .rule { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 6px 0 0; opacity: 0; transition: opacity .7s .2s; }
+#splash .rule i { display: block; height: 1px; width: 54px; background: linear-gradient(90deg, transparent, #e8c272, transparent); }
+#splash .rule span { font-size: 13px; letter-spacing: 2.5px; color: #f3e3c3; font-weight: 500; }
+#splash.done .brand { opacity: 1; transform: none; } #splash.done .rule { opacity: 1; }
+#splash .skip { position: absolute; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 0; right: 0; text-align: center; color: rgba(243,227,195,.38); font-size: 11.5px; z-index: 1; }
+
+/* ---------- sales & order recommendation ---------- */
+#page-sales { --ok:#1b6b34; --ok-soft:#e3f4e8; --gold:#b8860b; --gold-soft:#fff6dc; }
+#page-sales .sl-top { margin-bottom: 12px; text-align: right; }
+.sl-report { display: flex; align-items: center; gap: 10px; }
+.sl-report .t { flex: 1; min-width: 0; line-height: 1.4; } .sl-report .t b { display: block; } .sl-report .t span { color: var(--muted); font-size: 13px; }
+.sl-wkctrl { display: flex; gap: 6px; align-items: center; margin-top: 8px; } .sl-wkctrl:empty { display: none; } .sl-wkctrl::before { content: 'שבוע להצגה:'; font-size: 13px; color: var(--muted); } .sl-wkctrl select { flex: 1; max-width: 180px; }
+.sl-wkctrl select { font: 600 13px var(--font); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; background: #fff; }
+.sl-wkctrl button { font: 600 12px var(--font); border: 1px solid #e57373; background: #fff; color: #c62828; border-radius: 8px; padding: 4px 8px; cursor: pointer; }
+.sl-upl { font: 700 14px var(--font); color: var(--pri); background: var(--pri-soft); border: 1px solid #ecd2cc; border-radius: 12px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+.sl-upl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sl-imp { margin-top: 12px; background: var(--field); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+.sl-imp-sum { color: var(--muted); font-size: 13.5px; }
+.sl-warn { background: #fff4e5; border: 1px solid #f3d2a2; color: #7a4a00; border-radius: 10px; padding: 8px 10px; font-size: 13.5px; }
+.sl-lbl { font-weight: 700; font-size: 14px; }
+.sl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.sl-chips button { font: 600 13.5px var(--font); border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; color: var(--ink); }
+.sl-chips button.on { background: var(--sel); border-color: var(--sel); color: #fff; }
+.sl-check { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; cursor: pointer; margin-top: 6px; }
+.sl-check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--pri); flex: none; }
+.sl-btns, .sl-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sl-btns .btn, .sl-actions .btn { margin: 0; }
+.btn.sl-alt { background: #fff !important; color: var(--ink) !important; border: 1px solid var(--line) !important; }
+.sl-actions { margin-top: 14px; }
+.sl-note { color: var(--muted); font-size: 12.5px; line-height: 1.55; margin: 8px 2px 0; text-align: right; }
+.sl-view { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--sel); padding: 5px; border-radius: 16px; margin-top: 12px; }
+.sl-view button { border: 0; background: transparent; color: #e9dfd8; font: 700 15px var(--font); padding: 10px; border-radius: 12px; cursor: pointer; }
+.sl-view button.on { background: #fff; color: var(--sel); }
+.sl-smode { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; background: var(--seg); padding: 4px; border-radius: 999px; }
+.sl-smode button { border: 0; background: transparent; border-radius: 999px; padding: 8px; font: 700 14px var(--font); color: var(--muted); cursor: pointer; }
+.sl-smode button.on { background: #fff; color: var(--sel); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.sl-sdays { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; margin-top: 10px; }
+.sl-sdays button { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 6px 2px; font: 700 13.5px var(--font); color: var(--ink); cursor: pointer; line-height: 1.2; }
+.sl-sdays button small { display: block; font-weight: 500; font-size: 11px; color: var(--muted); }
+.sl-sdays button.on { background: var(--pri); border-color: var(--pri); color: #fff; } .sl-sdays button.on small { color: #f4dada; }
+.sl-sdays button.in { background: var(--pri-soft); border-color: #ecd2cc; }
+.sl-sdays button:disabled { opacity: .35; cursor: default; }
+.sl-cover { color: var(--muted); font-size: 13px; margin: 8px 4px 0; line-height: 1.5; }
+.sl-cats { display: flex; gap: 4px; background: var(--seg); padding: 4px; border-radius: 16px; margin-top: 12px; }
+.sl-cats button { flex: 1; border: 0; background: transparent; border-radius: 12px; padding: 8px 2px; font: 700 14.5px var(--font); color: var(--muted); cursor: pointer; line-height: 1.2; }
+.sl-cats button small { display: block; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sl-cats button.on { background: #fff; color: var(--sel); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.sl-cats button.empty { opacity: 0.5; }
+.sl-alltotal { text-align: center; margin: 8px 0; padding: 8px; background: var(--pri-soft); border-radius: 12px; font-weight: 700; }
+.sl-alltotal b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.sl-chart { margin-top: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 12px 8px; }
+.sl-chart .bars { display: grid; grid-template-columns: repeat(6,1fr); gap: 8px; align-items: end; height: 110px; }
+.sl-chart .col { display: flex; align-items: flex-end; justify-content: center; gap: 3px; height: 100%; position: relative; }
+.sl-chart .col i { display: block; width: 40%; border-radius: 5px 5px 0 0; background: var(--pri); min-height: 1px; }
+.sl-chart .col i.last { background: #d9cfc4; }
+.sl-chart .col.dim i:not(.last) { background: #e7b9b9; }
+.sl-chart .col b { position: absolute; top: -4px; font-size: 10.5px; color: var(--muted); font-weight: 600; transform: translateY(-100%); }
+.sl-chart .lbl { display: grid; grid-template-columns: repeat(6,1fr); gap: 8px; text-align: center; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.sl-chart .lbl .on { color: var(--pri); font-weight: 800; }
+.sl-chart .leg { display: flex; gap: 14px; justify-content: center; font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.sl-chart .leg span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--pri); margin-inline-end: 5px; vertical-align: -1px; }
+.sl-chart .leg span.l::before { background: #d9cfc4; }
+.sl-total { margin-top: 14px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 4px; }
+.sl-total .big { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; } .sl-total .big small { font-size: 15px; font-weight: 600; color: var(--muted); }
+.sl-total .meta { color: var(--muted); font-size: 13px; text-align: left; }
+#page-sales .list { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; margin-top: 10px; }
+.srow { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+.srow:last-child { border-bottom: 0; }
+.srow .n { font-weight: 700; min-width: 0; } .srow .n small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; margin-top: 2px; }
+.srow .kg { font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; text-align: left; min-width: 64px; } .srow .kg small { font-size: 11px; color: var(--muted); font-weight: 600; }
+.chg { font-size: 12.5px; font-weight: 700; border-radius: 999px; padding: 3px 8px; white-space: nowrap; min-width: 54px; text-align: center; }
+.chg.up { background: var(--ok-soft); color: var(--ok); } .chg.down { background: #fdecea; color: #b3261e; } .chg.eq { background: var(--seg); color: var(--muted); }
+.shead { padding: 9px 14px 6px; font-weight: 800; font-size: 13px; color: var(--muted); background: var(--field); border-bottom: 1px solid var(--line); }
+.sl-learn { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px 16px 16px; text-align: center; }
+.sl-learn h3 { margin: 10px 0 4px; } .sl-learn p { margin: 6px auto; max-width: 34ch; line-height: 1.55; color: var(--muted); }
+.sl-ring { width: 70px; height: 70px; margin: 0 auto; border-radius: 50%; border: 6px solid var(--pri); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.sl-dots { display: grid; grid-template-columns: repeat(6,1fr); gap: 6px; margin: 14px 0 4px; }
+.sl-dots div { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.sl-dots i { width: 32px; height: 32px; border-radius: 50%; border: 2px dashed #d9cfc4; display: flex; align-items: center; justify-content: center; font-style: normal; font-weight: 800; }
+.sl-dots .ok i { background: var(--pri); border: 0; color: #fff; }
+.sl-otype { display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; gap: 5px; }
+.sl-otype.p5 { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.sl-otype button { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 8px 2px; font: 700 13.5px var(--font); color: var(--ink); cursor: pointer; line-height: 1.25; }
+.sl-otype.p5 button { font-size: 13px; } .sl-otype button small { display: block; font-weight: 500; font-size: 10.5px; color: var(--muted); }
+.sl-otype button.on { background: var(--sel); border-color: var(--sel); color: #fff; } .sl-otype button.on small { color: #e9dfd8; }
+.sl-otype button:disabled { opacity: .45; cursor: default; }
+.sl-otype .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #e0a100; margin-inline-start: 4px; vertical-align: 1px; }
+.sl-morn { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 13.5px; font-weight: 600; }
+.sl-morn button { font: 700 13.5px var(--font); border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+.sl-morn button.on { background: var(--sel); border-color: var(--sel); color: #fff; } .sl-morn span { color: var(--muted); font-weight: 400; font-size: 12.5px; }
+.sl-mode { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.hol-btn { font: 700 14px var(--font); border: 1px solid #e8d49a; background: var(--gold-soft); color: #6d4c00; border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.hol-list { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.hol-list button, .hol-x button { font: 600 13px var(--font); border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.hol-x button.on { background: #6d4c00; color: #fff; border-color: #6d4c00; }
+.hol-on { background: #6d4c00; color: #fff6dc; border-radius: 999px; padding: 7px 14px; font-size: 14px; }
+.hol-exit { font: 700 13px var(--font); border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+.sl-holiday { margin-top: 12px; background: var(--gold-soft); border: 1px solid #ecd9a2; color: #5d4300; border-radius: 14px; padding: 10px 12px; font-size: 13.5px; line-height: 1.6; }
+.hot-list { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hot-chip { font: 700 12.5px var(--font); border: 1px solid #f3c48f; background: #fff; color: #9a3b00; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.hot-tag { display: inline-block; font-size: 11.5px; font-weight: 800; color: #9a3b00; background: #ffe7cc; border-radius: 999px; padding: 2px 8px; margin-bottom: 3px; }
+#page-sales .it { border-bottom: 1px solid var(--line); } #page-sales .it:last-child { border-bottom: 0; }
+#page-sales .it.hot { background: linear-gradient(90deg, transparent, #fff6ec); box-shadow: inset -4px 0 0 #f08c2e; }
+.it-main { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 11px 14px; }
+.it-name { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: none; border: 0; padding: 0; font: 700 15px var(--font); color: var(--ink); cursor: pointer; text-align: right; }
+.it-name .chev { color: var(--muted); font-size: 12px; transition: transform .15s; } .it.open .chev { transform: rotate(180deg); }
+.auto { font-size: 11px; font-weight: 700; color: #3f5168; background: #edf0f4; border-radius: 999px; padding: 1px 7px; } .auto.warn { color: #8a4b00; background: #fff1e0; }
+.it-line { color: var(--muted); font-size: 12.5px; margin-top: 3px; line-height: 1.7; }
+.st { width: 50px; font: 600 12.5px var(--font); color: var(--ink); text-align: center; border: 1px solid var(--line); border-radius: 6px; background: var(--field); padding: 1px 2px; -moz-appearance: textfield; }
+.step { display: flex; align-items: center; gap: 4px; }
+.step button { width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--line); background: var(--field); font: 700 18px var(--font); color: var(--ink); cursor: pointer; padding: 0; }
+.step .q { width: 54px; text-align: center; font: 800 18px var(--font); color: var(--ink); border: 1px solid transparent; border-bottom: 2px dashed #d9cfc4; border-radius: 8px; background: transparent; padding: 4px 2px; -moz-appearance: textfield; }
+.step .q.changed { color: var(--pri); border-bottom-color: var(--pri); }
+.st::-webkit-outer-spin-button, .st::-webkit-inner-spin-button, .step .q::-webkit-outer-spin-button, .step .q::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.blocks { font-size: 11px; color: var(--muted); font-weight: 600; text-align: center; white-space: nowrap; margin-top: 2px; }
+.diff { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 8px; margin-top: 4px; }
+.diff.up { background: #fff1e0; color: #a14d00; } .diff.down { background: #eaf1fb; color: #1f5aa8; } .diff.same { background: var(--ok-soft); color: var(--ok); }
+.short { color: #b3261e; font-weight: 700; font-size: 12.5px; margin-top: 3px; }
+.miss { font: 600 12px var(--font); border: 1px solid #f0c2bd; background: #fff; color: #b3261e; border-radius: 999px; padding: 3px 9px; cursor: pointer; }
+.miss.on { background: #b3261e; color: #fff; border-color: #b3261e; }
+.manual { font-size: 12px; color: var(--pri); font-weight: 600; margin-top: 3px; } .manual button { font: 600 12px var(--font); color: var(--muted); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+.it-more { padding: 0 14px 12px; display: none; } .it.open .it-more { display: block; }
+.why { background: var(--field); border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.65; }
+.why .sub { color: var(--muted); font-size: 12px; }
+.wk { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 4px 0 6px; align-items: end; height: 64px; }
+.wk div { text-align: center; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.wk i { display: block; background: #d9cfc4; border-radius: 4px 4px 0 0; margin: 0 3px 3px; } .wk div.cov i { background: var(--pri); } .wk div.cov { color: var(--pri); font-weight: 700; }
+.calc { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.calc b { text-align: left; font-weight: 700; } .calc .eq { border-top: 1px solid #d9cfc4; padding-top: 4px; margin-top: 2px; font-weight: 800; }
+.sec { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); margin-top: 10px; overflow: hidden; }
+.sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 14px; flex-wrap: wrap; }
+.sec > summary::-webkit-details-marker { display: none; }
+.sec > summary b { font-size: 17px; } .sec > summary .ss { color: var(--muted); font-size: 13px; } .sec > summary .ss.hot { color: #a14d00; font-weight: 700; }
+.sec > summary .ar { margin-inline-start: auto; width: 30px; height: 30px; border-radius: 50%; background: var(--seg); display: flex; align-items: center; justify-content: center; font-size: 12px; transition: transform .15s; }
+.sec[open] > summary { border-bottom: 1px solid var(--line); background: var(--field); } .sec[open] > summary .ar { transform: rotate(180deg); }
+.okline { padding: 12px 14px; color: var(--ok); font-weight: 600; text-align: center; border-bottom: 1px solid var(--line); }
+.okbig { background: var(--ok-soft); color: var(--ok); border-radius: 16px; padding: 18px 14px; text-align: center; font-weight: 700; line-height: 1.5; margin-top: 10px; }
+.okbig small { display: block; color: #4d6b55; font-weight: 500; font-size: 13px; }
+.sl-mapbtn { display: block; margin: 18px auto 0; font: 600 13.5px var(--font); color: var(--muted); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+#slMap { margin-top: 10px; text-align: right; }
+.sl-maprow { display: grid; grid-template-columns: 1fr 150px; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.sl-maprow small { color: var(--muted); } .sl-maprow select { font: 13px var(--font); padding: 5px; border-radius: 8px; border: 1px solid var(--line); background: #fff; width: 100%; }
+#btnSales { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23857469' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4h2l2.4 11h11l2-8H6.2'/%3E%3Ccircle cx='9' cy='19.5' r='1.5'/%3E%3Ccircle cx='17' cy='19.5' r='1.5'/%3E%3C/svg%3E") !important; }
+#btnSales.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239f2d2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4h2l2.4 11h11l2-8H6.2'/%3E%3Ccircle cx='9' cy='19.5' r='1.5'/%3E%3Ccircle cx='17' cy='19.5' r='1.5'/%3E%3C/svg%3E") !important; }
+#btnSet { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23857469' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'/%3E%3C/svg%3E") !important; }
+#btnSet.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239f2d2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'/%3E%3C/svg%3E") !important; }
+
+/* ===== specials podium ===== */
+#btnSp { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23857469' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='6' height='12'/%3E%3Crect x='2.5' y='13' width='6.5' height='8'/%3E%3Crect x='15' y='15' width='6.5' height='6'/%3E%3Cpath d='M12 2.5l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z'/%3E%3C/svg%3E") !important; } #btnSp.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b302b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='6' height='12'/%3E%3Crect x='2.5' y='13' width='6.5' height='8'/%3E%3Crect x='15' y='15' width='6.5' height='6'/%3E%3Cpath d='M12 2.5l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z'/%3E%3C/svg%3E") !important; }
+.sl-view.three { grid-template-columns: 1fr 1fr 1fr; } .sl-view.three button { font-size: 14px; padding: 10px 4px; }
+.sp-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--seg); padding: 4px; border-radius: 999px; }
+.sp-seg button { border: 0; background: transparent; border-radius: 999px; padding: 8px; font: 700 14px var(--font); color: var(--muted); cursor: pointer; }
+.sp-seg button.on { background: #fff; color: var(--sel); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.sp-sub { color: var(--muted); font-size: 13px; margin: 10px 4px 4px; text-align: right; line-height: 1.5; }
+.sp-podium { display: grid; grid-template-columns: 1fr 1.1fr 1fr; align-items: end; gap: 8px; padding: 10px 2px 0; direction: ltr; }
+.sp-place { text-align: center; direction: rtl; min-width: 0; }
+.sp-place .who { font-weight: 800; font-size: 15px; margin-bottom: 4px; line-height: 1.2; overflow-wrap: anywhere; }
+.sp-place.me .who { color: var(--pri); }
+.sp-place .ic { font-size: 30px; line-height: 1; margin-bottom: 4px; display: block; } .sp-place.p1 .ic { font-size: 38px; }
+.sp-place .blk { border-radius: 12px 12px 4px 4px; position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 10px; color: #3b2a12;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.55), inset 0 -10px 18px rgba(0,0,0,.08), 0 6px 14px rgba(60,35,10,.15); overflow: hidden; }
+.sp-place .blk::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.45) 0 18%, transparent 30% 100%); pointer-events: none; }
+.sp-place .rk { font-size: 34px; font-weight: 800; line-height: 1; opacity: .9; }
+.sp-place .pc { font-size: 20px; font-weight: 800; margin-top: 6px; }
+.sp-place .kg { font-size: 13px; font-weight: 600; opacity: .85; margin-top: 2px; }
+.sp-place.p1 .blk { height: 170px; background: linear-gradient(180deg, #ffe7a0, #f2c94c 45%, #c9971c); }
+.sp-place.p2 .blk { height: 135px; background: linear-gradient(180deg, #f4f5f7, #cfd3d8 50%, #9aa1a9); color: #2a2f35; }
+.sp-place.p3 .blk { height: 112px; background: linear-gradient(180deg, #f6c9a3, #d58b56 50%, #a0582c); color: #3a1f0d; }
+.sp-floor { height: 10px; background: #e6ddd2; border-radius: 0 0 10px 10px; margin: 0 -2px; }
+.sp-mine { background: var(--pri-soft); border: 1px solid #ecd2cc; border-radius: 16px; padding: 12px 14px; margin-top: 16px; display: flex; align-items: center; gap: 12px; text-align: right; }
+.sp-mine .n { font-size: 26px; font-weight: 800; color: var(--pri); min-width: 44px; text-align: center; }
+.sp-mine .t { font-size: 14px; line-height: 1.5; }
+.sp-h { font-size: 16px; margin: 22px 4px 10px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; text-align: right; }
+.sp-h small { color: var(--muted); font-weight: 400; font-size: 12.5px; }
+.sp-list { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+.sp-row { display: grid; grid-template-columns: 30px 1fr 84px 50px; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); text-align: right; }
+.sp-row:last-child { border-bottom: none; }
+.sp-row.two { grid-template-columns: 1fr auto; } .sp-row.jump { grid-template-columns: 26px 1fr auto; }
+.sp-row .r { color: var(--muted); font-weight: 700; text-align: center; }
+.sp-row .bar { height: 8px; border-radius: 99px; background: var(--seg); overflow: hidden; display: flex; direction: rtl; }
+.sp-row .bar i { display: block; height: 100%; background: linear-gradient(270deg, #c96a6a, var(--pri)); border-radius: 99px; }
+.sp-row .p { font-weight: 700; text-align: left; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sp-row.me { background: var(--pri-soft); } .sp-row.me .name::after { content: ' · אתם'; color: var(--pri); font-size: 12.5px; font-weight: 700; }
+.sp-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sp-champ { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; box-shadow: var(--shadow); text-align: right; min-width: 0; }
+.sp-champ .prod { font-size: 13px; color: var(--muted); font-weight: 600; overflow-wrap: anywhere; }
+.sp-champ .br { font-size: 16px; font-weight: 800; margin: 3px 0; }
+.sp-champ .v { font-size: 12.5px; color: var(--pri); font-weight: 700; }
+.sp-row .up { color: #1b6b34; background: #e3f4e8; border-radius: 999px; padding: 3px 10px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.sp-row .sub, .sp-mine .sub, .sp-card .sub { color: var(--muted); font-size: 12.5px; }
+.sp-cup { margin: 8px auto 0; width: fit-content; max-width: 100%; box-sizing: border-box; background: linear-gradient(180deg, #fff3c4, #ffe08a); color: #5a3d00; border: 1px solid #f0c94d; border-radius: 999px; padding: 6px 14px; font-size: 14px; text-align: center; }
+.sp-cupt { font-size: .9em; } .sp-cupme { color: #8a5a00; }
+.sp-note { color: var(--muted); font-size: 12.5px; text-align: center; margin: 16px 4px 4px; }
+.sp-empty { background: var(--card); border: 1px dashed var(--line); border-radius: 16px; padding: 18px 16px; text-align: center; line-height: 1.6; color: var(--muted); }
+.sp-empty b { color: var(--ink); font-size: 16px; }
+.sp-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 12px 14px; margin-bottom: 14px; text-align: right; }
+.sp-ch { display: flex; align-items: center; gap: 10px; } .sp-ch > div { flex: 1; min-width: 0; line-height: 1.5; }
+.sp-edit-btn { font: 700 14px var(--font); color: var(--pri); background: var(--pri-soft); border: 1px solid #ecd2cc; border-radius: 12px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+.sp-editor { margin-top: 12px; display: grid; gap: 8px; }
+.sp-editor input[type=search] { width: 100%; box-sizing: border-box; }
+.sp-items { max-height: 340px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--field); }
+.sp-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 14.5px; }
+.sp-item:last-child { border-bottom: 0; } .sp-item.on { background: #fff6dc; }
+.sp-item input { width: 19px; height: 19px; margin: 0; accent-color: var(--pri); flex: none; }
+.sp-item span { flex: 1; min-width: 0; } .sp-item small { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.sp-ebtns { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; } .sp-ebtns .btn { margin: 0; }
+#page-mgrsp { padding-bottom: 20px; }
 </style>
 
 <style>
@@ -119,6 +362,7 @@ button[onclick="resetAll()"] { color: #c62828; }
 .section { border-radius: 14px; padding: 12px 8px; }
 .section > div:first-child { font-size: 13px; color: var(--muted); font-weight: 600; }
 .section.stock { background: var(--t-stock); } .stock .total { color: var(--c-stock); }
+.section .total { direction: ltr; text-align: right; } /* a negative number keeps its minus in front */
 .section.close { background: var(--t-close); } .close .total { color: var(--c-close); }
 .section.sold { background: var(--t-sold); } .sold .total { color: var(--c-sold); }
 .section.prep { background: var(--t-prep); } .prep .total { color: var(--c-prep); }
@@ -210,7 +454,45 @@ body.mgr-mode .gear-btn, body.setup-mode .gear-btn { display: none; }
 .set-hint { font-size: 12px; color: var(--muted); text-align: right; margin-top: 6px; line-height: 1.5; }
 button.btn.danger { background: #fff !important; color: #c62828; border: 1px solid #f0c9c9; width: 100%; }
 /* a short "saved" note after adding */
-#okToast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); opacity: 0; background: #1f2a24; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 70; transition: opacity .2s, transform .2s; pointer-events: none; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#okToast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(10px); opacity: 0; background: #1f2a24; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 70; transition: opacity .2s, transform .2s; pointer-events: none; white-space: normal; width: max-content; max-width: min(92vw, 420px); text-align: center; line-height: 1.4; }
+#uiDlg { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-end; justify-content: center; }
+#uiDlg[hidden] { display: none; }
+#uiDlg .dl-dim { position: absolute; inset: 0; background: rgba(40,25,18,.42); animation: dlFade .18s ease; }
+#uiDlg .dl-card { position: relative; width: 100%; max-width: 520px; background: #fff; border-radius: 22px 22px 0 0; padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 10px; text-align: center; box-shadow: 0 -10px 30px rgba(0,0,0,.2); animation: dlUp .22s ease; }
+@media (min-width: 600px) { #uiDlg { align-items: center; } #uiDlg .dl-card { border-radius: 22px; max-width: 420px; } }
+#uiDlg .dl-icon { width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 2px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: var(--pri-soft); color: var(--pri); }
+#uiDlg .dl-icon.warn { background: #fff4e5; color: #b35c00; }
+#uiDlg .dl-icon.info { background: #eaf1fb; color: #1f5aa8; }
+#uiDlg h3 { margin: 0; font-size: 19px; line-height: 1.35; color: var(--ink); }
+#dlText { color: var(--muted); font-size: 15px; line-height: 1.55; white-space: pre-line; }
+#dlText .dl-box { margin: 6px 0 0; background: var(--field); border: 1px solid var(--line); border-radius: 14px; padding: 12px; color: var(--ink); white-space: normal; }
+#dlText .dl-box b { display: block; font-size: 17px; }
+#dlText .dl-box .dl-w { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 2px 0; }
+#dlText .dl-box small { color: var(--muted); font-size: 13px; }
+.dl-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.dl-btns.one { grid-template-columns: 1fr; }
+.dl-btns button { font: 700 16px var(--font); border-radius: 14px; padding: 13px 10px; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink); }
+.dl-btns .dl-yes { background: var(--pri); border-color: var(--pri); color: #fff; }
+.dl-btns .dl-yes.danger { background: #b3261e; border-color: #b3261e; }
+.dl-btns button:focus-visible { outline: 3px solid rgba(159,45,45,.35); outline-offset: 2px; }
+@keyframes dlUp { from { transform: translateY(24px); opacity: 0; } }
+@keyframes dlFade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #uiDlg .dl-card, #uiDlg .dl-dim { animation: none; } }
+#finishSheet { position: fixed; inset: 0; z-index: 80; }
+#finishSheet .fs-dim { position: absolute; inset: 0; background: rgba(40,25,18,.4); }
+#finishSheet .fs-card { position: absolute; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; background: #fff; border-radius: 22px 22px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 12px; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,.2); }
+#finishSheet h3 { margin: 0; font-size: 19px; }
+#finishSheet .inv-totals { margin: 0; }
+.fs-warn { background: #fff4e5; border: 1px solid #f3d2a2; color: #7a4a00; border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.55; }
+.fs-ok { background: #e3f4e8; color: #1b6b34; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
+.fs-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fs-btns .btn { margin: 0; }
+#invDoneBox { background: #e3f4e8; border-radius: 14px; padding: 12px; margin: 0 0 10px; text-align: center; color: #1b6b34; line-height: 1.5; font-size: 13.5px; }
+#invDoneBox b { display: block; font-size: 16px; }
+#invDoneBox small { color: #4d6b55; }
+#invFinishNote { text-align: center; margin: 6px 0 10px; font-size: 13px; }
+.br-inv { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.br-inv b { color: #1b6b34; } .br-inv .no { color: var(--pri); font-weight: 700; }
 #okToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 h1 { position: relative; }
 /* area-manager bar sits in the burgundy band like the branch line */
@@ -284,13 +566,143 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
 .inventory-item.empty .inv-val { color: #b9aca2 !important; font-weight: 500; font-size: 13px; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@900&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#962a2a">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+<div id="splash" role="img" aria-label="מעדני גורמה · שקילות בשר ומלאי">
+  <svg viewBox="0 0 512 470" aria-hidden="true">
+      <defs>
+        <linearGradient id="brassV" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff1bf"/><stop offset=".28" stop-color="#e6bd62"/><stop offset=".55" stop-color="#a87418"/><stop offset=".78" stop-color="#e9c46f"/><stop offset="1" stop-color="#8a5c0f"/>
+        </linearGradient>
+        <linearGradient id="brassH" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#8a5c0f"/><stop offset=".3" stop-color="#e9c46f"/><stop offset=".5" stop-color="#fff1bf"/><stop offset=".7" stop-color="#d9a945"/><stop offset="1" stop-color="#7c520c"/>
+        </linearGradient>
+        <linearGradient id="dish" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f7dc95"/><stop offset=".5" stop-color="#b9842a"/><stop offset="1" stop-color="#6e4709"/>
+        </linearGradient>
+        <radialGradient id="dishTop" cx=".5" cy=".4" r=".7">
+          <stop offset="0" stop-color="#6b1c22"/><stop offset="1" stop-color="#3f0e13"/>
+        </radialGradient>
+        <radialGradient id="ball" cx=".35" cy=".3" r=".75">
+          <stop offset="0" stop-color="#fffbe6"/><stop offset=".35" stop-color="#f0cd7a"/><stop offset="1" stop-color="#8a5c0f"/>
+        </radialGradient>
+        <linearGradient id="wordGold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffe8a0"/><stop offset=".25" stop-color="#f5d060"/><stop offset=".5" stop-color="#d4a017"/><stop offset=".75" stop-color="#b8860b"/><stop offset="1" stop-color="#8b6914"/>
+        </linearGradient>
+        <radialGradient id="floor"><stop offset="0" stop-color="#14020a" stop-opacity=".6"/><stop offset="1" stop-color="#14020a" stop-opacity="0"/></radialGradient>
+        <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#1a0306" flood-opacity=".55"/></filter>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <g id="panShape">
+          <circle cx="0" cy="0" r="6" fill="none" stroke="url(#brassH)" stroke-width="3.5"/>
+          
+          <path d="M0 5 L-66 74 M0 5 L66 74" stroke="#d9a945" stroke-width="3.6" stroke-linecap="round" fill="none"/>
+          <path d="M-0.8 5 L-66.8 74 M0.8 5 L65.2 74" stroke="#fff1bf" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".8"/>
+          <path d="M-72 76 Q-70 106 0 108 Q70 106 72 76 Z" fill="url(#dish)"/>
+          <ellipse cx="0" cy="76" rx="72" ry="9" fill="url(#dishTop)" stroke="url(#brassH)" stroke-width="3"/>
+          <path d="M-54 92 Q0 100 54 92" stroke="rgba(255,240,190,.45)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </g>
+      </defs>
+      <ellipse cx="256" cy="436" rx="150" ry="13" fill="url(#floor)"/>
+      <g>
+        <path d="M186 430 Q186 414 206 410 L306 410 Q326 414 326 430 Z" fill="url(#brassV)"/>
+        <rect x="214" y="398" width="84" height="14" rx="5" fill="url(#brassH)"/>
+        <path d="M232 400 Q240 378 248 372 L264 372 Q272 378 280 400 Z" fill="url(#brassH)"/>
+        <rect x="248" y="166" width="16" height="210" rx="4" fill="url(#brassH)"/>
+        <rect x="243" y="360" width="26" height="8" rx="3" fill="url(#brassH)"/>
+        <rect x="243" y="190" width="26" height="7" rx="3" fill="url(#brassH)"/>
+      </g>
+      <g id="beam">
+        <path d="M150 175 Q256 166 362 175 Q256 186 150 175 Z" fill="url(#brassV)"/>
+        <path d="M156 172.5 Q256 165 356 172.5" stroke="rgba(255,248,215,.75)" stroke-width="1.6" fill="none"/>
+        <circle cx="148" cy="175" r="7.5" fill="url(#ball)"/><circle cx="364" cy="175" r="7.5" fill="url(#ball)"/>
+      </g>
+      <circle cx="256" cy="174" r="11" fill="url(#ball)"/>
+      <path d="M256 128 L262 150 L250 150 Z" fill="url(#brassH)"/>
+      <circle cx="256" cy="154" r="9" fill="url(#ball)"/>
+      <g id="panR"><use href="#panShape"/></g>
+      <g id="panL"><use href="#panShape"/></g>
+      <g id="sparks"></g>
+      <text id="wR" text-anchor="middle" font-family="Frank Ruhl Libre, David, serif" font-weight="900" font-size="27" fill="url(#wordGold)" stroke="#3d0c12" stroke-width="2.4" stroke-linejoin="round" paint-order="stroke">מעדני</text>
+      <text id="wL" text-anchor="middle" font-family="Frank Ruhl Libre, David, serif" font-weight="900" font-size="27" fill="url(#wordGold)" stroke="#3d0c12" stroke-width="2.4" stroke-linejoin="round" paint-order="stroke">גורמה</text>
+    </svg>
+  <div class="lock"><div class="brand">מעדני גורמה</div><div class="rule"><i></i><span>שקילות בשר ומלאי</span><i></i></div></div>
+  <div class="skip">נגיעה במסך מדלגת</div>
+</div>
+<script>
+// The full animation once a day; on later opens the scale is already balanced and the screen leaves within a second.
+(() => {
+  const today = new Date().toDateString();
+  let seen = ''; try { seen = localStorage.getItem('splashDay') || ''; localStorage.setItem('splashDay', today); } catch (e) {}
+  const quick = seen === today || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const PIV = { x: 256, y: 175 }, HALF = 108;
+  const $ = id => document.getElementById(id);
+  const beam = $('beam'), panR = $('panR'), panL = $('panL'), wR = $('wR'), wL = $('wL'), splash = $('splash'), sparksG = $('sparks');
+  const SIT = 71;  // a word rests on the dish, just above its rim
+  const NS = 'http://www.w3.org/2000/svg';
+  let raf = 0, timers = [];
+  function run() {
+    cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = [];
+    splash.classList.remove('out', 'done'); sparksG.innerHTML = '';
+    let th = 0, vel = 0, sw = 0, swv = 0, t0 = performance.now(), last = t0;
+    const sparks = [];
+    const words = [
+      { el: wR, side: 1, at: 500, y: -70, v: 0, landed: false },   // מעדני: right pan, first
+      { el: wL, side: -1, at: 1700, y: -70, v: 0, landed: false }  // גורמה: left pan, second
+    ];
+    
+    const burst = (x, y) => { for (let i = 0; i < 16; i++) {
+      const a = Math.PI + Math.random() * Math.PI, sp = 70 + Math.random() * 150, c = document.createElementNS(NS, 'circle');
+      c.setAttribute('r', (1 + Math.random() * 2.2).toFixed(1)); c.setAttribute('fill', i % 3 ? '#f5d060' : '#ffe8a0'); sparksG.appendChild(c);
+      sparks.push({ c, x: x + (Math.random() - .5) * 70, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1 }); } };
+    function frame(now) {
+      const dt = Math.min(0.032, (now - last) / 1000); last = now; const t = now - t0;
+      const onR = words[0].landed, onL = words[1].landed;
+      const target = onR && !onL ? 0.24 : 0;
+      const acc = -34 * (th - target) - (onR && onL ? 2.6 : 4) * vel;
+      vel += acc * dt; th += vel * dt;
+      swv += (-60 * sw - 5 * swv - acc * 0.9) * dt; sw += swv * dt;   // pans swing a little behind the beam
+      beam.setAttribute('transform', `rotate(${th * 180 / Math.PI} ${PIV.x} ${PIV.y})`);
+      const hook = s => ({ x: PIV.x + s * HALF * Math.cos(th), y: PIV.y + s * HALF * Math.sin(th) });
+      const r = hook(1), l = hook(-1), deg = sw * 180 / Math.PI;
+      panR.setAttribute('transform', `translate(${r.x} ${r.y}) rotate(${deg})`);
+      panL.setAttribute('transform', `translate(${l.x} ${l.y}) rotate(${deg})`);
+      words.forEach(w => {
+        const p = w.side > 0 ? r : l;
+        const rx = p.x - Math.sin(sw) * SIT, ry = p.y + Math.cos(sw) * SIT;
+        if (t < w.at) { w.el.setAttribute('opacity', 0); return; }
+        let y;
+        if (!w.landed) {
+          w.v += 2400 * dt; w.y += w.v * dt; y = w.y;
+          if (w.y >= ry) { w.landed = true; w.b = 1; vel += w.side * 2.1; swv += w.side * 1.2; burst(rx, ry); y = ry; }
+          w.el.setAttribute('opacity', Math.min(1, (t - w.at) / 160));
+        } else {
+          w.el.setAttribute('opacity', 1);
+          w.b = Math.max(0, w.b - dt * 3.2);
+          y = ry - Math.sin((1 - w.b) * Math.PI) * 9 * w.b;
+        }
+        w.el.setAttribute('x', w.landed ? rx : p.x); w.el.setAttribute('y', y);
+        w.el.setAttribute('transform', w.landed ? `rotate(${deg} ${rx} ${y})` : '');
+      });
+      sparks.forEach(s => { if (s.life <= 0) return; s.vy += 420 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt * 1.4;
+        s.c.setAttribute('cx', s.x); s.c.setAttribute('cy', s.y); s.c.setAttribute('opacity', Math.max(0, s.life)); });
+      if (t > 3200 && !splash.classList.contains('done')) splash.classList.add('done');
+      if (t < 5600) raf = requestAnimationFrame(frame);
+    }
+    if (quick) { words.forEach(w => { w.landed = true; w.b = 0; w.at = 0; }); splash.classList.add('done'); }
+    raf = requestAnimationFrame(frame);
+    timers.push(setTimeout(leave, quick ? 1100 : 4900));
+  }
+  const leave = () => { if (splash.classList.contains('out')) return; splash.classList.add('out'); setTimeout(() => { cancelAnimationFrame(raf); splash.remove(); }, 650); };
+  splash.addEventListener('click', leave);
+  run();
+})();
+</script>
+
 <h1>שקילות בשר ומלאי</h1>
 <button type="button" class="gear-btn" aria-label="הגדרות" onclick="showPage('settings')"></button>
 <div class="branch-bar"><span id="branchText"></span></div>
@@ -324,14 +736,18 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
 <div class="nav">
   <button id="btnMgr" class="mgr-only" onclick="showPage('mgr')">סניפים</button>
   <button id="btnWeigh" class="active" onclick="showPage('weigh')">שקילות</button>
+  <button id="btnSales" class="entry-only" onclick="showPage('sales')">מכר והזמנה</button>
   <button id="btnPlus" class="plus entry-only" type="button" aria-label="הוספת שקילה" onclick="goAdd()">+</button>
   <button id="btnInv" onclick="showPage('inventory')">ספירת מלאי</button>
+  <button id="btnSp" onclick="showPage(mgrMode ? 'mgrsp' : 'sp')">מיוחדים</button>
 </div>
 
 <div id="mgrBranchPick" class="mgr-pick mgr-only" hidden>סניף: <select id="mgrBranchSel" onchange="mgrOpen(this.value)"></select> <span id="mgrBranchMgr" style="font-size:13px;color:#555"></span></div>
 
 <!-- AREA MANAGER: all his branches -->
 <div id="page-mgr" class="page"><div id="mgrAlerts"></div><div id="mgrList"></div></div>
+<div id="page-mgrsp" class="page"><div id="spMgr"></div></div>
+<div id="page-sp" class="page"><div class="controls sp-top"><h3 style="margin:0">🏆 מיוחדים</h3><p class="sp-sub" style="margin:4px 0 0">הדירוג של הסניפים לפי המוצרים המיוחדים · מתעדכן מדוחות המכר שהסניפים מעלים</p></div><div id="spBox"></div></div>
 
 <!-- WEIGHING PAGE -->
 <div id="page-weigh" class="page active">
@@ -357,8 +773,8 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
       <option value="טחון">המרה לטחון</option>
       <option value="אחר">המרה למוצר אחר…</option>
     </select>
-    <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב">
-    <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal">
+    <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב" enterkeyhint="next" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('weightInput').focus()}">
+    <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
     <div class="entry-only" style="font-size:12px;color:#888;margin-top:-2px">כמה מגשים? כותבים עם רווח: 5.2 4.8 6.1 והם יחוברו</div>
     <div id="soldNote" class="entry-only" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
     <button class="btn entry-only" onclick="addWeight()">הוסף</button>
@@ -376,7 +792,13 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <label class="set-row">צלי כתף <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
     <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mg_oven" inputmode="decimal"> %</span></label>
     <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
-    <label class="set-row" style="justify-content:flex-start;gap:8px"><input type="checkbox" id="mgAll" style="width:auto"> לקבוע את אותם אחוזים לכל הסניפים שלי</label>
+    <details id="mgPriceBox" class="mg-price"><summary>💰 מחיר לק״ג<span id="mgPriceSum"></span></summary>
+      <label class="set-row">אנטריקוט <span><input type="text" id="mgp_entrecote" inputmode="decimal"> ₪</span></label>
+      <label class="set-row">צלי כתף <span><input type="text" id="mgp_shoulder" inputmode="decimal"> ₪</span></label>
+      <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mgp_oven" inputmode="decimal"> ₪</span></label>
+      <div class="set-hint">מחיר העלות, בשביל הפחת בשקלים · ריק = המחיר הכללי מהגיליון</div>
+    </details>
+    <label class="set-row" style="justify-content:flex-start;gap:8px"><input type="checkbox" id="mgAll" style="width:auto"> לקבוע את אותם אחוזים ומחירים לכל הסניפים שלי</label>
     <button class="btn" style="width:100%" onclick="mgrSaveLoss()">שמירה</button>
     <div id="mgLossMsg" class="set-hint" style="text-align:center"></div>
   </div>
@@ -404,16 +826,61 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
   </div>
 </div>
 
+<!-- SALES & ORDER RECOMMENDATION -->
+<div id="page-sales" class="page">
+  <div class="controls sl-top">
+    <h3 style="margin:0 0 10px">מכר והמלצה להזמנה</h3>
+    <div class="sl-report">
+      <svg viewBox="0 0 34 34" aria-hidden="true" width="34" height="34"><rect x="4" y="2" width="24" height="30" rx="4" fill="#e3f4e8"/><path d="M10 11h12M10 16h12M10 21h8" stroke="#1b6b34" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <div class="t"><b id="slRepName"></b><span id="slRepMeta"></span></div>
+      <label class="sl-upl entry-only">העלאת דוח<input type="file" id="slFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+    </div>
+    <div class="sl-wkctrl" id="slWkCtrl"></div>
+    <div id="slImport" hidden></div>
+    <div id="slEmpty" class="sl-note" style="margin-top:10px">כשמעלים את דוח המכר השבועי מהמשרד, כאן יופיעו המכר לפי יום, שבוע ומצטבר, וההמלצה להזמנה. אפשר להעלות כל יום את הדוח המצטבר: הוא מחליף את הקודם של אותו שבוע.</div>
+    <div class="sl-view" id="slView" role="tablist"><button type="button" data-v="sales">📊 המכר</button><button type="button" data-v="rec" class="on">🛒 ההמלצה</button></div>
+  </div>
+
+  <div id="slSalesBox" hidden>
+    <div class="sl-smode" id="slSmode"><button type="button" data-m="day" class="on">יומי</button><button type="button" data-m="week">שבועי</button><button type="button" data-m="cum">מצטבר</button></div>
+    <div class="sl-sdays" id="slSdays"></div>
+    <p class="sl-cover" id="slSdesc"></p>
+    <div class="sl-cats" id="slScats"></div>
+    <div class="sl-alltotal" id="slAllTotal"></div>
+    <div class="sl-chart" id="slChart" aria-hidden="true"></div>
+    <div class="sl-total"><div class="big" id="slStotal"></div><div class="meta" id="slSmeta"></div></div>
+    <div class="list" id="slSitems"></div>
+  </div>
+
+  <div id="slLearn" hidden></div>
+
+  <div id="slRecBox" hidden>
+    <div class="sl-otype" id="slOtype"></div>
+    <p class="sl-cover" id="slCover"></p>
+    <div class="sl-morn" id="slMorn"></div>
+    <div class="sl-mode" id="slMode"></div>
+    <div class="sl-holiday" id="slHoliday" hidden></div>
+    <div class="sl-cats" id="slCats"></div>
+    <div class="sl-total"><div class="big" id="slTotal"></div><div class="meta" id="slTmeta"></div></div>
+    <div id="slItems"></div>
+    <div class="sl-actions"><button class="btn" type="button" id="slCopy">העתקה</button><button class="btn sl-alt" type="button" id="slReset">חזרה להמלצה</button></div>
+    <p class="sl-note" id="slNote"></p>
+  </div>
+  <button type="button" class="sl-mapbtn" id="slMapBtn" hidden>שיוך פריטים מהדוח למוצרים ▾</button>
+  <div id="slMap" class="controls" hidden></div>
+</div>
 <!-- INVENTORY PAGE -->
 <div id="page-inventory" class="page">
   <div class="controls">
     <h3>ספירת מלאי סוף חודש</h3>
-    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button></div>
+    <div class="inv-tabs"><button type="button" id="tabBeef" class="active" onclick="setInvTab('beef')">בקר</button><button type="button" id="tabLamb" onclick="setInvTab('lamb')">כבש</button><button type="button" id="tabChicken" onclick="setInvTab('chicken')">עוף</button><button type="button" id="tabSupply" onclick="setInvTab('supply')">ציוד</button></div>
     <div style="margin:0 0 10px;font-size:15px">ספירה לחודש: <input type="month" id="invMonth" style="font-size:15px" onchange="setInvMonth(this.value)"></div>
     <div id="invTotals" class="inv-totals"></div>
     <div class="inv-progress"><div class="ip-bar"><i id="ipFill"></i></div><span id="ipText"></span></div>
     <input type="search" id="invSearch" placeholder="🔍 חיפוש מוצר…" oninput="renderInventory()" autocomplete="off">
-    <button class="btn entry-only" onclick="saveInventory()">שמור מלאי</button>
+    <div id="invDoneBox" hidden></div>
+    <button class="btn entry-only" id="invFinishBtn" type="button" onclick="openFinish()">סיום ספירה</button>
+    <div id="invFinishNote" class="kv-note entry-only" hidden></div>
     <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
   </div>
   <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:0 0 10px;">
@@ -428,6 +895,24 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
   </div>
   <div id="inventoryList"></div>
 </div>
+<div id="uiDlg" hidden>
+  <div class="dl-dim"></div>
+  <div class="dl-card" role="alertdialog" aria-modal="true" aria-labelledby="dlTitle" aria-describedby="dlText">
+    <div class="dl-icon" id="dlIcon" aria-hidden="true"></div>
+    <h3 id="dlTitle"></h3>
+    <div id="dlText"></div>
+    <div class="dl-btns" id="dlBtns"><button type="button" class="dl-no" id="dlNo"></button><button type="button" class="dl-yes" id="dlYes"></button></div>
+  </div>
+</div>
+<div id="finishSheet" hidden>
+  <div class="fs-dim" onclick="closeFinish()"></div>
+  <div class="fs-card" role="dialog" aria-modal="true" aria-labelledby="fsTitle">
+    <h3 id="fsTitle"></h3>
+    <div class="inv-totals" id="fsTotals"></div>
+    <div id="fsMissing"></div>
+    <div class="fs-btns"><button class="btn" type="button" style="background:#fff;color:var(--ink);border:1px solid var(--line)" onclick="closeFinish()">חזרה לספירה</button><button class="btn" type="button" id="fsGo" onclick="doFinish()">סיום ושליחה</button></div>
+  </div>
+</div>
 
 <script>
 const beefProducts = [
@@ -436,21 +921,31 @@ const beefProducts = [
 ];
 const poultryGroups = [
   ['עוף', ["חזה עוף","שניצל","עוף שלם","עוף צעיר","כרעיים","כרעיים מקוצב","יריכיים","שוקיים","כרעיים ללא גב","יריכיים ללא גב",
-           "כנפיים","שוקיית","כנפית","פרגית","מעורב ירושלמי","מעורב ישראלי","רצועות חזה","דואט למרק",
+           "כנפיים","שוקיית","כנפית","פרגית","מעורב ירושלמי","מעורב ישראלי","רצועות חזה","רצועות חזה להקפצה","דואט למרק",
            "קורקבן עוף","לבבות עוף","כבד עוף","טחול עוף","גרון עוף"]],
-  ['הודו', ["הודו שלם","גרון הודו","חזה הודו","ירך הודו","שוקיים הודו","כנפיים הודו","שווארמה הודו","רצועות שווראמה",
+  ['הודו', ["הודו שלם","גרון הודו","חזה הודו","ירך הודו","שוקיים הודו","כנפיים הודו","שווארמה הודו",
+            "שוק מפורק טרי","שווארמה נקבה טרי",
             "קורקבן הודו","לבבות הודו","כבד הודו","טחול הודו","אשכי הודו"]],
   ['ארוזים', ["כרעיים ארוז","שוקיים ארוז","חזה ארוז","שניצל ארוז","פרגית ארוז"]]
 ];
 const poultryProducts = poultryGroups.flatMap(g => g[1]);
 const lambGroups = [
-  ['כבש', ["רבע כבש","שוק כבש","חזה כבש","צוואר כבש","צלעות כבש","שומן כבש"]],
-  ['כבש מעובד', ["רבע כבש מעובד","שוק כבש מעובד","חזה כבש מעובד","צוואר כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
+  ['כבש', ["רבע כבש","כתף כבש","חזה כבש","צוואר כבש","צלעות כבש","שומן כבש"]],
+  ['כבש מעובד', ["רבע כבש מעובד","כתף כבש מעובד","חזה כבש מעובד","צוואר כבש מעובד","צלעות כבש מעובד","שומן כבש מעובד"]]
 ];
 const lambProducts = lambGroups.flatMap(g => g[1]);
-const products = beefProducts.concat(lambProducts, poultryProducts); // one list, so every product has a fixed index
-// beef and lamb are reported together, chicken and turkey together
-function familyOf(cat) { return ['עוף', 'הודו', 'ארוזים'].includes(cat) ? 'poultry' : 'meat'; }
+// supplies and equipment: counted in units, never part of the kg totals
+const supplyGroups = [
+  ['שונות', ['פירורי לחם', 'תבלין לשווארמה']],
+  ['פלסטונים', ['פלסטון עוף עוז', 'פלסטון עוף הגליל', 'פלסטון חמש קצבים', 'פלסטון מססה']],
+  ['משטחים', ['משטחים']]
+];
+const supplyProducts = supplyGroups.flatMap(g => g[1]);
+const products = beefProducts.concat(lambProducts, poultryProducts, supplyProducts); // one list, so every product has a fixed index (new ones only at the end)
+// beef and lamb are reported together, chicken and turkey together; supplies apart
+function familyOf(cat) { return ['עוף', 'הודו', 'ארוזים'].includes(cat) ? 'poultry' : supplyGroups.some(g => g[0] === cat) ? 'supply' : 'meat'; }
+function isUnit(p) { return supplyProducts.includes(p); }
+function qtyText(p, v) { return isUnit(p) ? Math.round(v) + ' יח׳' : fmt(v) + ' ק״ג'; }
 let invTab = 'beef';
 
 const names = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור', iron:'איירון סטייק' };
@@ -464,6 +959,37 @@ try { mgrMode = localStorage.getItem('appMode') === 'manager'; } catch(e) {}
 document.getElementById('dateInput').value = ymd(new Date()); // local date (valueAsDate would give yesterday before 03:00)
 document.getElementById('dateInput').max = ymd(new Date());
 document.getElementById('dateInput').addEventListener('change', updateDisplay);
+
+// ---------- In-app dialogs (instead of the browser's plain "the site says" boxes) ----------
+// ask({ title, text, html, ok, cancel, danger, icon }) -> Promise<true|false>; a message has no cancel button.
+let dlgOpen = false, dlgQueue = Promise.resolve();
+function ask(o) {
+  const run = () => new Promise(resolve => {
+    const el = document.getElementById('uiDlg');
+    if (!el) { resolve(o.cancel === false ? true : window.confirm(o.title + (o.text ? '\n' + o.text : ''))); return; }
+    const yes = document.getElementById('dlYes'), no = document.getElementById('dlNo'), icon = document.getElementById('dlIcon');
+    document.getElementById('dlTitle').textContent = o.title || '';
+    const t = document.getElementById('dlText');
+    if (o.html) t.innerHTML = o.html; else t.textContent = o.text || '';
+    t.hidden = !o.html && !o.text;
+    icon.className = 'dl-icon' + (o.icon === 'warn' ? ' warn' : o.icon === 'info' ? ' info' : '');
+    icon.textContent = o.icon === 'warn' ? '!' : o.icon === 'info' ? 'i' : o.icon === 'trash' ? '🗑' : '?';
+    yes.textContent = o.ok || 'אישור'; yes.classList.toggle('danger', !!o.danger);
+    no.textContent = o.cancel || 'ביטול'; no.hidden = o.cancel === false;
+    document.getElementById('dlBtns').classList.toggle('one', o.cancel === false);
+    const done = v => { el.hidden = true; dlgOpen = false; yes.onclick = no.onclick = null; document.removeEventListener('keydown', key, true);
+      if (back && back.tagName === 'INPUT' && document.contains(back)) back.focus(); resolve(v); };
+    const key = e => { if (e.key === 'Escape') { e.preventDefault(); done(o.cancel === false); } else if (e.key === 'Enter') { e.preventDefault(); done(true); } };
+    yes.onclick = () => done(true); no.onclick = () => done(false);
+    el.querySelector('.dl-dim').onclick = () => done(o.cancel === false);
+    document.addEventListener('keydown', key, true);
+    const back = document.activeElement; if (back && back.blur) back.blur();
+    dlgOpen = true; el.hidden = false; setTimeout(() => yes.focus(), 30);
+  });
+  const p = dlgQueue.then(run); dlgQueue = p.catch(() => {}); return p;
+}
+// every message in the app uses the same dialog
+window.alert = m => { m = String(m); ask(m.length > 45 ? { title: 'שימו לב', text: m, cancel: false, ok: 'הבנתי', icon: 'info' } : { title: m, cancel: false, ok: 'הבנתי', icon: 'info' }); };
 
 let okTimer;
 function showOk(text) {
@@ -480,11 +1006,14 @@ function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  const nb = { weigh:'btnWeigh', inventory:'btnInv', mgr:'btnMgr' }[page];
+  const nb = { weigh:'btnWeigh', inventory:'btnInv', mgr:'btnMgr', sales:'btnSales', mgrsp:'btnSp', sp:'btnSp' }[page];
   if (nb) document.getElementById(nb).classList.add('active');
   if (page === 'settings') { renderSettings(); window.scrollTo(0, 0); }
-  document.getElementById('mgrBranchPick').hidden = !mgrMode || page === 'mgr';
+  document.getElementById('mgrBranchPick').hidden = !mgrMode || page === 'mgr' || page === 'mgrsp';
+  if (page === 'mgrsp' && typeof spRenderMgr === 'function') { spRenderMgr(); window.scrollTo(0, 0); }
+  if (page === 'sp' && typeof spRenderBranch === 'function') { spRenderBranch(); window.scrollTo(0, 0); }
   if (page === 'inventory') { renderInventory(); if (branch.url) syncNow(); }
+  if (page === 'sales' && typeof renderSalesPage === 'function') { renderSalesPage(); window.scrollTo(0, 0); }
 }
 
 function canEnterSold(dateStr) {
@@ -554,7 +1083,8 @@ document.getElementById('dateInput').addEventListener('change', syncDateForType)
 document.getElementById('convTo').addEventListener('change', () => { syncDateForType(); if (document.getElementById('convTo').value === 'אחר') document.getElementById('convOther').focus(); });
 syncTypeForMeat();
 
-function addWeight() {
+async function addWeight() {
+  if (dlgOpen) return;
   const meat = document.getElementById('meatSelect').value;
   const type = document.getElementById('typeSelect').value;
   const date = document.getElementById('dateInput').value;
@@ -563,7 +1093,7 @@ function addWeight() {
   if (!date || !parts.length || parts.some(x => !/^\d+(\.\d+)?$/.test(x))) { alert('נא למלא תאריך ומשקל (מספרים בלבד, למשל 12.5 או כמה מגשים: 5.2 4.8)'); return; }
   const nums = parts.map(Number);
   const weight = Math.round(nums.reduce((a, n) => a + n, 0) * 1000) / 1000;
-  if (nums.some(n => n <= 0) && !(type === 'sold' && nums.length === 1)) { alert('המשקל צריך להיות גדול מ־0'); return; }
+  if (nums.some(n => n <= 0) && !((type === 'sold' || type === 'close') && nums.length === 1)) { alert('המשקל צריך להיות גדול מ־0'); return; }
   if (meat === 'iron' && type !== 'sold') { alert('איירון סטייק נרשם רק בנמכר'); return; }
   if (type === 'xfer' && meat !== 'oven') { alert('העברה לאנטריקוט נרשמת רק מאנטריקוט לתנור'); return; }
   if (type === 'xfer2' && meat !== 'entrecote') { alert('העברה לתנור נרשמת רק מאנטריקוט'); return; }
@@ -571,12 +1101,16 @@ function addWeight() {
     alert('אי אפשר לרשום לתאריך עתידי');
     return;
   }
-  if (type === 'sold' && date === ymd(new Date()) && !confirm('הנמכר של היום מגיע רק מחר. לרשום אותו בכל זאת לתאריך של היום?')) return;
-  if (type === 'close' && date === ymd(new Date()) && !confirm('הסגירה של היום נשקלת רק מחר בבוקר. לרשום אותה בכל זאת לתאריך של היום?')) return;
+  if (type === 'sold' && date === ymd(new Date()) && !await ask({ title: 'לרשום נמכר להיום?', text: 'הנמכר של היום מגיע בדרך כלל רק מחר.', ok: 'כן, להיום', cancel: 'לא', icon: 'warn' })) return;
+  if (type === 'close' && date === ymd(new Date()) && !await ask({ title: 'לרשום סגירה להיום?', text: 'הסגירה של היום נשקלת בדרך כלל רק מחר בבוקר.', ok: 'כן, להיום', cancel: 'לא', icon: 'warn' })) return;
   let convTarget = document.getElementById('convTo').value;
   if (type === 'conv' && convTarget === 'אחר') {
-    convTarget = document.getElementById('convOther').value.replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e]/g, '').replace(/\s+/g, ' ').trim();
+    convTarget = document.getElementById('convOther').value.replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff\u061c]/g, '').replace(/\s+/g, ' ').trim();
     if (!convTarget) { alert('כתבו לאיזה מוצר הומר הבשר (למשל אונטריב)'); document.getElementById('convOther').focus(); return; }
+  }
+  if (type === 'conv' || type === 'waste') {
+    const st = stockFor(buildDays()[meat] || {}, date).stock;
+    if (weight > st + 0.005 && !await ask({ title: 'זה יותר ממה שיש במלאי', html: `במלאי של ${esc(names[meat])} יש רק <b>${f2(Math.max(0, st))} ק״ג</b>, ורושמים <b>${f2(weight)} ק״ג</b>.`, ok: 'לרשום בכל זאת', cancel: 'חזרה', icon: 'warn' })) return;
   }
   const tLabel = type === 'conv' ? 'המרה ל' + convTarget : typeNames[type];
   const entry = { id: newId(), dev: myDev, by: worker, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: tLabel, weight: weight.toFixed(2) };
@@ -812,8 +1346,8 @@ function aggregate(segs) {
   const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, conv:0, waste:0, n:0, waiting:0, missing:[] };
   segs.forEach(s => {
     a.missing.push(...s.missing);
-    a.conv += s.conv || 0; a.waste += s.waste || 0;
     if (s.pending) { a.waiting++; return; }
+    a.conv += s.conv || 0; a.waste += s.waste || 0;
     a.went += s.went; a.sold += s.sold; a.iron += s.iron; a.recv += s.recv; a.prep += s.prep; a.n += 1 + s.missing.length;
   });
   return a;
@@ -832,9 +1366,14 @@ function missingText(list) {
 }
 
 function setCard(k) { cardSel = k; if (cardsBuilt) renderProdTabs(); }
+function pickCard(k) {
+  setCard(k);
+  const ms = document.getElementById('meatSelect');
+  if (ms.value !== k && !(k === 'shoulder' && ms.value === 'iron')) { ms.value = k; syncTypeForMeat(); syncDateForType(); }
+}
 function renderProdTabs() {
   const el = document.getElementById('prodTabs'); if (!el) return;
-  el.innerHTML = cardDefs.map(([k, n]) => `<button type="button" class="${k === cardSel ? 'active' : ''}" onclick="setCard('${k}')"><span class="dot ${prodStatus[k] || 'none'}"></span>${k === 'oven' ? 'לתנור' : n}</button>`).join('');
+  el.innerHTML = cardDefs.map(([k, n]) => `<button type="button" class="${k === cardSel ? 'active' : ''}" onclick="pickCard('${k}')"><span class="dot ${prodStatus[k] || 'none'}"></span>${k === 'oven' ? 'לתנור' : n}</button>`).join('');
   document.querySelectorAll('#cards .meat-card').forEach(c => c.classList.toggle('shown', c.dataset.k === cardSel));
 }
 function updateAnalysis(days) {
@@ -909,26 +1448,27 @@ function renderWorker() {
     : `<button type="button" class="link-btn" onclick="openBranch(false, true)">הוסף את השם שלך</button> כדי שיראו מי רשם`;
 }
 
-function deleteLast() {
+async function deleteLast() {
   // removes the latest weighing made on this phone (never one another phone recorded)
   let idx = -1;
   history.forEach((h, i) => { if ((!h.dev || h.dev === myDev) && (idx < 0 || createdAt(h.id) > createdAt(history[idx].id))) idx = i; });
   if (idx < 0) { alert('אין שקילה שנרשמה בטלפון הזה'); return; }
   const h = history[idx];
-  if (!confirm(`למחוק את השקילה האחרונה שנרשמה בטלפון הזה?\n${h.date} ${h.time} · ${h.meat} (${h.type}) · ${h.weight} ק״ג`)) return;
+  if (!await ask({ title: 'למחוק את השקילה האחרונה?', icon: 'trash', ok: 'מחיקה', cancel: 'ביטול', danger: true,
+    html: `<div class="dl-box"><b>${esc(h.meat)} · ${esc(h.type)}</b><div class="dl-w">${esc(h.weight)} ק״ג</div><small>${esc(shortDate(h.date))} · ${esc(h.time)}${h.by ? ' · ' + esc(h.by) : ''}</small></div>` })) return;
   const removed = history.splice(idx, 1)[0];
   if (removed.id) queueOps([{ op:'del', id: removed.id }]);
   updateDisplay(); renderHistory(); saveData();
 }
 
-function resetAll() {
-  if (!confirm(branch.url ? 'לאפס את הנתונים בטלפון הזה? השקילות שבגיליון של החברה לא נמחקות ויחזרו בסנכרון הבא.' : 'לאפס הכל?')) return;
+async function resetAll() {
+  if (!await ask({ title: 'לאפס את הנתונים בטלפון הזה?', text: branch.url ? 'השקילות שבגיליון של החברה לא נמחקות, והן יחזרו בסנכרון הבא.' : 'כל השקילות בטלפון יימחקו.', ok: 'איפוס', cancel: 'ביטול', danger: true, icon: 'warn' })) return;
   history = [];
   updateDisplay(); renderHistory(); saveData();
 }
 
 function exportToExcel() {
-  if (typeof XLSX === 'undefined') { alert('טוען ספרייה...'); return; }
+  if (typeof XLSX === 'undefined') { alert(navigator.onLine === false ? 'לייצוא לאקסל צריך אינטרנט. נסו שוב כשיש חיבור.' : 'טוען את האקסל… נסו שוב בעוד כמה שניות'); return; }
   if (!history.length) { alert('אין נתונים'); return; }
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
@@ -979,9 +1519,10 @@ function exportToExcel() {
     [...new Set(dates.map(keyOfDate))].forEach(p => {
       PK.forEach(k => {
         const a = aggregate(segs[k].filter(s => keyOfDate(s.end) === p));
-        let prep = 0, recv = 0, conv = 0, waste = 0;
-        Object.keys(days[k]).forEach(d => { if (keyOfDate(d) === p) { prep += days[k][d].prep; recv += days[k][d].recv; conv += days[k][d].conv; waste += days[k][d].waste; } });
-        if (!a.n && !prep && !recv && !conv && !waste) return;
+        let prep = 0, recv = 0;
+        const conv = a.conv, waste = a.waste;
+        Object.keys(days[k]).forEach(d => { if (keyOfDate(d) === p) { prep += days[k][d].prep; recv += days[k][d].recv; } });
+        if (!a.n && !a.waiting && !prep && !recv && !conv && !waste) return;
         const cw = [conv ? r2(conv) : '', waste ? r2(waste) : ''];
         const name = names[k] + (k === 'shoulder' ? ' (נמכר כולל איירון)' : '');
         if (!a.n) { rows.push([labelOf(p), name, r2(prep), r2(recv), ...cw, '', '', '', '', '', '', a.waiting ? 'ממתין לנמכר' : 'חסרות סגירות', '', a.missing.map(dm).join(', ')]); return; }
@@ -1014,12 +1555,12 @@ function defaultInvMonth() { // the first week of a month still counts as the en
 let invMonth = defaultInvMonth();
 function catOf(p) {
   if (beefProducts.includes(p)) return p.includes('מעובד') ? 'בקר מעובד' : 'בקר';
-  const g = poultryGroups.concat(lambGroups).find(([, items]) => items.includes(p));
+  const g = poultryGroups.concat(lambGroups, supplyGroups).find(([, items]) => items.includes(p));
   return g ? g[0] : '';
 }
 function invOf(p) { return invEvents.filter(e => e.month === invMonth && e.product === p).sort((a, b) => createdAt(a.id) - createdAt(b.id)); }
 function invValue(p) { return Math.round(invOf(p).reduce((a, e) => a + e.w, 0) * 1000) / 1000; }
-function persistInventory() { if (mgrMode) return; try { localStorage.setItem('invEvents', JSON.stringify(invEvents)); } catch(e) {} }
+function persistInventory() { if (mgrMode) return; try { localStorage.setItem('invEvents', JSON.stringify(invEvents)); } catch(e) { storageWarn(e); } }
 
 function invRow(p) {
   const i = products.indexOf(p);
@@ -1028,7 +1569,7 @@ function invRow(p) {
   if (p === selectedProduct) cls += ' selected';
   return `<div class="${cls}" data-idx="${i}" onclick="selectProduct(${i})" style="cursor:pointer">
       <span>${p}</span>
-      <span class="inv-val">${invValue(p) ? fmt(invValue(p)) + ' ק״ג' : 'לא נספר'}</span>
+      <span class="inv-val">${invValue(p) ? qtyText(p, invValue(p)) : 'לא נספר'}</span>
     </div>`;
 }
 
@@ -1037,18 +1578,19 @@ function renderInventory() {
   const q = (document.getElementById('invSearch') || {}).value || '';
   const groups = g => g.map(([name, items]) => { const shown = items.filter(p => p.includes(q.trim())); return shown.length ? `<div class="inv-group">${name}</div>` + shown.map(invRow).join('') : ''; }).join('');
   const beefGroups = [['בקר', beefProducts.filter(p => !p.includes('מעובד'))], ['בקר מעובד', beefProducts.filter(p => p.includes('מעובד'))]];
-  el.innerHTML = (invTab === 'beef' ? groups(beefGroups) : invTab === 'lamb' ? groups(lambGroups) : groups(poultryGroups)) || '<div class="kv-note" style="text-align:center;padding:20px">לא נמצא מוצר</div>';
+  el.innerHTML = (invTab === 'beef' ? groups(beefGroups) : invTab === 'lamb' ? groups(lambGroups) : invTab === 'supply' ? groups(supplyGroups) : groups(poultryGroups)) || '<div class="kv-note" style="text-align:center;padding:20px">לא נמצא מוצר</div>';
   const m = document.getElementById('invMonth'); if (m && m.value !== invMonth) m.value = invMonth;
   renderInvTotals();
+  renderInvDone();
 }
 
 function invTotals() {
-  const t = { meat: 0, poultry: 0 };
+  const t = { meat: 0, poultry: 0, supply: 0 };
   invEvents.forEach(e => { if (e.month === invMonth && products.includes(e.product)) t[familyOf(catOf(e.product))] += e.w; });
   return { meat: t.meat, poultry: t.poultry, all: t.meat + t.poultry };
 }
 function renderProgress() {
-  const list = invTab === 'beef' ? beefProducts : invTab === 'lamb' ? lambProducts : poultryProducts;
+  const list = invTab === 'beef' ? beefProducts : invTab === 'lamb' ? lambProducts : invTab === 'supply' ? supplyProducts : poultryProducts;
   const done = list.filter(p => invValue(p) > 0).length;
   const fill = document.getElementById('ipFill'); if (!fill) return;
   fill.style.width = (done / list.length * 100) + '%';
@@ -1066,6 +1608,7 @@ function setInvTab(t) {
   document.getElementById('tabBeef').classList.toggle('active', t === 'beef');
   document.getElementById('tabChicken').classList.toggle('active', t === 'chicken');
   document.getElementById('tabLamb').classList.toggle('active', t === 'lamb');
+  document.getElementById('tabSupply').classList.toggle('active', t === 'supply');
   selectedProduct = null;
   document.getElementById('calcPanel').style.display = 'none';
   renderInventory();
@@ -1084,7 +1627,10 @@ function refreshRow(product, flash) {
   const i = products.indexOf(product);
   const row = document.querySelector(`#inventoryList [data-idx="${i}"]`);
   if (!row) { renderInventory(); return; }
-  row.querySelector('.inv-val').textContent = fmt(invValue(product)) + ' ק״ג';
+  const v = invValue(product);
+  row.querySelector('.inv-val').textContent = v ? qtyText(product, v) : 'לא נספר';
+  row.classList.toggle('empty', !v);
+  renderProgress();
   if (flash) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
   renderInvTotals();
 }
@@ -1092,7 +1638,7 @@ function refreshRow(product, flash) {
 function refreshCalc() {
   const p = selectedProduct;
   if (!p) return;
-  document.getElementById('calcCurrent').textContent = fmt(invValue(p));
+  document.getElementById('calcCurrent').textContent = isUnit(p) ? Math.round(invValue(p)) + ' יח׳' : fmt(invValue(p));
   const steps = invOf(p).map(e => e.w);
   document.getElementById('calcSteps').textContent = steps.length > 1 ? steps.join(' + ') + ' = ' + fmt(invValue(p)) : '';
 }
@@ -1100,7 +1646,8 @@ function refreshCalc() {
 function selectProduct(i) {
   selectedProduct = products[i];
   document.getElementById('calcPanel').style.display = 'block';
-  document.getElementById('calcProductName').textContent = selectedProduct;
+  document.getElementById('calcProductName').textContent = selectedProduct + (isUnit(selectedProduct) ? ' · סופרים ביחידות' : '');
+  document.getElementById('calcInput').placeholder = isUnit(selectedProduct) ? 'כמה יחידות' : 'משקל';
   document.querySelectorAll('#inventoryList .inventory-item').forEach(r => r.classList.toggle('selected', r.dataset.idx == i));
   refreshCalc();
   const input = document.getElementById('calcInput');
@@ -1119,6 +1666,7 @@ function calcAdd() {
   const nums = parseNumbers(input.value.trim());
   if (!nums.length) return;
   if (nums.some(n => isNaN(n) || n <= 0)) { alert('מספר לא תקין'); return; }
+  if (isUnit(selectedProduct) && nums.some(n => !Number.isInteger(n))) { alert('את ' + selectedProduct + ' סופרים ביחידות: מספר שלם, למשל 12'); return; }
   const p = selectedProduct, cat = catOf(p), ord = products.indexOf(p);
   const added = nums.map(n => ({ id: newId(), month: invMonth, product: p, w: n, dev: myDev, by: worker, cat, ord }));
   invEvents.push(...added);
@@ -1142,11 +1690,11 @@ function calcUndo() {
   refreshRow(selectedProduct, true);
 }
 
-function calcClear() {
+async function calcClear() {
   if (!selectedProduct) return;
   const all = invOf(selectedProduct);
   if (!all.length) return;
-  if (!confirm('לאפס את ' + selectedProduct + ' לחודש הזה? זה מוחק גם ספירות של טלפונים אחרים בסניף.')) return;
+  if (!await ask({ title: 'לאפס את ' + selectedProduct + '?', text: 'זה מוחק את כל הספירה של המוצר לחודש הזה, גם מטלפונים אחרים בסניף.', ok: 'איפוס', cancel: 'ביטול', danger: true, icon: 'warn' })) return;
   const ids = new Set(all.map(e => e.id));
   invEvents = invEvents.filter(e => !ids.has(e.id));
   persistInventory();
@@ -1184,13 +1732,77 @@ function mergeRemoteInv(list, since) {
   }
 }
 
+// ---------- Finishing a month's count ----------
+// Only the department manager (the name in the branch details) finishes; the sheet then makes a separate file for that count.
+let invDone = {}; // month -> { by, at, total, missing, url, updated, pending }
+try { invDone = JSON.parse(localStorage.getItem('invDone') || '{}') || {}; } catch (e) {}
+function persistDone() { if (mgrMode) return; try { localStorage.setItem('invDone', JSON.stringify(invDone)); } catch (e) { storageWarn(e); } }
+const nameKey = s => cleanKey(s).replace(/\s+/g, ' ');
+function isDeptManager() { const m = nameKey(branch.manager); return !!m && nameKey(worker) === m; }
+function doneWhen(at) { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); }
+function monthLabel(m) { return ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][+m.slice(5) - 1] + ' ' + m.slice(0, 4); }
+function renderInvDone() {
+  const box = document.getElementById('invDoneBox'); if (!box) return;
+  const d = invDone[invMonth];
+  box.hidden = !d;
+  if (d) box.innerHTML = `<b>✓ הספירה של ${monthLabel(invMonth)} הסתיימה</b>${esc(doneWhen(d.at))} · ${esc(d.by || '')} · ${fmt(d.total || 0)} ק״ג`
+    + `<br><small>${d.pending ? 'נשלח לגיליון של החברה…' : d.url ? '✓ נוצר קובץ בדרייב של החברה' + (d.updated ? ' · עודכן אחרי הסיום ' + esc(doneWhen(d.updated)) : '') : branch.url ? '' : 'הקובץ נשמר בטלפון'}</small>`;
+  const btn = document.getElementById('invFinishBtn'), note = document.getElementById('invFinishNote');
+  if (!btn) return;
+  const can = isDeptManager();
+  btn.hidden = !can || mgrMode;
+  btn.textContent = d ? 'עדכון סיום הספירה' : 'סיום ספירה';
+  note.hidden = can || mgrMode;
+  note.textContent = branch.manager ? `את הספירה מסיים מנהל המחלקה (${branch.manager})` : 'כדי לסיים ספירה, מלאו בהגדרות את שם מנהל המחלקה';
+}
+function openFinish() {
+  if (!isDeptManager()) { alert('את הספירה מסיים מנהל המחלקה'); return; }
+  const t = invTotals(), missing = products.filter(p => !invValue(p));
+  document.getElementById('fsTitle').textContent = (invDone[invMonth] ? 'לעדכן את סיום ספירת ' : 'לסיים את ספירת ') + monthLabel(invMonth) + '?';
+  document.getElementById('fsTotals').innerHTML = `<div>בקר וכבש<b>${fmt(t.meat)}</b></div><div>עוף והודו<b>${fmt(t.poultry)}</b></div><div>סה״כ כולל<b>${fmt(t.all)}</b></div>`;
+  document.getElementById('fsMissing').innerHTML = missing.length
+    ? `<div class="fs-warn"><b>${missing.length === 1 ? 'מוצר אחד לא נספר' : missing.length + ' מוצרים לא נספרו'}</b>`
+      + (missing.length > 10 ? ` (${[['בקר', beefProducts], ['כבש', lambProducts], ['עוף והודו', poultryProducts], ['ציוד', supplyProducts]].map(([n, l]) => [n, l.filter(p => missing.includes(p)).length]).filter(x => x[1]).map(x => x[0] + ' ' + x[1]).join(' · ')})` : '')
+      + `: ${missing.slice(0, 10).map(esc).join(', ')}${missing.length > 10 ? ' ועוד ' + (missing.length - 10) : ''}.<br>אם אין מהם במלאי, אפשר לסיים. הם יירשמו כ־0.</div>`
+    : '<div class="fs-ok">✓ כל המוצרים נספרו</div>';
+  document.getElementById('fsGo').textContent = branch.url ? 'סיום ושליחה' : 'סיום ושמירת קובץ';
+  document.getElementById('finishSheet').hidden = false;
+}
+function closeFinish() { document.getElementById('finishSheet').hidden = true; }
+function doFinish() {
+  if (!isDeptManager()) return;
+  const t = invTotals(), r3 = n => Math.round(n * 1000) / 1000;
+  const missing = products.filter(p => !invValue(p)).map(p => ({ p, cat: catOf(p), ord: products.indexOf(p) }));
+  const rec = { month: invMonth, by: worker, at: new Date().toISOString(), total: r3(t.all), meat: r3(t.meat), poultry: r3(t.poultry), missing };
+  invDone[invMonth] = Object.assign({}, rec, { missing: missing.length, pending: !!branch.url });
+  persistDone();
+  closeFinish();
+  renderInvDone();
+  try { exportInventory(); } catch (e) {}
+  if (branch.url) { queueOps([{ op: 'invDone', d: rec }]); syncNow(); }
+  showOk('✓ הספירה של ' + monthLabel(invMonth) + ' הסתיימה' + (branch.url ? ' · נשלח לגיליון' : ''));
+}
+// what the sheet knows: which months are finished, and the link to each file
+function mergeDone(list) {
+  if (!Array.isArray(list)) return;
+  let changed = false;
+  list.forEach(s => {
+    if (!s || !/^\d{4}-\d{2}$/.test(s.month)) return;
+    const l = invDone[s.month];
+    if (l && l.pending && new Date(l.at) > new Date(s.at)) return; // ours is newer and still on its way
+    invDone[s.month] = { by: s.by, at: s.at, total: Number(s.total) || 0, missing: Number(s.missing) || 0, url: s.url || '', updated: s.updated || '', pending: false };
+    changed = true;
+  });
+  if (changed) { persistDone(); renderInvDone(); }
+}
+
 function saveInventory(silent) {
   persistInventory();
   if (!silent) alert('מלאי נשמר' + (branch.url ? ' · נשלח גם לגיליון של החברה' : ''));
 }
 
 function exportInventory() {
-  if (typeof XLSX === 'undefined') { alert('טוען...'); return; }
+  if (typeof XLSX === 'undefined') { alert(navigator.onLine === false ? 'לייצוא לאקסל צריך אינטרנט. נסו שוב כשיש חיבור.' : 'טוען את האקסל… נסו שוב בעוד כמה שניות'); return; }
   saveInventory(true);
   const row = p => [p, invValue(p), invOf(p).map(e => e.w).join(' + ')];
   const beefRows = [['מוצר','משקל (ק״ג)','פירוט'], ...beefProducts.map(row)];
@@ -1201,8 +1813,12 @@ function exportInventory() {
   const wb = XLSX.utils.book_new();
   wb.Workbook = { Views: [{ RTL: true }] };
   const t = invTotals(), r3 = n => Math.round(n * 1000) / 1000;
-  addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)], ['סה״כ בקר וכבש (ק״ג)', r3(t.meat)], ['סה״כ עוף והודו (ק״ג)', r3(t.poultry)], ['סה״כ כולל (ק״ג)', r3(t.all)]]);
-  [[beefRows, 'בקר'], [lambRows, 'כבש'], [poultryRows, 'עוף']].forEach(([rows, name]) => {
+  const fin = invDone[invMonth];
+  addBranchSheet(wb, [['חודש ספירה', invMonth.slice(5) + '/' + invMonth.slice(0, 4)], ['סה״כ בקר וכבש (ק״ג)', r3(t.meat)], ['סה״כ עוף והודו (ק״ג)', r3(t.poultry)], ['סה״כ כולל (ק״ג)', r3(t.all)]]
+    .concat(fin ? [['הספירה הסתיימה', doneWhen(fin.at) + ' · ' + (fin.by || '')]] : []));
+  const supplyRows = [['פריט','כמות (יח׳)','פירוט']];
+  supplyGroups.forEach(([g, items], n) => { if (n) supplyRows.push([]); supplyRows.push([g]); items.forEach(p => supplyRows.push([p, Math.round(invValue(p)), invOf(p).map(e => e.w).join(' + ')])); });
+  [[beefRows, 'בקר'], [lambRows, 'כבש'], [poultryRows, 'עוף'], [supplyRows, 'ציוד']].forEach(([rows, name]) => {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, ws, name);
@@ -1210,7 +1826,14 @@ function exportInventory() {
   XLSX.writeFile(wb, 'מלאי_' + branchFilePart() + invMonth + '.xlsx');
 }
 
-function saveData() { if (mgrMode) return; try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) {} }
+function saveData() { if (mgrMode) return; try { localStorage.setItem('meatWeighing', JSON.stringify({history})); } catch(e) { storageWarn(e); } }
+// the phone's storage for the app is full (after a long time with many weighings): say so once, instead of failing silently
+let storageWarned = false;
+function storageWarn(e) {
+  if (storageWarned || !e || !/quota|exceeded|full/i.test((e.name || '') + ' ' + (e.message || ''))) return;
+  storageWarned = true;
+  setTimeout(() => { try { alert('הזיכרון של האפליקציה בטלפון התמלא, ולכן ייתכן שהשינוי האחרון לא נשמר בטלפון. כל מה שנשלח לגיליון שמור שם. כדאי לבדוק שיש קליטה ושהסנכרון הצליח, ולפנות אלינו.'); } catch (x) {} }, 50);
+}
 // The phone keeps the last 13 months of weighings and 24 months of stock counts; everything stays in the company sheet.
 // Anything still waiting to be sent is never removed.
 function pruneOld() {
@@ -1313,7 +1936,7 @@ function saveBranch() {
   renderWorker(); renderHistory();
   // On a new connection, send what this phone recorded (the sheet skips what it already has); deletes still waiting are kept
   if (newConn) {
-    const keep = syncQueue.filter(o => o.op === 'del' || o.op === 'invDel');
+    const keep = syncQueue.filter(o => ['del', 'invDel', 'invDone', 'sales', 'pref'].includes(o.op));
     const mine = x => !x.dev || x.dev === myDev;
     syncQueue = [];
     queueOps(history.filter(mine).reverse().map(entry => ({ op:'add', entry })).concat(invEvents.filter(mine).map(e => ({ op:'invAdd', e })), keep));
@@ -1407,8 +2030,8 @@ async function mgrRefresh() {
     mgrStore(d); enterMgr(d);
   } catch(e) { renderMgrBar('אין חיבור · מוצג המידע מהעדכון האחרון'); }
 }
-function mgrExit(silent) {
-  if (!silent && !confirm('לצאת ממצב מנהל אזור?')) return;
+async function mgrExit(silent) {
+  if (!silent && !await ask({ title: 'לצאת ממצב מנהל אזור?', ok: 'יציאה', cancel: 'ביטול' })) return;
   try {
     localStorage.removeItem('appMode'); localStorage.removeItem('mgrCache');
     const info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); localStorage.setItem('mgrInfo', JSON.stringify({ url: info.url || '' }));
@@ -1463,6 +2086,9 @@ function weekStartOf(ds) { const d = new Date(ds + 'T00:00:00'); d.setDate(d.get
 function weekLabel(ws) { const e = new Date(ws + 'T00:00:00'); e.setDate(e.getDate() + 5); return dm(ws) + ' עד ' + dm(ymd(e)); }
 function renderMgr() {
   const all = mgr.branches.map(b => ({ b, segs: mgrSegs(b) }));
+  // loss in shekels: the kg that went and were not sold × the cost per kg from the sheet's "הגדרות" (rows 10-12)
+  const hasPr = mgr.branches.some(b => PK.some(k => mgrPriceOf(b, k) > 0));
+  const nis = v => '₪' + Math.round(v).toLocaleString('he-IL');
   const judgeIn = (b, a) => { useSettings(b.settings || mgr.settings); return judge(a); };
   const ends = all.flatMap(x => PK.flatMap(k => x.segs[k].map(s => s.end))).sort();
   const lastWeek = ends.map(weekStartOf).sort().pop(), lastMonth = ends.map(e => e.slice(0, 7)).sort().pop();
@@ -1477,16 +2103,26 @@ function renderMgr() {
   const pname = { entrecote:'אנטריקוט', shoulder:'צלי כתף', oven:'אנטריקוט לתנור' };
   // red alerts: latest week and latest month, every branch
   const alerts = [];
-  const alertSets = alertWeeks.map(w => ['שבוע ' + weekLabel(w), s => weekStartOf(s.end) === w]).concat(alertMonths.map(m => ['חודש ' + mLabel(m), s => s.end.slice(0, 7) === m]));
-  all.forEach(({ b, segs }, i) => PK.forEach(k => alertSets.forEach(([label, inP]) => {
+  const alertSets = alertWeeks.map(w => ['שבוע ' + weekLabel(w), s => weekStartOf(s.end) === w, 'w' + w]).concat(alertMonths.map(m => ['חודש ' + mLabel(m), s => s.end.slice(0, 7) === m, 'm' + m]));
+  // a shortage this big is a case for the security officer (the thresholds are in the sheet's "הגדרות" tab)
+  const ks = mgr.settings || {}, KP = Number(ks.kabatPct) > 0 ? Number(ks.kabatPct) : 10, KKG = Number(ks.kabatKg) >= 0 ? Number(ks.kabatKg) : 5;
+  const kabat = [];
+  all.forEach(({ b, segs }, i) => PK.forEach(k => alertSets.forEach(([label, inP, key]) => {
     const a = aggregate(segs[k].filter(inP));
     if (!a.n) return;
     const j = judgeIn(b, a);
+    const miss = j.gap - j.exp; // missing beyond the allowed trim
+    if (j.cls === 'bad' && a.went > 0 && miss >= KKG && miss / a.went * 100 >= KP)
+      kabat.push({ id: b.name + '|' + k + '|' + key, i, b, k, label, gap: j.gap, miss, pct: j.gap / a.went * 100, end: lastEnd(segs[k], inP) });
     if (j.cls === 'bad') alerts.push(`<button type="button" class="alert-row" onclick="mgrOpenAt(${i}, '${lastEnd(segs[k], inP)}')">🔴 <b>${esc(b.name)}</b> · ${pname[k]} · ${label} · ${j.text} · פער ${f2(a.went - a.sold)} ק״ג ←</button>`);
   })));
-  document.getElementById('mgrAlerts').innerHTML = alerts.length
+  const lossNis = (b, segs, inP) => PK.reduce((s, k) => { const a = aggregate(segs[k].filter(inP)); const pr = mgrPriceOf(b, k); if (!a.n || !(pr > 0)) return s; const j = judgeIn(b, a); return s + (j.gap > 0 ? j.gap * pr : 0); }, 0);
+  all.forEach(x => { x.nisW = hasPr ? lossNis(x.b, x.segs, inWeek) : 0; x.nisM = hasPr ? lossNis(x.b, x.segs, inMonth) : 0; });
+  const money = hasPr ? `<div class="mgr-money"><span>💰 פחת בכל הסניפים שלך</span><span>השבוע <b>${nis(all.reduce((s, x) => s + x.nisW, 0))}</b></span><span>החודש <b>${nis(all.reduce((s, x) => s + x.nisM, 0))}</b></span></div>`
+    : mgr.canEdit !== false ? '<div class="mgr-money none">💰 כדי לראות את הפחת בשקלים, ממלאים מחיר לק״ג במסך "פחת ושקילות" (💰 מחיר לק״ג), או בלשונית "הגדרות" בגיליון (שורות 10–12).</div>' : '';
+  document.getElementById('mgrAlerts').innerHTML = money + kabatCfgHtml() + kabatHtml(kabat, pname) + (alerts.length
     ? `<div class="alert-box"><h3>התראות · ${alerts.length}</h3>${alerts.join('')}</div>`
-    : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`;
+    : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`);
   // one card per branch: this week and this month for the three products
   document.getElementById('mgrList').innerHTML = all.map(({ b, segs }, i) => {
     const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judgeIn(b, a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
@@ -1494,8 +2130,77 @@ function renderMgr() {
     return `<div class="br-card" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">
       <div class="br-card-head"><b>${esc(b.name)}</b><span>${b.manager ? 'מנהל מחלקה: ' + esc(b.manager) + ' · ' : ''}פתח ←</span></div>
       <div class="br-grid"><span></span><span class="h">שבוע ${lastWeek ? weekLabel(lastWeek) : ''}</span><span class="h">חודש ${lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''}</span>
-      ${PK.map(k => `<span>${pname[k]}</span>${cell(k, inWeek)}${cell(k, inMonth)}`).join('')}</div></div>`;
+      ${PK.map(k => `<span>${pname[k]}</span>${cell(k, inWeek)}${cell(k, inMonth)}`).join('')}</div>${hasPr ? `<div class="br-money">💰 פחת: השבוע <b>${nis(all[i].nisW)}</b> · החודש <b>${nis(all[i].nisM)}</b></div>` : ''}${invLine(b)}</div>`;
   }).join('') || '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
+}
+// stock count of the latest month on the branch card: finished or not yet
+function invLine(b) {
+  const m = defaultInvMonth(), d = (b.done || []).find(x => x.month === m);
+  return `<div class="br-inv">ספירת מלאי ${+m.slice(5)}/${m.slice(0, 4)}: ${d ? `<b>✓ הסתיימה ${esc(doneWhen(d.at))}</b>` : '<span class="no">עוד לא הסתיימה</span>'}</div>`;
+}
+// ---------- the kabat thresholds: company-wide, only a district manager (above the area managers) changes them ----------
+let kabatCfgOpen = false;
+function kabatCfgHtml() {
+  if (!mgr || mgr.role !== 'senior') return '';
+  const s = mgr.settings || {}, p = Number(s.kabatPct) > 0 ? Number(s.kabatPct) : 10, kg = Number(s.kabatKg) >= 0 ? Number(s.kabatKg) : 5;
+  return `<details class="mg-price kb-cfg"${kabatCfgOpen ? ' open' : ''} ontoggle="kabatCfgOpen=this.open"><summary>🚨 ספי קב״ט לכל החברה<span>: ${p}% · ${kg} ק״ג</span></summary>
+    <label class="set-row">אחוז חסר מעבר לפחת המותר <span><input type="text" id="kbc_pct" inputmode="decimal" value="${p}"> %</span></label>
+    <label class="set-row">לפחות כמה ק״ג חסרים <span><input type="text" id="kbc_kg" inputmode="decimal" value="${kg}"> ק״ג</span></label>
+    <div class="set-hint">התראת קב״ט קופצת רק כששני התנאים מתקיימים · חל על כל הסניפים בחברה</div>
+    <div class="kb-cfg-btn"><button type="button" class="btn" onclick="kabatCfgSave()">שמירה</button></div></details>`;
+}
+async function kabatCfgSave() {
+  const num = id => parseFloat(String(document.getElementById(id).value).replace(',', '.').replace('%', '').trim());
+  const pct = num('kbc_pct'), kg = num('kbc_kg');
+  if (!(pct > 0 && pct < 100) || !(kg >= 0 && kg < 1000)) { alert('האחוז צריך להיות בין 1 ל־99, והק״ג מספר מ־0 ומעלה'); return; }
+  if (!await ask({ title: 'לשנות את ספי הקב״ט?', text: `מעכשיו התראה תקפוץ כשחסר יותר מ־${pct}% מעבר לפחת המותר, וגם לפחות ${kg} ק״ג. זה חל על כל הסניפים בחברה.`, ok: 'שמירה', cancel: 'ביטול', icon: 'warn' })) return;
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch (e) {}
+  try {
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrKabat', mcode: info.code, pct, kg }) });
+    const d = JSON.parse(await res.text());
+    if (!d.ok) throw new Error(d.error);
+    mgr.settings = Object.assign({}, mgr.settings, { kabatPct: pct, kabatKg: kg }); mgrStore(mgr);
+    kabatCfgOpen = false; renderMgr(); showOk('✓ ספי הקב״ט עודכנו לכל החברה');
+  } catch (e) { alert(e.message === 'read only' ? 'רק מנהל מחוז יכול לשנות את ספי הקב״ט' : e.message === 'bad key' || e.message === 'bad request' ? 'הגיליון עדיין לא מכיר את האפשרות הזו · צריך לעדכן בו את הקוד' : 'לא הצלחתי לשמור בגיליון. בדקו את החיבור ונסו שוב.'); }
+}
+// ---------- "צריך קב״ט": the manager marks each case: in progress / handled / ignored ----------
+let kabatShowDone = false, kabatCases = [];
+function kabatHtml(list, pname) {
+  kabatCases = list;
+  if (!list.length) return '';
+  const S = mgr.alerts || {}, st = c => (S[c.id] || {}).status || 'open';
+  const live = list.filter(c => ['open', 'progress'].includes(st(c))).sort((a, b) => (st(a) === 'open' ? 0 : 1) - (st(b) === 'open' ? 0 : 1) || b.gap - a.gap);
+  const closed = list.filter(c => ['done', 'ignore'].includes(st(c)));
+  const ro = mgr.canEdit === false;
+  const row = c => { const s = S[c.id] || {}, state = st(c), n = kabatCases.indexOf(c);
+    return `<div class="kb-row kb-${state}">
+      <div class="kb-main" onclick="mgrOpenAt(${c.i}, '${c.end}')"><b>${esc(c.b.name)} · ${pname[c.k]}</b><span>${esc(c.label)} · חסר <b>${f2(c.gap)} ק״ג</b> (${c.pct.toFixed(1)}%) · מתוכם <b>${f2(c.miss)}</b> מעבר לפחת המותר${mgrPriceOf(c.b, c.k) > 0 ? ` · כ־<b>₪${Math.round(c.miss * mgrPriceOf(c.b, c.k)).toLocaleString('he-IL')}</b>` : ''}</span>
+        ${state !== 'open' ? `<small>${{ progress: '🟡 בטיפול', done: '✓ טופל', ignore: 'סומן להתעלם' }[state]}${s.by ? ' · ' + esc(s.by) : ''}${s.at ? ' · ' + esc(s.at) : ''}</small>` : ''}</div>
+      ${ro ? '' : `<div class="kb-btns">${state === 'open' ? `<button type="button" onclick="kabatSet(${n}, 'progress')">בטיפול</button>` : ''}${state === 'open' || state === 'progress' ? `<button type="button" class="ok" onclick="kabatSet(${n}, 'done')">טופל</button><button type="button" class="ign" onclick="kabatSet(${n}, 'ignore')">התעלם</button>` : `<button type="button" class="ign" onclick="kabatSet(${n}, 'open')">פתיחה מחדש</button>`}</div>`}
+    </div>`; };
+  return `<div class="kb-box${live.length ? '' : ' calm'}"><h3>${live.length ? '🚨 צריך קב״ט · ' + live.length : '✓ קב״ט · אין מקרים פתוחים'}</h3>
+    ${live.map(row).join('')}
+    ${closed.length ? `<button type="button" class="kb-more" onclick="kabatShowDone=!kabatShowDone;renderMgr()">${kabatShowDone ? 'הסתרת' : 'הצגת'} מקרים שטופלו (${closed.length}) ${kabatShowDone ? '▴' : '▾'}</button>${kabatShowDone ? closed.map(row).join('') : ''}` : ''}
+  </div>`;
+}
+async function kabatSet(n, status) {
+  const c = kabatCases[n]; if (!c || mgr.canEdit === false) return;
+  if (status === 'ignore' && !await ask({ title: 'להתעלם מההתראה?', text: `${c.b.name} · ${c.label} · חסר ${f2(c.gap)} ק״ג. ההתראה תעבור לרשימת "טופלו" ותישאר שם לתיעוד.`, ok: 'התעלם', cancel: 'ביטול', icon: 'warn' })) return;
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch (e) {}
+  const prev = (mgr.alerts || {})[c.id];
+  mgr.alerts = Object.assign({}, mgr.alerts, { [c.id]: { status, by: mgr.name, at: new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) } });
+  renderMgr();
+  try {
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ mode: 'mgrAlert', mcode: info.code, id: c.id, status, branch: c.b.name, product: { entrecote: 'אנטריקוט', shoulder: 'צלי כתף', oven: 'אנטריקוט לתנור' }[c.k], period: c.label, gap: c.gap, pct: c.pct }) });
+    const d = JSON.parse(await res.text());
+    if (!d.ok) throw new Error(d.error);
+    try { localStorage.setItem('mgrCache', JSON.stringify(mgr)); } catch (e) {}
+    showOk({ progress: '🟡 סומן בטיפול', done: '✓ סומן שטופל', ignore: 'ההתראה הוסתרה', open: 'ההתראה נפתחה מחדש' }[status]);
+  } catch (e) {
+    mgr.alerts = Object.assign({}, mgr.alerts); if (prev) mgr.alerts[c.id] = prev; else delete mgr.alerts[c.id];
+    renderMgr(); alert(e.message === 'read only' ? 'לעוזר יש הרשאת צפייה בלבד' : 'לא הצלחתי לשמור בגיליון. בדקו את החיבור ונסו שוב.');
+  }
 }
 function mgrOpenAt(i, date) { mgrOpen(mgr.branches[i].name, date); }
 // the loss % used for a branch: the ones its area manager set, otherwise the company's
@@ -1512,19 +2217,36 @@ function renderMgrLoss() {
   document.getElementById('mg_iron').value = ironAllow;
   document.getElementById('mgAll').checked = false;
   document.getElementById('mgLossMsg').textContent = '';
+  // prices: the branch's own in the box, the company price as the grey hint; the closed row shows what applies
+  const b = mgr && mgr.branches.find(x => x.name === mgrBranch), st = (b && b.settings) || {}, own = st.priceOwn || {}, gp = (mgr && mgr.settings && mgr.settings.price) || {};
+  const eff = PK.map(k => mgrPriceOf(b, k));
+  PK.forEach(k => { const el = document.getElementById('mgp_' + k); el.value = own[k] ? st.price[k] : ''; el.placeholder = gp[k] > 0 ? String(gp[k]) : ''; });
+  document.getElementById('mgPriceSum').textContent = eff.some(v => v > 0) ? ': ' + eff.map(v => v > 0 ? v : '–').join(' · ') : ' · לא הוגדר';
+  document.getElementById('mgPriceBox').open = false;
+}
+// cost per kg for a branch: set by the area manager for this branch, else the company price
+function mgrPriceOf(b, k) {
+  const s = b && b.settings, own = s && s.priceOwn && s.priceOwn[k] ? s.price[k] : null;
+  if (own > 0) return own;
+  const g = mgr && mgr.settings && mgr.settings.price; return g && g[k] > 0 ? g[k] : 0;
 }
 async function mgrSaveLoss() {
   const msg = document.getElementById('mgLossMsg');
   const read = id => { const v = parseFloat(document.getElementById(id).value.replace(',', '.')); return isNaN(v) || v < 0 || v >= 100 ? null : v; };
   const loss = { entrecote: read('mg_entrecote'), shoulder: read('mg_shoulder'), oven: read('mg_oven'), iron: read('mg_iron') };
   if (Object.values(loss).some(v => v === null)) { msg.style.color = '#c62828'; msg.textContent = 'כל אחוז צריך להיות מספר בין 0 ל־99'; return; }
+  const price = {}; let badPrice = false;
+  PK.forEach(k => { let t = document.getElementById('mgp_' + k).value.replace(/[₪\s]/g, ''); if (!t) { price[k] = null; return; }
+    t = /,\d{1,2}$/.test(t) && t.indexOf('.') < 0 ? t.replace(',', '.') : t.replace(/,/g, ''); const v = parseFloat(t);
+    if (isNaN(v) || v < 0 || v > 100000) badPrice = true; else price[k] = v > 0 ? v : null; }); // 0 = like blank: the company price
+  if (badPrice) { msg.style.color = '#c62828'; msg.textContent = 'מחיר צריך להיות מספר, למשל 89.90'; document.getElementById('mgPriceBox').open = true; return; }
   const all = document.getElementById('mgAll').checked;
   const list = all ? mgr.branches.map(b => b.name) : [mgrBranch];
-  if (all && !confirm(`לקבוע את האחוזים האלה ל־${list.length} הסניפים שלך?`)) return;
+  if (all && !await ask({ title: `לקבוע את האחוזים והמחירים ל־${list.length} הסניפים שלך?`, text: 'האחוזים והמחירים יחולו על כל הסניפים שלך מעכשיו.', ok: 'כן, לכולם', cancel: 'ביטול', icon: 'warn' })) return;
   let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch(e) {}
   msg.style.color = '#1565C0'; msg.textContent = 'שומר…';
   try {
-    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrSet', mcode: info.code, branches: list, loss }) });
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrSet', mcode: info.code, branches: list, loss, price }) });
     let d; try { d = JSON.parse(await res.text()); } catch(e) { d = { ok: false }; }
     if (!d.ok) { msg.style.color = '#c62828'; msg.textContent = d.error === 'busy' ? 'הגיליון עסוק · נסה שוב בעוד רגע' : d.error === 'bad key' ? 'הגיליון עדיין לא מכיר את האפשרות הזו · צריך לעדכן בו את הקוד' : 'השמירה לא הצליחה'; return; }
     msg.style.color = '#2e7d32'; msg.textContent = '✓ נשמר · הטלפונים בסניף יקבלו את האחוזים בסנכרון הבא';
@@ -1541,6 +2263,7 @@ function mgrOpen(name, date, stay) {
   useSettings(b.settings || mgr.settings);
   history = b.entries.slice();
   invEvents = b.inv.slice();
+  invDone = {}; (b.done || []).forEach(s => { invDone[s.month] = { by: s.by, at: s.at, total: Number(s.total) || 0, missing: Number(s.missing) || 0, url: s.url || '', updated: s.updated || '' }; });
   mgrView = { name: b.name, manager: b.manager, area: mgr.name }; // for the Excel files (the phone's own branch details stay as they are)
   document.getElementById('mgrBranchSel').value = name;
   document.getElementById('mgrBranchMgr').textContent = b.manager ? 'מנהל מחלקה: ' + b.manager : '';
@@ -1586,7 +2309,7 @@ function mergeRemote(entries, since) {
 }
 let syncQueue = [], syncing = false, syncError = '';
 try { syncQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]'); } catch(e) {}
-function saveQueue() { try { localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); } catch(e) {} }
+function saveQueue() { try { localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); } catch(e) { storageWarn(e); } }
 function queueOps(ops) {
   if (!branch.url || mgrMode) return;
   syncQueue.push(...ops); saveQueue(); renderSync();
@@ -1620,7 +2343,7 @@ async function syncNow() {
       const res = await fetch(conn.url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
-        body: JSON.stringify({ key: conn.key, dev: myDev, pull: last, branch: conn.info, ops: batch })
+        body: JSON.stringify({ key: conn.key, dev: myDev, pull: last, branch: conn.info, ops: batch, salesAt: typeof salesAt === 'function' ? salesAt() : 0 })
       });
       let data;
       try { data = JSON.parse(await res.text()); }
@@ -1631,6 +2354,10 @@ async function syncNow() {
       if (data.settings) applySheetSettings(data.settings);
       if (last && Array.isArray(data.entries)) { mergeRemote(data.entries, data.since); lastPull = new Date(); }
       if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv, data.invSince);
+      if (last && Array.isArray(data.done)) mergeDone(data.done);
+      if (last && Array.isArray(data.sales) && typeof mergeSales === 'function') mergeSales(data.sales);
+      if (last && data.prefs && typeof mergePrefs === 'function') mergePrefs(data.prefs);
+      if (last && data.specials && typeof mergeSpecials === 'function') mergeSpecials(data.specials);
     } while (syncQueue.length);
   } catch(e) {
     syncError = 'אין חיבור לגיליון כרגע';
@@ -1654,6 +2381,871 @@ startMgr();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(() => {});
 }
+</script>
+<script>
+// ======================= מכר והמלצה להזמנה =======================
+// The office's weekly sales report (Excel: a row per item, a column per weekday) is uploaded on the phone,
+// saved in the company sheet, and drives two screens: the sales (day / week / week so far) and an order recommendation.
+const SL_L = ['א','ב','ג','ד','ה','ו'], SL_WD = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳'], SL_DN = ['ראשון','שני','שלישי','רביעי','חמישי','שישי'];
+let slWeeks = {}, slPrefs = {};
+try { slWeeks = JSON.parse(localStorage.getItem('salesWeeks') || '{}') || {}; } catch (e) {}
+try { slPrefs = JSON.parse(localStorage.getItem('salesPrefs') || '{}') || {}; } catch (e) {}
+function slStore() { if (mgrMode) return; try { localStorage.setItem('salesWeeks', JSON.stringify(slWeeks)); localStorage.setItem('salesPrefs', JSON.stringify(slPrefs)); } catch (e) { if (typeof storageWarn === 'function') storageWarn(e); } }
+const slPref = (k, d) => slPrefs[k] && slPrefs[k].v !== undefined ? slPrefs[k].v : d;
+let slPrefTimer = null;
+function slSetPref(k, v) {
+  slPrefs[k] = { v, at: Date.now() }; slStore();
+  // one op per key, sent shortly after the last change
+  clearTimeout(slPrefTimer);
+  slPrefTimer = setTimeout(() => { syncQueue = syncQueue.filter(o => !(o.op === 'pref' && o.k === k)); queueOps([{ op: 'pref', k, v: slPrefs[k].v, at: slPrefs[k].at }]); }, 1200);
+}
+const slSun = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return ymd(x); };
+const slAddDays = (ws, n) => { const d = new Date(ws + 'T00:00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+const slWeekLabel = ws => dm(ws) + '–' + dm(slAddDays(ws, 5));
+const r1 = n => Math.round(n * 10) / 10;
+
+// ---------- reading the report ----------
+function slNum(v) { if (v == null || v === '') return 0; if (typeof v === 'number') return v; const n = parseFloat(String(v).replace(/,/g, '').replace(/[^\d.\-]/g, '')); return isNaN(n) ? 0 : n; }
+const slClean = s => String(s == null ? '' : s).replace(/[​-‏‪-‮⁦-⁩]/g, '').replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+function slParse(rows, fileName) {
+  let h = -1; const col = {};
+  for (let r = 0; r < Math.min(rows.length, 40) && h < 0; r++) {
+    const row = (rows[r] || []).map(slClean);
+    const it = row.findIndex(x => /^(שם )?פריט|^תאור|^מוצר$/.test(x));
+    const d0 = row.findIndex(x => /יום\s*א/.test(x));
+    if (it < 0 || d0 < 0) continue;
+    h = r; col.item = it;
+    row.forEach((x, j) => {
+      SL_L.forEach((L, k) => { if (new RegExp('יום\\s*' + L + "(['׳`\"]|\\s|$)").test(x)) col['d' + k] = j; });
+      if (/מחלקה/.test(x)) col.dept = j;
+      if (/חנות|סניף/.test(x)) col.store = j;
+    });
+  }
+  if (h < 0) return { error: 'לא מצאתי בקובץ את העמודות "פריט" ו"כמות יום א׳". אם זה דוח אחר, שלחו אותו לבדיקה.' };
+  const byKey = {}; let store = '';
+  for (let r = h + 1; r < rows.length; r++) {
+    const row = rows[r] || [], n = slClean(row[col.item]);
+    if (!n || /^סה.?כ/.test(n)) continue;
+    if (!store && col.store != null) store = slClean(row[col.store]);
+    const dept = col.dept != null ? slClean(row[col.dept]) : '';
+    const d = SL_L.map((_, k) => col['d' + k] == null ? 0 : slNum(row[col['d' + k]]));
+    const key = dept + '|' + n;
+    if (byKey[key]) byKey[key].d = byKey[key].d.map((v, k) => v + d[k]); else byKey[key] = { n, dept, d };
+  }
+  const items = Object.values(byKey);
+  if (!items.length) return { error: 'הקובץ נקרא, אבל לא נמצאו בו פריטים.' };
+  // a day with nothing at all in it has not been reported yet (not "nothing sold")
+  const reported = SL_L.map((_, k) => items.some(x => x.d[k] > 0));
+  items.forEach(x => { x.d = x.d.map((v, k) => reported[k] ? Math.round(v * 100) / 100 : null); });
+  return { items, store, reported, week: slFindWeek(rows, fileName) };
+}
+// a date in the file name or in the first rows tells the week; otherwise the phone guesses and asks
+function slFindWeek(rows, fileName) {
+  const texts = [String(fileName || '')].concat(rows.slice(0, 8).flat().map(x => x instanceof Date ? ymd(x) : String(x == null ? '' : x)));
+  for (const t of texts) {
+    let m = t.match(/(20\d\d)-(\d\d)-(\d\d)/); if (m) return slSun(new Date(+m[1], +m[2] - 1, +m[3]));
+    m = t.match(/\b(\d{1,2})[./](\d{1,2})[./](20\d\d|\d\d)\b/); if (m) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return slSun(new Date(y, +m[2] - 1, +m[1])); }
+  }
+  return null;
+}
+function slGuessWeek(reported) {
+  const now = new Date(), wd = now.getDay(), last = reported.lastIndexOf(true);
+  // Saturday: the week that just ended; during the week a report up to yesterday is this week's
+  if (wd === 6 || last < wd) return slSun(now);
+  return slAddDays(slSun(now), -7);
+}
+
+// ---------- products ----------
+// beef is ordered by these names; the report's items are matched to them by name (and can be fixed by hand)
+const SL_BEEF = [
+  ['סטייקים', ['אנטריקוט', 'סינטה', 'סטייק עין', 'דנוור', 'שפיץ צאך', 'שייטל', 'פילה בקר', 'צלעות פרמיום', 'איירון פלאט']],
+  ['קדירה', ['צלי כתף', 'פילה מדומה', 'כתף בקר', 'שריר', 'בשר ראש', 'אסאדו ע.ע', 'אוסובוקו ע.ע', 'שפונדרה', 'אצבעות אנטריקוט']],
+  ['טחינה', ['בשר לטחינה', 'מכסה הסטייק', 'צלעות לטחינה', 'חזה בקר', 'מכסה הצלע']]];
+const SL_SUBS = SL_BEEF.map(g => g[0]);
+const SL_CANON = { 'חזה עוף': 'עוף', 'חזה הודו': 'הודו' };   // products that collect several report items
+const SL_RULES = [[/אונטריב/, 'אונטריב'],
+  [/סטייק\s*צלעות|חטיפי\s*אסאדו/, 'צלעות פרמיום'],
+  [/דנוור/, 'דנוור'], [/מכסה\s*ה?סטייק/, 'מכסה הסטייק'],
+  [/מכסה\s*ה?צלע/, 'מכסה הצלע'], [/צלעות\s*לטחינה/, 'צלעות לטחינה'], [/אצבעות/, 'אצבעות אנטריקוט'], [/שפונדרה/, 'שפונדרה'],
+  [/איירון\s*פלאט|איירון\s*פידלוט/, 'איירון פלאט'],
+  [/אנטריקוט.*גוסא|גוסא.*אנטריקוט/, 'אנטריקוט'], [/סינטה.*גוסא|גוסא.*סינטה/, 'סינטה'],
+  [/אנטריקוט/, 'אנטריקוט'], [/סינטה/, 'סינטה'], [/סטייק\s*עין|^עין\b/, 'סטייק עין'],
+  [/שפיץ/, 'שפיץ צאך'], [/שייטל/, 'שייטל'], [/פילה\s*בקר/, 'פילה בקר'], [/פילה\s*מדומה/, 'פילה מדומה'], [/צלי\s*כתף/, 'צלי כתף'], [/כתף\s*(בקר|מניון)/, 'כתף בקר'],
+  [/שריר/, 'שריר'], [/בשר\s*ראש/, 'בשר ראש'], [/אוסובוקו/, 'אוסובוקו ע.ע'], [/אסאדו.*(ע\.?\s*ע|עם\s*עצם)/, 'אסאדו ע.ע'],
+  [/אסאדו/, 'שפונדרה'], [/חזה\s*בקר/, 'חזה בקר'],
+  [/טחון|לטחינה|המבורגר/, 'בשר לטחינה']];
+const slIsLamb = it => /כבש|טלה/.test(it.n) || it.dept === '5';
+const slPoultry = it => {
+  if (/הודו/.test(it.n)) return 'הודו';
+  if (/שוק\s*מפורק\s*טרי|שווארמה\s*נקבה\s*טרי/.test(it.n)) return 'הודו';
+  if (/עוף|פרגי|שניצל|כנפ|כרעיים|שוקיים|ירכי|קורקבן|חזה\s*ע|רצועות\s*חזה/.test(it.n)) return 'עוף';
+  return null;
+};
+// the product an item belongs to: { p, g } (g = סטייקים/קדירה/טחינה/כבש/עוף/הודו), or null
+function slProductOf(it) {
+  const fix = slPref('map', {})[it.n];
+  if (fix === '') return null;
+  if (fix) { const g = SL_BEEF.find(x => x[1].includes(fix)); return { p: fix, g: g ? g[0] : fix === 'אונטריב' ? 'קדירה' : SL_CANON[fix] || fix }; }
+  if (slIsLamb(it)) return { p: it.n, g: 'כבש' };
+  const pg = slPoultry(it);
+  // chicken breast is also cut into schnitzel and strips, and what is left is ground: all of it is ordered as breast
+  if (pg === 'עוף' && /חזה|שניצל|רצועות|טחון/.test(it.n)) return { p: 'חזה עוף', g: 'עוף' };
+  // products made from thigh (ירך ב.ע.ג / ירך ללא עצם / פרגית לתנור) — not ordered separately
+  if (pg === 'עוף' && /שווארמה\s*פרגית|שיפוד(י)?\s*פרגי|פרגית/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' };
+  if (pg === 'עוף' && /ירך\s*(ללא\s*עצם|ב\.?\s*ע\.?\s*ג)|יריכיים\s*ללא\s*(עצם|גב)|פרגית\s*לתנור/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' };
+  // כרעיים: only order "כרעיים עוף טרי" — map all כרעיים variants to it
+  if (pg === 'עוף' && /כרעיים/.test(it.n)) return { p: 'כרעיים עוף טרי', g: 'עוף' };
+  // סטייק פרגית / פרגיות: made from ירך ללא עצם (about 30% is portioned for pargit)
+  if (pg === 'עוף' && /סטייק\s*פרגי|פרגיות\s*סטייק/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' };
+  // עוף מפורק is just whole fresh chicken
+  if (pg === 'עוף' && /עוף.*מפורק|מפורק.*עוף/.test(it.n)) return { p: 'עוף שלם', g: 'עוף' };
+  // ground turkey is made from turkey breast / turkey pieces
+  if (pg === 'הודו' && /חזה|טחון/.test(it.n)) return { p: 'חזה הודו', g: 'הודו' };
+  // specific turkey items that don't contain the word הודו
+  if (/שוק\s*מפורק\s*טרי|שווארמה\s*נקבה\s*טרי/.test(it.n)) return { p: it.n, g: 'הודו' };
+  // exclude turkey shawarma strips - only female shawarma is orderable
+  if (pg === 'הודו' && /רצועות\s*(שווארמה|שווראמה)/.test(it.n)) return null;
+  if (pg) return { p: it.n, g: pg };
+  for (const [re, p] of SL_RULES) if (re.test(it.n)) { if (!p) return null; const g = SL_BEEF.find(x => x[1].includes(p)); return { p, g: g ? g[0] : 'קדירה' }; }
+  return null;
+}
+const SL_TOP = g => SL_SUBS.includes(g) ? 'בקר' : g;
+
+// ---------- averages from the reports ----------
+const slWeekKeys = () => Object.keys(slWeeks).sort();
+// kg sold per product per weekday, for a set of weeks
+function slByProduct(weeks) {
+  const out = {};
+  weeks.forEach(w => (slWeeks[w].items || []).forEach(it => { const m = slProductOf(it); if (!m) return;
+    const o = out[m.p] = out[m.p] || { g: m.g, d: {} }; o.d[w] = o.d[w] || [0, 0, 0, 0, 0, 0];
+    it.d.forEach((v, k) => { if (v != null) o.d[w][k] += v; }); }));
+  return out;
+}
+// the last 8 normal (not holiday) weeks; a day counts only in weeks where it was reported
+function slAverages() {
+  const weeks = slWeekKeys().filter(w => !slWeeks[w].hol).slice(-8);
+  const rep = SL_L.map((_, k) => weeks.filter(w => (slWeeks[w].items || []).some(it => it.d[k] != null)));
+  const by = slByProduct(weeks), avg = {};
+  Object.keys(by).forEach(p => { avg[p] = { g: by[p].g, a: SL_L.map((_, k) => rep[k].length ? r1(rep[k].reduce((s, w) => s + (by[p].d[w] ? by[p].d[w][k] : 0), 0) / rep[k].length) : 0) }; });
+  return { avg, days: rep.map(x => x.length), weeks };
+}
+// averages for chicken-breast sub-items (schnitzel, breast strips, ground chicken)
+function slBreastSubs() {
+  const weeks = slWeekKeys().filter(w => !slWeeks[w].hol).slice(-8);
+  if (!weeks.length) return null;
+  const rep = SL_L.map((_, k) => weeks.filter(w => (slWeeks[w].items || []).some(it => it.d[k] != null)));
+  const buckets = { schnitzel: Array(6).fill(0), strips: Array(6).fill(0), ground: Array(6).fill(0), half: Array(6).fill(0) };
+  const counts = { schnitzel: Array(6).fill(0), strips: Array(6).fill(0), ground: Array(6).fill(0), half: Array(6).fill(0) };
+  weeks.forEach(w => {
+    (slWeeks[w].items || []).forEach(it => {
+      if (slPoultry(it) !== 'עוף') return;
+      const n = it.n || '';
+      let key = null;
+      if (/שניצל/.test(n)) key = 'schnitzel';
+      else if (/רצועות\s*חזה/.test(n)) key = 'strips';
+      else if (/טחון/.test(n) && !/הודו/.test(n)) key = 'ground';
+      else if (/חזה.*חצוי|חצוי.*חזה/.test(n)) key = 'half';
+      if (!key) return;
+      it.d.forEach((v, k) => {
+        if (v != null) { buckets[key][k] += v; counts[key][k]++; }
+      });
+    });
+  });
+  const avg = {};
+  for (const k of Object.keys(buckets)) {
+    avg[k] = buckets[k].map((s, i) => counts[k][i] ? r1(s / counts[k][i]) : 0);
+  }
+  return avg;
+}
+
+// holiday factor per product: the holiday's weeks last year against normal weeks
+const SL_HOL = [['rosh', 'ראש השנה'], ['kipur', 'ערב יום כיפור'], ['sukkot', 'סוכות'], ['hanuka', 'חנוכה'], ['purim', 'פורים'], ['pesach', 'פסח'], ['atzmaut', 'יום העצמאות'], ['shavuot', 'שבועות']];
+function slHolFactors(k, avg) {
+  const weeks = slWeekKeys().filter(w => slWeeks[w].hol === k);
+  if (!weeks.length) return null;
+  const by = slByProduct(weeks), f = {};
+  Object.keys(avg).forEach(p => { const base = avg[p].a.reduce((s, v) => s + v, 0); if (!base || !by[p]) return;
+    const hw = Object.values(by[p].d).map(d => d.reduce((s, v) => s + v, 0)); f[p] = r1(hw.reduce((s, v) => s + v, 0) / hw.length / base); });
+  const vals = Object.values(f).sort((a, b) => a - b);
+  return { f, base: vals.length ? vals[Math.floor(vals.length / 2)] : 1 };
+}
+
+// ---------- state on screen ----------
+let slView = 'rec', slCat = 'בקר', slOt = 'week', slPot = null, slEdits = {}, slOpenRows = new Set(), slOpenSubs = new Set(['סטייקים']), slHolOpen = false;
+let slSview = 'day', slSday = null, slPending = null, slMapOpen = false, slViewWeek = null;
+const BOX_KG = 15, RIB_BLOCK = 5, RIB_ONG = 2, RIB_DEN = 1.5;
+
+// ---------- the recommendation ----------
+function slModel() {
+  const A = slAverages(), avg = A.avg;
+  const hk = slPref('hol', '');
+  const HF = hk ? slHolFactors(hk, avg) : null, manual = slPref('holx', {})[hk];
+  const mult = p => !hk ? 1 : HF && HF.f[p] ? HF.f[p] : (manual || 1.5);
+  const hot = p => !!hk && !!HF && HF.f[p] >= HF.base * 1.3 && HF.f[p] >= 1.5;
+  const morning = slPref('morn', 0.4), sunBuf = slPref('sunBuf', 0.3), stock = slPref('stock', {}), std = slPref('std', {}), box = p => (slPref('box', {})[p] || BOX_KG);
+  const wd = new Date().getDay();
+  // products: beef by the fixed lists, lamb / chicken / turkey by the report's own items
+  const list = [];
+  SL_BEEF.forEach(([g, ps]) => ps.forEach(p => list.push({ n: p, g, kind: p === 'צלעות פרמיום' ? 'ribs' : p === 'דנוור' ? 'denver' : p === 'בשר לטחינה' ? 'mince' : '' })));
+  Object.keys(avg).filter(p => ['כבש', 'עוף', 'הודו'].includes(avg[p].g)).sort((a, b) => a.localeCompare(b, 'he')).forEach(p => list.push({ n: p, g: avg[p].g, kind: '' }));
+  const zero = [0, 0, 0, 0, 0, 0];
+  list.forEach(x => { x.avg = (avg[x.n] ? avg[x.n].a : zero).map(v => r1(v * mult(x.n))); x.mult = mult(x.n); x.hot = hot(x.n); x.box = box(x.n);
+    x.std = std[x.n] != null ? +std[x.n] : null; x.stock = slStockOf(x.n, stock, x.avg); });
+  const oa = (avg['אונטריב'] ? avg['אונטריב'].a : zero).map(v => r1(v * mult('אונטריב')));
+  const ong = { avg: oa, stock: slStockOf('אונטריב', stock, oa) };
+  return { A, list, ong, morning, sunBuf, wd, hk, HF, manual, hasHolData: !!HF };
+}
+// what is on the shelf: typed in on this screen, or for entrecote / shoulder the latest close from the weighings
+function slStockOf(p, stock, avg) {
+  const s = stock[p], key = { 'אנטריקוט': 'entrecote', 'צלי כתף': 'shoulder' }[p];
+  let fromClose = null;
+  let dd = null;
+  if (key) { try { dd = buildDays()[key] || {}; const last = Object.keys(dd).filter(d => dd[d].hasClose).sort().pop();
+    if (last) fromClose = { kg: dd[last].close + Object.keys(dd).filter(d => d > last).reduce((t, d) => t + (dd[d].recv || 0), 0), at: new Date(last + 'T20:00:00').getTime(), close: true }; } catch (e) {} }
+  const res = s && (!fromClose || s.at >= fromClose.at) ? { kg: +s.kg, at: s.at } : fromClose || { kg: 0, at: 0, none: true };
+  // counted on an earlier day: take off what usually sells on the days in between (their sales report hasn't come yet)
+  if (avg && res.at && !res.none) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const d = new Date(res.at); d.setHours(0, 0, 0, 0);
+    let gone = 0; for (let n = 0; n < 14; n++) { d.setDate(d.getDate() + 1); if (d >= today) break; if (d.getDay() > 5) continue;
+      const day = dd && dd[ymd(d)]; gone += day && day.hasSold ? day.sold : avg[d.getDay()] || 0; }
+    if (gone > 0) return Object.assign({}, res, { kg: Math.max(0, r1(res.kg - gone)), gone: r1(gone) });
+  }
+  return res;
+}
+const slSum = (a, days) => days.reduce((s, d) => s + (a[d] || 0), 0);
+const slToBox = (kg, b) => kg <= 0 ? 0 : Math.max(1, Math.round(kg / b + 0.15));
+// days from today (offset 0) until a weekday; Saturday has no sales; a beef Sunday brings the standing order
+function slDaysUntil(T, wd) { let k = 1; while ((wd + k) % 7 !== T) k++; return k; }
+function slHaveAt(x, T, M, weeklyBoxes) {
+  const k = slDaysUntil(T, M.wd); let have = x.stock.kg;
+  for (let j = 0; j < k; j++) { const d = (M.wd + j) % 7; if (j > 0 && d === 0) have = Math.max(0, have) + weeklyBoxes * x.box; if (d <= 5) have -= x.avg[d]; }
+  return have;
+}
+function slCalc(x, M, ot, pot) {
+  const top = SL_TOP(x.g), poultry = top === 'עוף' || top === 'הודו';
+  if (poultry) {
+    const o = slPOT(M).find(o => o.k === pot); if (!o || o.off) return { kg: 0, rec: 0, o };
+    let exp = slSum(x.avg, o.cov), morn = x.avg[o.nx] * M.morning;
+    // for Friday order: full Friday + partial Sunday (sunBuf % of Sunday sales), no extra Monday morning
+    if (o.k === 'p5') {
+      exp = (x.avg[5] || 0) + (x.avg[0] || 0) * (M.sunBuf || 0.3);
+      morn = 0;
+    }
+    const have = x.stock.kg - (function () { let s = 0, k = slDaysUntil(o.day, M.wd); for (let j = 0; j < k; j++) { const d = (M.wd + j) % 7; if (d <= 5) s += x.avg[d]; } return s; })();
+    const kg = Math.max(0, Math.ceil(exp + morn - Math.max(0, have)));
+    return { exp, morn, have, kg, rec: slToBox(kg, x.box), o };
+  }
+  if (ot === 'week') {
+    const toSat = (() => { let s = 0; for (let d = M.wd; d <= 5; d++) s += x.avg[d]; return s; })();
+    const atSunday = Math.max(0, x.stock.kg - toSat);
+    if (x.kind === 'ribs') {
+      const needU = Math.max(0, slSum(M.ong.avg, [0, 1, 2, 3, 4, 5]) + M.ong.avg[0] * M.morning - Math.max(0, M.ong.stock.kg - (() => { let s = 0; for (let d = M.wd; d <= 5; d++) s += M.ong.avg[d]; return s; })()));
+      const steak = Math.max(0, slSum(x.avg, [0, 1, 2, 3, 4, 5]) - atSunday);   // סטייק צלעות sold as such
+      const blocks = Math.ceil(needU / RIB_ONG);
+      const kg = blocks * RIB_BLOCK + Math.ceil(steak);
+      return { needU, blocks, steak, kg, rec: slToBox(kg, x.box), why: 'ribs' };
+    }
+    const exp = slSum(x.avg, [0, 1, 2, 3, 4, 5]), morn = x.avg[0] * M.morning;
+    let need = Math.max(0, exp + morn - atSunday);
+    if (x.kind === 'denver' || x.kind === 'mince') {
+      const ribs = M.list.find(y => y.kind === 'ribs'), rc = slCalc(ribs, M, 'week');
+      const from = rc.blocks * (x.kind === 'denver' ? RIB_DEN : RIB_BLOCK - RIB_ONG - RIB_DEN);
+      const kg = Math.max(0, Math.ceil(need - from));
+      return { exp, morn, atSunday, from, kg, rec: slToBox(kg, x.box), why: x.kind };
+    }
+    const kg = Math.ceil(need);
+    return { exp, morn, atSunday, kg, rec: slToBox(kg, x.box) };
+  }
+  // a top-up arriving on weekday ot (2, 3, 4): only when something will run out
+  if (x.kind === 'ribs') return null;
+  const T = ot, until = T === 4 ? [4, 5] : [T];
+  let have = slHaveAt(x, T, M, x.std != null ? x.std : slCalc(x, M, 'week').rec);
+  if (x.kind === 'denver') {
+    const ribs = M.list.find(y => y.kind === 'ribs'), rb = ribs.std != null ? ribs.std : slCalc(ribs, M, 'week').rec;
+    have += rb * ribs.box / RIB_BLOCK * RIB_DEN;                                   // denver cut from Sunday's rib blocks
+    if (slPref('denMiss', {})[slSun(new Date())]) have -= (x.std != null ? x.std : slCalc(x, M, 'week').rec) * x.box;   // it did not come
+  }
+  const need = slSum(x.avg, until) + x.avg[T === 4 ? 0 : T + 1] * M.morning;
+  const short = need - Math.max(0, have);
+  let left = have, out = null; for (let d = T; d <= 5 && out === null; d++) { left -= x.avg[d]; if (left < 0) out = d; }
+  const kg = Math.max(0, Math.ceil(short));
+  return { have, need, kg, rec: kg < x.box * 0.3 ? 0 : slToBox(kg, x.box), out };
+}
+// poultry deliveries: Mon, Tue, Wed, Thu, Fri; each lasts until the next one (Friday's also through Sunday)
+function slPOT(M) {
+  const nd = Object.assign({}, slPref('noDay', {})[slSun(new Date())], { tue: false }); // poultry is always ordered for Tuesday
+  return [
+    { k: 'p1', day: 1, l: 'לשני', d: 'מזמינים בראשון', cov: nd.tue ? [1, 2] : [1], nx: nd.tue ? 3 : 2 },
+    { k: 'p2', day: 2, l: 'לשלישי', d: nd.tue ? 'אין הזמנה' : 'מזמינים בשני', cov: [2], nx: 3, off: !!nd.tue },
+    { k: 'p3', day: 3, l: 'לרביעי', d: 'מזמינים בשלישי', cov: [3], nx: 4 },
+    { k: 'p4', day: 4, l: 'לחמישי', d: 'מזמינים ברביעי', cov: nd.fri ? [4, 5, 0] : [4], nx: nd.fri ? 1 : 5 },
+    { k: 'p5', day: 5, l: 'לשישי', d: nd.fri ? 'אין הזמנה' : 'מזמינים בחמישי', cov: [5, 0], nx: 1, off: !!nd.fri }];
+}
+function slDefaultPot(M) { const next = [1, 2, 3, 4, 5].find(d => d > M.wd) || 1; const o = slPOT(M).find(o => o.day === next); return o.off ? 'p' + (next === 2 ? 1 : 4) : o.k; }
+
+// ---------- screen ----------
+function renderSalesPage() {
+  const has = Object.keys(slWeeks).length;
+  const keys = slWeekKeys();
+  const latest = keys[keys.length - 1];
+  // week selector
+  const ctrl = document.getElementById('slWkCtrl');
+  if (has && ctrl) {
+    const sel = slViewWeek || latest;
+    ctrl.innerHTML = `<select id="slWkSel">${keys.slice().reverse().map(w => `<option value="${w}"${w === sel ? ' selected' : ''}>${slWeekLabel(w)}</option>`).join('')}</select><button type="button" id="slWkDel" title="מחיקת שבוע">🗑</button>`;
+    document.getElementById('slWkSel').onchange = e => { slViewWeek = e.target.value; renderSalesPage(); };
+    document.getElementById('slWkDel').onclick = async () => { const wk = slViewWeek || latest;
+      if (await ask({ title: `למחוק את דוח ${slWeekLabel(wk)}?`, text: 'הדוח יימחק מהטלפון הזה בלבד.', ok: 'מחיקה', cancel: 'ביטול', danger: true, icon: 'warn' })) { delete slWeeks[wk]; slViewWeek = null; slStore(); renderSalesPage(); } };
+  } else if (ctrl) ctrl.innerHTML = '';
+  const showWeek = slViewWeek && slWeeks[slViewWeek] ? slViewWeek : latest;
+  document.getElementById('slRepName').textContent = has ? 'דוח מכר ' + slWeekLabel(showWeek) : 'עוד לא הועלה דוח מכר';
+  document.getElementById('slRepMeta').textContent = has ? `${keys.length === 1 ? 'שבוע אחד' : keys.length + ' שבועות'} של מכר · עודכן ${new Date(slWeeks[showWeek].at).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}` : 'מעלים את הדוח שהמשרד שולח (אקסל)';
+  slRenderImport();
+  const A = slAverages(), learnt = A.days.filter(n => n > 0).length;
+  document.querySelectorAll('#slView button').forEach(b => b.classList.toggle('on', b.dataset.v === slView));
+  document.getElementById('slEmpty').hidden = !!has;
+  document.getElementById('slView').hidden = !has;
+  document.getElementById('slSalesBox').hidden = !(has && slView === 'sales');
+  document.getElementById('slLearn').hidden = !(has && slView === 'rec' && learnt < 6);
+  document.getElementById('slRecBox').hidden = !(has && slView === 'rec' && learnt >= 6);
+  if (has && slView === 'sales') slRenderSales();
+  if (has && slView === 'rec') { if (learnt < 6) slRenderLearn(A); else slRenderRec(); }
+  slRenderMap();
+}
+function slRenderLearn(A) {
+  const n = A.days.filter(x => x > 0).length;
+  document.getElementById('slLearn').innerHTML = `<div class="sl-learn"><div class="sl-ring"><b>${n}/6</b></div><h3>לומד את המכר של הסניף</h3>
+    <p>ההמלצה מתחילה אחרי שיש מכר של כל יום בשבוע לפחות פעם אחת. כבר עכשיו אפשר לראות את המכר עצמו.</p>
+    <div class="sl-dots">${SL_WD.map((w, k) => `<div class="${A.days[k] ? 'ok' : ''}"><i>${A.days[k] ? '✓' : ''}</i>${w}</div>`).join('')}</div></div>`;
+}
+// ---- upload
+async function slFile(input) {
+  const f = input.files && input.files[0]; input.value = '';
+  if (!f) return;
+  if (typeof XLSX === 'undefined') { alert('לקריאת אקסל צריך אינטרנט בפעם הראשונה. נסו שוב כשיש חיבור.'); return; }
+  try {
+    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+    let res = null;
+    for (const name of wb.SheetNames) { const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: '' }); const r = slParse(rows, f.name); if (!r.error) { res = r; break; } res = res || r; }
+    if (res.error) { alert(res.error); return; }
+    res.fileName = f.name; res.weekPick = res.week || slGuessWeek(res.reported); res.hol = slPref('hol', '');
+    slPending = res; renderSalesPage();
+    document.getElementById('slImport').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e) { alert('לא הצלחתי לקרוא את הקובץ. אם זה לא קובץ אקסל, שלחו אותו לבדיקה.'); }
+}
+function slRenderImport() {
+  const el = document.getElementById('slImport'); el.hidden = !slPending; if (!slPending) return;
+  const P = slPending, days = P.reported.map((r, k) => r ? SL_WD[k] : null).filter(Boolean);
+  const total = P.items.reduce((s, it) => s + it.d.reduce((a, v) => a + (v || 0), 0), 0);
+  const thisW = slSun(new Date()), opts = [thisW, slAddDays(thisW, -7), slAddDays(thisW, -14)];
+  if (!opts.includes(P.weekPick)) opts.unshift(P.weekPick);
+  const wrongStore = P.store && branch.name && !slClean(P.store).includes(branch.name);
+  const unmatched = P.items.filter(it => !slProductOf(it)).length;
+  el.innerHTML = `<div class="sl-imp">
+    <b>קובץ חדש: ${esc(P.fileName)}</b>
+    <div class="sl-imp-sum">${P.items.length} פריטים · ימים: ${days.join(' ')} · סה״כ ${Math.round(total)} ק״ג</div>
+    ${wrongStore ? `<div class="sl-warn">הדוח הוא של "${esc(P.store)}", והטלפון רשום לסניף ${esc(branch.name)}.</div>` : ''}
+    <div class="sl-lbl">של איזה שבוע?</div>
+    <div class="sl-chips">${opts.map(w => `<button type="button" data-wk="${w}" class="${w === P.weekPick ? 'on' : ''}">${slWeekLabel(w)}${w === thisW ? ' · השבוע' : ''}</button>`).join('')}</div>
+    ${slWeeks[P.weekPick] ? '<div class="sl-note">כבר יש דוח לשבוע הזה. הפריטים מאותו סוג יוחלפו, פריטים מסוג אחר (בקר/עוף) יישמרו.</div>' : ''}
+    <label class="sl-check"><input type="checkbox" id="slImpHol"${P.hol ? ' checked' : ''}> שבוע של חג${P.hol ? ': ' + esc((SL_HOL.find(h => h[0] === P.hol) || [, ''])[1]) : ''}</label>
+    ${unmatched ? `<div class="sl-note">${unmatched} פריטים לא שויכו למוצר בהמלצה. אפשר לשייך אותם ב"שיוך פריטים" למטה.</div>` : ''}
+    <div class="sl-btns"><button type="button" class="btn" id="slImpOk">שמירת הדוח</button><button type="button" class="btn sl-alt" id="slImpNo">ביטול</button></div></div>`;
+}
+function itemTop(it) {
+  const m = slProductOf(it);
+  if (m) return SL_TOP(m.g);
+  if (slIsLamb(it)) return 'כבש';
+  const pg = slPoultry(it);
+  if (pg) return pg;
+  return 'אחר';
+}
+async function slSaveImport() {
+  const P = slPending; if (!P) return;
+  const hol = document.getElementById('slImpHol').checked ? (P.hol || slPref('hol', '') || 'other') : '';
+  const w = P.weekPick;
+  const existing = (slWeeks[w] && slWeeks[w].items) || [];
+  // check if the new report is almost identical to existing
+  if (existing.length && isSimilarReport(existing, P.items)) {
+    if (!await ask({ title: 'הדוח כמעט זהה לקיים', text: 'הדוח החדש כמעט זהה לדוח שכבר נקלט לשבוע הזה (אותם מספרים). לקלוט בכל זאת?', ok: 'לקלוט', cancel: 'ביטול', icon: 'warn' })) { slPending = null; renderSalesPage(); return; }
+  }
+  // keep items from other categories (beef report doesn't wipe chicken, and vice versa)
+  const newTops = new Set(P.items.map(itemTop)), newNames = new Set(P.items.map(it => it.n));
+  const kept = existing.filter(it => { const t = itemTop(it); return t === 'אחר' ? !newNames.has(it.n) : !newTops.has(t) && !newNames.has(it.n); });
+  const merged = kept.concat(P.items);
+  const rec = { items: merged, at: Date.now(), by: worker, hol };
+  slWeeks[w] = rec; slStore();
+  queueOps([{ op: 'sales', week: w, items: merged, at: rec.at, by: worker, hol }]);
+  const transferred = 0; // "נמכר" from the report: after checking with the user which items are which product
+  slPending = null; slSday = null; slViewWeek = w;
+  showOk(`✓ נקלט דוח ${slWeekLabel(w)} · ${P.items.length} פריטים` + (kept.length ? ` · נשמרו ${kept.length} פריטים מסוג אחר` : '') + (transferred ? ` · ${transferred} רשומות נמכר עודכנו` : ''));
+  renderSalesPage();
+}
+function isSimilarReport(old, neu) {
+  if (!old.length || !neu.length) return false;
+  const sum = items => items.reduce((s, it) => s + it.d.reduce((a, v) => a + (v || 0), 0), 0);
+  const oldSum = sum(old), newSum = sum(neu);
+  if (!oldSum || !newSum) return false;
+  return Math.abs(oldSum - newSum) / Math.max(oldSum, newSum) < 0.02; // less than 2% difference
+}
+
+// ---- sales: day / week / week so far
+function slRenderSales() {
+  const keys = slWeekKeys(), W0 = (slViewWeek && slWeeks[slViewWeek]) ? slViewWeek : keys[keys.length - 1], W1 = keys[keys.indexOf(W0) - 1];
+  const wk0 = slWeeks[W0], rep = SL_L.map((_, k) => wk0.items.some(it => it.d[k] != null));
+  const lastDay = rep.lastIndexOf(true);
+  if (slSday == null || !rep[slSday]) slSday = lastDay;
+  document.querySelectorAll('#slSmode button').forEach(b => b.classList.toggle('on', b.dataset.m === slSview));
+  const sd = document.getElementById('slSdays'); sd.hidden = slSview === 'week';
+  sd.innerHTML = SL_WD.map((w, k) => `<button type="button" data-d="${k}" ${rep[k] ? '' : 'disabled'} class="${k === slSday ? 'on' : slSview === 'cum' && k < slSday ? 'in' : ''}">${w}<small>${dm(slAddDays(W0, k))}</small></button>`).join('');
+  const A = slAverages();
+  const rows = wk0.items.map(it => { const m = slProductOf(it); return { it, g: m ? m.g : (slIsLamb(it) ? 'כבש' : slPoultry(it) || 'אחר'), prev: W1 && slWeeks[W1].items.find(x => x.n === it.n && x.dept === it.dept) }; });
+  const val = (d, days) => days.reduce((s, k) => s + (d && d[k] != null ? d[k] : 0), 0);
+  const daysOf = slSview === 'day' ? [slSday] : slSview === 'week' ? SL_L.map((_, k) => k).filter(k => rep[k]) : SL_L.map((_, k) => k).filter(k => k <= slSday && rep[k]);
+  // the "normal" for a day: the same weekday in earlier normal weeks
+  const dayAvg = (n, k) => { const ws = A.weeks.filter(w => w !== W0 && slWeeks[w].items.some(x => x.d[k] != null)); if (!ws.length) return null;
+    return ws.reduce((s, w) => { const x = slWeeks[w].items.find(y => y.n === n); return s + (x && x.d[k] ? x.d[k] : 0); }, 0) / ws.length; };
+  const tops = ['בקר', 'כבש', 'עוף', 'הודו', 'אחר'];
+  const inTop = (r, t) => SL_TOP(r.g) === t || (t === 'אחר' && !['בקר', 'כבש', 'עוף', 'הודו'].includes(SL_TOP(r.g)));
+  const tot = t => rows.filter(r => inTop(r, t)).reduce((s, r) => s + val(r.it.d, daysOf), 0);
+  if (!tops.includes(slCat)) slCat = 'בקר';
+  document.getElementById('slScats').innerHTML = tops.map(t => {
+    const has = rows.some(r => inTop(r, t));
+    return `<button type="button" data-c="${t}" class="${t === slCat ? 'on' : ''}${has ? '' : ' empty'}">${t}${has ? `<small>${Math.round(tot(t))} ק״ג</small>` : '<small>—</small>'}</button>`;
+  }).join('');
+  // grand total of all categories
+  const allTotal = tops.reduce((s, t) => s + tot(t), 0);
+  const viewLabel = slSview === 'day' ? 'יום ' + SL_DN[slSday] : slSview === 'week' ? 'שבוע' : 'מצטבר';
+  document.getElementById('slAllTotal').innerHTML = `סה״כ כל המוצרים · ${viewLabel}: <b>${Math.round(allTotal)} ק״ג</b>`;
+  const mine = rows.filter(r => inTop(r, slCat));
+  // chart: this week against the week before, per day
+  const perDay = (sel, k) => sel.reduce((s, r) => s + (r.it.d[k] || 0), 0), perDayPrev = (sel, k) => sel.reduce((s, r) => s + (r.prev && r.prev.d[k] ? r.prev.d[k] : 0), 0);
+  const mx = Math.max(1, ...SL_L.map((_, k) => Math.max(perDay(mine, k), perDayPrev(mine, k))));
+  document.getElementById('slChart').innerHTML = `<div class="bars">${SL_L.map((_, k) => { const a = perDay(mine, k), l = perDayPrev(mine, k), dim = !daysOf.includes(k);
+      return `<div class="col${dim ? ' dim' : ''}">${rep[k] ? `<b>${Math.round(a)}</b>` : ''}<i style="height:${a / mx * 92}%"></i><i class="last" style="height:${l / mx * 92}%"></i></div>`; }).join('')}</div>
+    <div class="lbl">${SL_WD.map((w, k) => `<span class="${slSview === 'day' && k === slSday ? 'on' : ''}">${w}</span>`).join('')}</div>
+    <div class="leg"><span>השבוע</span>${W1 ? '<span class="l">שבוע קודם</span>' : ''}</div>`;
+  const chg = (a, b) => { if (b == null || !b) return ['eq', '—']; const c = Math.round((a - b) / b * 100); return c > 2 ? ['up', '▲ ' + c + '%'] : c < -2 ? ['down', '▼ ' + Math.abs(c) + '%'] : ['eq', 'כרגיל']; };
+  let T = 0, TP = 0;
+  const html = r => { const now = val(r.it.d, daysOf); let prev, sub;
+    if (slSview === 'day') { prev = dayAvg(r.it.n, slSday); sub = prev != null ? `ממוצע ביום ${SL_DN[slSday]}: ${r1(prev)} ק״ג` : 'אין עוד ממוצע ליום הזה'; }
+    else { prev = r.prev ? val(r.prev.d, daysOf) : null; sub = prev != null ? `שבוע קודם${slSview === 'cum' ? ' עד ' + SL_DN[slSday] : ''}: ${r1(prev)} ק״ג` : 'אין שבוע קודם'; }
+    T += now; TP += prev || 0; const [c, t] = chg(now, prev);
+    return { now, h: `<div class="srow"><div class="n">${esc(r.it.n)}<small>${sub}</small></div><span class="chg ${c}">${t}</span><div class="kg">${r1(now)}<small> ק״ג</small></div></div>` }; };
+  const built = mine.map(r => Object.assign(html(r), { g: r.g })).sort((a, b) => b.now - a.now);
+  document.getElementById('slSitems').innerHTML = slCat === 'בקר'
+    ? SL_SUBS.concat(['אחר']).map(sb => { const r = built.filter(x => sb === 'אחר' ? !SL_SUBS.includes(x.g) : x.g === sb); return r.length ? `<div class="shead">${sb} · ${Math.round(r.reduce((a, x) => a + x.now, 0))} ק״ג</div>` + r.map(x => x.h).join('') : ''; }).join('')
+    : built.map(x => x.h).join('');
+  const [c, t] = chg(T, TP);
+  document.getElementById('slStotal').innerHTML = `${Math.round(T)} <small>ק״ג ${slCat}</small>`;
+  document.getElementById('slSmeta').innerHTML = TP ? `<span class="chg ${c}">${t}</span><br>${slSview === 'day' ? 'לעומת יום ' + SL_DN[slSday] + ' רגיל' : slSview === 'week' ? 'לעומת השבוע הקודם' : 'לעומת השבוע הקודם באותה נקודה'}` : '';
+  document.getElementById('slSdesc').textContent = slSview === 'day' ? `מכר של יום ${SL_DN[slSday]} ${dm(slAddDays(W0, slSday))}` : slSview === 'week' ? `שבוע ${slWeekLabel(W0)}${lastDay < 5 ? ' · עד יום ' + SL_DN[lastDay] : ''}` : `מצטבר מתחילת השבוע עד יום ${SL_DN[slSday]}`;
+}
+
+// ---- recommendation
+function slRenderRec() {
+  const M = slModel(); M.list = M.list; slModel.last = M;
+  if (!['בקר', 'כבש', 'עוף', 'הודו'].includes(slCat)) slCat = 'בקר';
+  const poultry = slCat === 'עוף' || slCat === 'הודו';
+  if (!slPot) slPot = slDefaultPot(M);
+  const OT = [{ k: 'week', l: 'הזמנה שבועית', d: 'מגיעה בראשון' }, { k: 2, l: 'השלמה', d: 'לשלישי' }, { k: 3, l: 'השלמה', d: 'לרביעי' }, { k: 4, l: 'השלמה', d: 'לחמישי' }];
+  const calc = x => slCalc(x, M, slOt, slPot);
+  const val = x => { const c = calc(x); return c ? (slEdits[x.n] ?? c.rec) : 0; };
+  const shortsAt = T => M.list.filter(x => !['עוף', 'הודו'].includes(SL_TOP(x.g)) && x.kind !== 'ribs' && slCalc(x, M, T).rec > 0).length;
+  const ob = document.getElementById('slOtype');
+  ob.classList.toggle('p5', poultry);
+  ob.innerHTML = poultry
+    ? slPOT(M).map(o => `<button type="button" data-o="${o.k}" class="${o.k === slPot ? 'on' : ''}"${o.off ? ' disabled' : ''}>${o.l}<small>${o.d}</small></button>`).join('')
+    : OT.map(o => `<button type="button" data-o="${o.k}" class="${o.k === slOt ? 'on' : ''}">${o.l}${o.k !== 'week' && shortsAt(o.k) ? '<span class="dot"></span>' : ''}<small>${o.d}</small></button>`).join('');
+  const po = slPOT(M).find(o => o.k === slPot) || slPOT(M)[0], nd = slPref('noDay', {})[slSun(new Date())] || {};
+  let coverText = poultry
+    ? (slPot === 'p5'
+        ? `ההזמנה לשישי צריכה להספיק ליום שישי וקצת (${Math.round((M.sunBuf||0.3)*100)}%) לראשון.`
+        : `ההזמנה ${po.l} צריכה להספיק ל<b>${po.cov.map(d => 'יום ' + SL_DN[d]).join(', ')}</b>, ולפתיחה ב${SL_DN[po.nx]} בבוקר.`)
+      + (slPot === 'p4' || slPot === 'p5' ? `<label class="sl-check"><input type="checkbox" data-nd="fri"${nd.fri ? ' checked' : ''}> לא מזמינים לשישי השבוע (חמישי מספיק גם לשישי ולראשון)</label>` : '')
+    : slOt === 'week' ? 'ההזמנה הקבועה מגיעה כל ראשון. כאן רואים <b>מה כדאי לשנות בה</b>.' : `השלמה ${OT.find(o => o.k === slOt).d}. <b>מופיעים רק מוצרים שצפויים להיגמר</b> לפני האספקה הבאה.`;
+  document.getElementById('slCover').innerHTML = coverText;
+  let mornHtml = 'להשאיר לבוקר: ' + [0.3, 0.4, 0.5].map(v => `<button type="button" data-v="${v}" class="${v === M.morning ? 'on' : ''}">${v * 100}%</button>`).join('') + ' <span>מהמכר של היום שאחרי</span>';
+  if (poultry && slPot === 'p5') {
+    mornHtml += '<br>קצת לראשון (שישי): ' + [0.2, 0.3, 0.4, 0.5].map(v => `<button type="button" data-sun="${v}" class="${v === (M.sunBuf || 0.3) ? 'on' : ''}">${v * 100}%</button>`).join('') + ' <span>מהמכר של ראשון</span>';
+  }
+  document.getElementById('slMorn').innerHTML = mornHtml;
+  // holiday mode
+  const H = M.hk && (SL_HOL.find(h => h[0] === M.hk) || [M.hk, 'חג']);
+  document.getElementById('slMode').innerHTML = H
+    ? `<span class="hol-on">🎉 מצב חג: <b>${H[1]}</b></span><button type="button" class="hol-exit" data-exit="1">חזרה למצב רגיל</button>`
+    : `<button type="button" class="hol-btn" data-open="1">🎉 מצב חג ${slHolOpen ? '▴' : '▾'}</button>` + (slHolOpen ? `<div class="hol-list">${SL_HOL.map(h => `<button type="button" data-h="${h[0]}">${h[1]}</button>`).join('')}</div>` : '');
+  const hb = document.getElementById('slHoliday'); hb.hidden = !H;
+  if (H) {
+    const hot = M.list.filter(x => x.hot);
+    hb.innerHTML = M.hasHolData
+      ? `<b>${H[1]}.</b> בחג הזה בשנה שעברה רוב המוצרים נמכרו בערך פי ${M.HF.base}.` + (hot.length ? `<div class="hot-list"><b>🔥 בולטים:</b> ${hot.map(x => `<button type="button" class="hot-chip" data-jump="${esc(x.g)}">${esc(x.n)} · פי ${x.mult}</button>`).join('')}</div>` : '<div class="hot-list">אין מוצר שבולט במיוחד.</div>')
+      : `<b>${H[1]}.</b> עוד אין דוחות מהחג הזה, אז ההמלצה מוסיפה לפי הערכה: <span class="hol-x">${[1.2, 1.5, 2].map(v => `<button type="button" data-hx="${v}" class="${(M.manual || 1.5) === v ? 'on' : ''}">פי ${v}</button>`).join('')}</span><div class="sl-note">דוחות שמעלים עכשיו נשמרים כשבוע של חג, ובשנה הבאה ההמלצה תדע לבד.</div>`;
+  }
+  // tabs — always show all categories
+  const tabs = ['בקר', 'כבש', 'עוף', 'הודו'];
+  const inTab = t => M.list.filter(x => SL_TOP(x.g) === t && calc(x));
+  const changed = x => x.std != null && val(x) !== x.std;
+  const label = t => { const l = inTab(t);
+    if (t === 'עוף' || t === 'הודו') return l.reduce((s, x) => s + val(x), 0) + ' ארג׳';
+    if (slOt === 'week') { if (!l.some(x => x.std != null)) return l.reduce((s, x) => s + val(x), 0) + ' ארג׳'; const n = l.filter(changed).length; return n ? n + ' שינויים' : '✓'; }
+    const n = l.filter(x => val(x) > 0).length; return n ? n + ' להשלים' : '✓'; };
+  document.getElementById('slCats').innerHTML = tabs.map(t => `<button type="button" data-c="${t}" class="${t === slCat ? 'on' : ''}">${t}<small>${label(t)}</small></button>`).join('');
+  const list = inTab(slCat);
+  const row = x => slRow(x, calc(x), val(x), M, poultry);
+  let html;
+  if (slCat === 'בקר') {
+    html = SL_SUBS.map(sb => { const l = list.filter(x => x.g === sb), rows = l.map(row).join('');
+      const n = slOt === 'week' ? l.filter(changed).length : l.filter(x => val(x) > 0).length, boxes = l.reduce((s, x) => s + val(x), 0);
+      const ss = slOt === 'week' ? (n ? `<span class="ss hot">${n} ${n === 1 ? 'שינוי' : 'שינויים'}</span><span class="ss">· ${boxes} ארגזים</span>` : `<span class="ss">${l.some(x => x.std != null) ? '✓ כמו הקבועה · ' : ''}${boxes} ארגזים</span>`)
+        : (n ? `<span class="ss hot">⚠ ${n} להשלים · ${boxes} ארגזים</span>` : '<span class="ss">✓ לא צריך השלמה</span>');
+      return `<details class="sec" data-sub="${sb}"${slOpenSubs.has(sb) ? ' open' : ''}><summary><b>${sb}</b>${ss}<span class="ar" aria-hidden="true">▾</span></summary>${slOt !== 'week' && !n ? '<div class="okline">✓ יש מספיק עד האספקה הבאה</div>' : ''}${rows}</details>`; }).join('');
+  } else {
+    html = list.map(row).join('');
+    if (!poultry && slOt !== 'week' && !list.some(x => val(x) > 0)) html = `<div class="okbig">✓ לא צריך השלמה ב${slCat}<small>יש מספיק עד האספקה הבאה</small></div>`;
+    else html = `<div class="list">${html}</div>`;
+    if (!list.length) html = '<div class="okbig">אין עוד מכר של מוצרים כאלה בדוחות</div>';
+  }
+  document.getElementById('slItems').innerHTML = html;
+  const tot = list.reduce((s, x) => s + val(x), 0), kg = list.reduce((s, x) => s + val(x) * x.box, 0);
+  if (poultry) { document.getElementById('slTotal').innerHTML = `${tot} <small>ארגזים · ${slCat} ${po.l}</small>`; document.getElementById('slTmeta').innerHTML = `כ־${kg} ק״ג`; }
+  else if (slOt === 'week') { const ch = list.filter(changed), plus = ch.reduce((s, x) => s + val(x) - x.std, 0);
+    document.getElementById('slTotal').innerHTML = list.some(x => x.std != null) ? `${ch.length} <small>${ch.length === 1 ? 'שינוי' : 'שינויים'} בהזמנה הקבועה</small>` : `${tot} <small>ארגזים מומלצים לשבוע</small>`;
+    document.getElementById('slTmeta').innerHTML = `${slCat} · ${tot} ארגזים (כ־${kg} ק״ג)` + (ch.length ? `<br>${plus === 0 ? 'אותה כמות' : (plus > 0 ? '+' : '−') + Math.abs(plus) + ' ארגזים מהקבועה'}` : ''); }
+  else { const n = list.filter(x => val(x) > 0).length; document.getElementById('slTotal').innerHTML = n ? `${tot} <small>ארגזים להשלים · ${slCat}</small>` : `<small>${slCat}</small>`; document.getElementById('slTmeta').innerHTML = n ? n + ' מוצרים' : ''; }
+  document.getElementById('slCopy').textContent = poultry ? 'העתקת ההזמנה' : slOt === 'week' ? 'העתקת השינויים' : 'העתקת ההשלמה';
+  document.getElementById('slNote').innerHTML = (!poultry && slOt === 'week' && !list.some(x => x.std != null) ? '<b>ההזמנה הקבועה:</b> לוחצים על מוצר ← "הקבועה" כדי לרשום אותה פעם אחת. מאז רואים רק מה לשנות בה.<br>' : '')
+    + 'זו המלצה בלבד. ההזמנה נעשית כרגיל באפליקציית ההזמנות. ארגז = כ־' + BOX_KG + ' ק״ג. לוחצים על מוצר כדי לראות איך זה חושב.';
+  slOpenRows.forEach(n => { const el = document.querySelector(`#slItems .it[data-n="${CSS.escape(n)}"]`); if (el) el.classList.add('open'); });
+}
+function slRow(x, c, val, M, poultry) {
+  if (!c) return '';
+  const nb = n => n === 1 ? 'ארגז' : n + ' ארגזים', mx = Math.max(1, ...x.avg);
+  const stockIn = `במלאי <input class="st" type="number" inputmode="decimal" min="0" data-stock="${esc(x.n)}" value="${r1(x.stock.kg)}" aria-label="כמה ${esc(x.n)} במלאי"> ק״ג${x.stock.close ? ' <span class="auto">מהסגירה</span>' : x.stock.none ? ' <span class="auto warn">לעדכן</span>' : ''}`;
+  let line = '', badge = '', why = '', cov = [];
+  if (poultry) {
+    cov = c.o.cov;
+    line = `צפוי ${Math.round(c.exp)} ק״ג · ${stockIn}`;
+    if (x.n === 'חזה עוף') {
+      const subs = slBreastSubs();
+      if (subs) {
+        const day = (c.o && c.o.cov && c.o.cov.length) ? c.o.cov[0] : (M.wd <= 5 ? M.wd : 0);
+        const next = (day + 1) % 7;
+        const schn = r1((subs.schnitzel[day] || 0) + 0.5 * (subs.schnitzel[next] || 0));
+        const strp = r1(subs.strips[day] || 0);
+        const grnd = r1(subs.ground[day] || 0);
+        const half = r1(subs.half[day] || 0);
+        const cube = (label, kg) => `<span style="display:inline-block;background:#eaf1fb;color:#1f5aa8;border-radius:8px;padding:3px 9px;margin:3px 4px 0 0;font-size:12.5px;font-weight:700;line-height:1.3;">${label}: ${kg} ק״ג</span>`;
+        line += '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">' +
+          cube('שניצל (היום + 50% למחר)', schn) +
+          cube('רצועות חזה (היום)', strp) +
+          cube('טחון עוף (היום)', grnd) +
+          cube('חזה עוף חצוי (היום)', half) +
+          '</div>';
+      } else {
+        line += '<br><span style="color:#1f5aa8;">כולל שניצל, רצועות וטחון עוף</span>';
+      }
+    } else if (x.n === 'חזה הודו') {
+      line += '<br>כולל טחון הודו';
+    }
+    if (c.o && c.o.k === 'p5') {
+      why = `<span>מכר צפוי לשישי</span><b>${Math.round(x.avg[5] || 0)}</b><span>ועוד ${Math.round((M.sunBuf || 0.3)*100)}% לראשון</span><b>${Math.round((x.avg[0] || 0) * (M.sunBuf || 0.3))}</b><span>יישאר מהמלאי כשמגיע</span><b>${Math.max(0, Math.round(c.have))}</b><span class="eq">צריך בערך</span><b class="eq">${c.kg} ק״ג</b><span>ארגז כ־${x.box} ק״ג</span><b class="eq">${nb(c.rec)}</b>`;
+    } else {
+      why = `<span>מכר צפוי: ${c.o.cov.map(d => SL_DN[d]).join(', ')}</span><b>${Math.round(c.exp)}</b><span>ועוד לפתיחה ב${SL_DN[c.o.nx]} (${M.morning * 100}%)</span><b>${Math.round(c.morn)}</b><span>יישאר מהמלאי כשמגיע</span><b>${Math.max(0, Math.round(c.have))}</b><span class="eq">צריך בערך</span><b class="eq">${c.kg} ק״ג</b><span>ארגז כ־${x.box} ק״ג</span><b class="eq">${nb(c.rec)}</b>`;
+    }
+  } else if (slOt === 'week') {
+    cov = [0, 1, 2, 3, 4, 5];
+    const d = x.std == null ? null : val - x.std;
+    badge = d == null ? '' : d === 0 ? '<span class="diff same">✓ כמו הקבועה</span>' : `<span class="diff ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲ להוסיף ' + nb(d) : '▼ להוריד ' + nb(-d)}</span>`;
+    line = `קבועה <input class="st" type="number" inputmode="numeric" min="0" data-std="${esc(x.n)}" value="${x.std == null ? '' : x.std}" placeholder="—" aria-label="הזמנה קבועה ${esc(x.n)} בארגזים"> ארג׳ · ${x.kind === 'ribs' ? 'גושים לפי האונטריב' : stockIn}`;
+    if (c.why === 'ribs') why = `<span>אונטריב צפוי לשבוע ולבוקר, פחות במלאי</span><b>${Math.round(c.needU)}</b><span>מכל גוש (כ־${RIB_BLOCK} ק״ג) כ־${RIB_ONG} ק״ג אונטריב</span><b>${c.blocks} גושים</b>${c.steak ? `<span>ועוד סטייק צלעות</span><b>${Math.round(c.steak)}</b>` : ''}<span class="eq">צריך בערך</span><b class="eq">${c.kg} ק״ג</b><span>ארגז כ־${x.box} ק״ג</span><b class="eq">${nb(c.rec)}</b>`;
+    else why = `<span>מכר צפוי לשבוע${x.mult !== 1 ? ' (חג × ' + x.mult + ')' : ''}</span><b>${Math.round(c.exp)}</b><span>ועוד לפתיחה בראשון שאחרי</span><b>${Math.round(c.morn)}</b><span>יישאר במלאי בראשון</span><b>${Math.round(c.atSunday)}</b>`
+      + (c.why ? `<span>פחות מה שיוצא מגושי הצלעות</span><b>${Math.round(c.from)}</b>` : '') + `<span class="eq">צריך בערך</span><b class="eq">${c.kg} ק״ג</b><span>ארגז כ־${x.box} ק״ג</span><b class="eq">${nb(c.rec)}</b>`;
+  } else {
+    if (c.rec <= 0 && slEdits[x.n] == null && x.kind !== 'denver') return '';
+    cov = slOt === 4 ? [4, 5] : [slOt];
+    line = `יהיה על המדף ב${SL_DN[slOt]}: ${Math.max(0, Math.round(c.have))} ק״ג · צריך ${Math.round(c.need)} · ${stockIn}`;
+    badge = c.out != null ? `<div class="short">⚠ צפוי להיגמר ביום ${SL_DN[c.out]}</div>` : '';
+    if (x.kind === 'denver') { const miss = !!slPref('denMiss', {})[slSun(new Date())]; badge += ` <button type="button" class="miss${miss ? ' on' : ''}" data-miss="1">${miss ? '✓ סומן שלא הגיע' : 'לא הגיע?'}</button>`; }
+    why = `<span>יישאר על המדף כשמגיע</span><b>${Math.max(0, Math.round(c.have))}</b><span>צריך עד האספקה הבאה, ועוד לבוקר</span><b>${Math.round(c.need)}</b><span class="eq">חסר בערך</span><b class="eq">${c.kg} ק״ג</b><span>ארגז כ־${x.box} ק״ג</span><b class="eq">${nb(c.rec)}</b>`;
+  }
+  return `<div class="it${x.hot ? ' hot' : ''}" data-n="${esc(x.n)}">
+    <div class="it-main"><div style="min-width:0">${x.hot ? `<span class="hot-tag">🔥 בולט בחג · פי ${x.mult}</span>` : ''}<button type="button" class="it-name" data-t="${esc(x.n)}">${esc(x.n)}${x.kind === 'ribs' ? '<span class="auto">גושים</span>' : x.kind === 'denver' ? '<span class="auto">גיבוי</span>' : ''}<span class="chev">▾</span></button>
+      <div class="it-line">${line}</div>${badge}${slEdits[x.n] != null ? `<div class="manual">שונה ידנית · ההמלצה ${nb(c.rec)}<button type="button" data-undo="${esc(x.n)}">ביטול</button></div>` : ''}</div>
+      <div><div class="step"><button type="button" data-d="-1" data-i="${esc(x.n)}" aria-label="פחות">−</button><input class="q${slEdits[x.n] != null ? ' changed' : ''}" type="number" inputmode="numeric" min="0" data-q="${esc(x.n)}" value="${val}" aria-label="כמה ארגזים ${esc(x.n)}" onfocus="this.select()"><button type="button" data-d="1" data-i="${esc(x.n)}" aria-label="יותר">+</button></div>
+      <div class="blocks">${val === 1 ? 'ארגז' : 'ארגזים'} · כ־${val * x.box} ק״ג${x.kind === 'ribs' ? ' · ' + Math.round(val * x.box / RIB_BLOCK) + ' גושים' : ''}</div></div></div>
+    <div class="it-more"><div class="why">${x.kind === 'ribs' ? '' : `<div class="wk">${x.avg.map((v, k) => `<div class="${cov.includes(k) ? 'cov' : ''}"><i style="height:${Math.max(4, v / mx * 44)}px"></i>${SL_WD[k]} ${Math.round(v)}</div>`).join('')}</div><div class="sub">ממוצע מכר לפי יום, מהדוחות (ק״ג)</div>`}<div class="calc">${why}</div></div></div></div>`;
+}
+
+// ---- mapping the report's items to products
+function slRenderMap() {
+  const el = document.getElementById('slMap'); if (!el) return;
+  const keys = slWeekKeys().slice(-4), seen = {};
+  keys.forEach(w => slWeeks[w].items.forEach(it => { seen[it.n] = it; }));
+  const items = Object.values(seen).sort((a, b) => a.n.localeCompare(b.n, 'he'));
+  document.getElementById('slMapBtn').hidden = !items.length;
+  el.hidden = !slMapOpen || !items.length; if (el.hidden) return;
+  const fix = slPref('map', {}), all = SL_BEEF.flatMap(g => g[1]).concat(['אונטריב'], Object.keys(SL_CANON));
+  el.innerHTML = `<div class="sl-note">כל פריט בדוח משויך למוצר בהמלצה לפי השם, ואפשר לתקן. כבש, עוף והודו: כל פריט מופיע בנפרד.</div>` + items.map(it => {
+    const saved = fix[it.n]; delete fix[it.n]; const auto = slProductOf(it); if (saved !== undefined) fix[it.n] = saved;
+    const own = auto && !all.includes(auto.p);
+    const sel = saved !== undefined ? saved : auto ? (own ? '#auto' : auto.p) : '';
+    return `<div class="sl-maprow"><span>${esc(it.n)}${it.dept ? ` <small>מח׳ ${esc(it.dept)}</small>` : ''}</span><select data-map="${esc(it.n)}" aria-label="שיוך ${esc(it.n)}">
+      <option value=""${sel === '' ? ' selected' : ''}>לא בהמלצה</option>${own ? `<option value="#auto"${sel === '#auto' ? ' selected' : ''}>${esc(auto.g)} · פריט בנפרד</option>` : ''}
+      ${all.map(p => `<option${sel === p ? ' selected' : ''}>${p}</option>`).join('')}</select></div>`; }).join('');
+}
+
+// ---- events
+(function slWire() {
+  const $ = id => document.getElementById(id);
+  $('slFile').addEventListener('change', e => slFile(e.target));
+  $('slImport').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.wk) { slPending.weekPick = b.dataset.wk; slRenderImport(); }
+    else if (b.id === 'slImpOk') slSaveImport();
+    else if (b.id === 'slImpNo') { slPending = null; renderSalesPage(); } });
+  $('slView').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; slView = b.dataset.v; renderSalesPage(); });
+  $('slSmode').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; slSview = b.dataset.m; slRenderSales(); });
+  $('slSdays').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; slSday = +b.dataset.d; slRenderSales(); });
+  $('slScats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; slCat = b.dataset.c; slRenderSales(); });
+  $('slCats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; slCat = b.dataset.c; slEdits = {}; slRenderRec(); });
+  $('slOtype').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return;
+    if (b.dataset.o.startsWith('p')) slPot = b.dataset.o; else slOt = b.dataset.o === 'week' ? 'week' : +b.dataset.o; slEdits = {}; slOpenRows.clear(); slRenderRec(); });
+  $('slCover').addEventListener('change', e => { const nd = e.target.dataset.nd; if (!nd) return; const w = slSun(new Date()), all = slPref('noDay', {}), cur = Object.assign({}, all[w]); cur[nd] = e.target.checked;
+    slSetPref('noDay', Object.assign({}, all, { [w]: cur })); if (cur.tue && slPot === 'p2') slPot = 'p1'; if (cur.fri && slPot === 'p5') slPot = 'p4'; slEdits = {}; slRenderRec(); });
+  $('slMorn').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.sun) { slSetPref('sunBuf', +b.dataset.sun); } else if (b.dataset.v) { slSetPref('morn', +b.dataset.v); }
+    slEdits = {}; slRenderRec(); });
+  $('slMode').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.open) { slHolOpen = !slHolOpen; slRenderRec(); return; }
+    if (b.dataset.exit) { slSetPref('hol', ''); slEdits = {}; slRenderRec(); showOk('חזרנו למצב רגיל'); return; }
+    if (b.dataset.h) { slSetPref('hol', b.dataset.h); slHolOpen = false; slEdits = {}; slRenderRec(); showOk('מצב חג: ' + SL_HOL.find(h => h[0] === b.dataset.h)[1]); } });
+  $('slHoliday').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.hx) { const k = slPref('hol', ''); slSetPref('holx', Object.assign({}, slPref('holx', {}), { [k]: +b.dataset.hx })); slEdits = {}; slRenderRec(); }
+    if (b.dataset.jump) { const g = b.dataset.jump; slCat = SL_TOP(g); if (SL_SUBS.includes(g)) slOpenSubs.add(g); slRenderRec(); $('slItems').scrollIntoView({ behavior: 'smooth' }); } });
+  $('slItems').addEventListener('toggle', e => { const d = e.target.closest && e.target.closest('details.sec'); if (!d) return; d.open ? slOpenSubs.add(d.dataset.sub) : slOpenSubs.delete(d.dataset.sub); }, true);
+  $('slItems').addEventListener('click', e => {
+    if (e.target.closest('[data-miss]')) { const w = slSun(new Date()), all = slPref('denMiss', {}); slSetPref('denMiss', Object.assign({}, all, { [w]: !all[w] })); slEdits = {}; slRenderRec(); return; }
+    const u = e.target.closest('[data-undo]'); if (u) { delete slEdits[u.dataset.undo]; slRenderRec(); return; }
+    const t = e.target.closest('[data-t]'); if (t) { const n = t.dataset.t; slOpenRows.has(n) ? slOpenRows.delete(n) : slOpenRows.add(n); slRenderRec(); return; }
+    const b = e.target.closest('button[data-d]'); if (!b) return;
+    const M = slModel.last, x = M.list.find(y => y.n === b.dataset.i), rec = slCalc(x, M, slOt, slPot).rec, cur = slEdits[x.n] ?? rec;
+    slEdits[x.n] = Math.max(0, cur + +b.dataset.d); if (slEdits[x.n] === rec) delete slEdits[x.n]; slRenderRec(); });
+  $('slItems').addEventListener('change', e => { const t = e.target, v = parseFloat(String(t.value).replace(',', '.'));
+    if (t.dataset.stock) { if (v >= 0) slSetPref('stock', Object.assign({}, slPref('stock', {}), { [t.dataset.stock]: { kg: v, at: Date.now() } })); slEdits = {}; slRenderRec(); return; }
+    if (t.dataset.std) { const all = Object.assign({}, slPref('std', {})); if (t.value === '') delete all[t.dataset.std]; else if (v >= 0) all[t.dataset.std] = Math.round(v); slSetPref('std', all); slRenderRec(); return; }
+    if (t.dataset.q) { const M = slModel.last, x = M.list.find(y => y.n === t.dataset.q); if (v >= 0) { slEdits[x.n] = Math.round(v); if (slEdits[x.n] === slCalc(x, M, slOt, slPot).rec) delete slEdits[x.n]; } slRenderRec(); } });
+  $('slReset').addEventListener('click', () => { slEdits = {}; slRenderRec(); showOk('חזרנו להמלצה'); });
+  $('slCopy').addEventListener('click', () => {
+    const M = slModel.last, poultry = slCat === 'עוף' || slCat === 'הודו', po = slPOT(M).find(o => o.k === slPot);
+    const valOf = x => { const c = slCalc(x, M, slOt, slPot); return c ? (slEdits[x.n] ?? c.rec) : 0; };
+    const groups = poultry ? [slCat] : SL_SUBS.concat(['כבש']);
+    const head = poultry ? `${slCat} · הזמנה ${po.l}` : slOt === 'week' ? 'שינויים בהזמנה הקבועה' : 'השלמה ' + ['', '', 'לשלישי', 'לרביעי', 'לחמישי'][slOt];
+    const text = head + ' · ' + (branch.name || '') + '\n' + groups.map(g => {
+      const lines = M.list.filter(x => x.g === g).map(x => [x, valOf(x)]).filter(([x, v]) => poultry || slOt !== 'week' ? v > 0 : x.std == null ? v > 0 : v !== x.std)
+        .map(([x, v]) => `${x.n}: ${v} ${v === 1 ? 'ארגז' : 'ארגזים'}${!poultry && slOt === 'week' && x.std != null ? ` (במקום ${x.std})` : ''}`);
+      return lines.length ? `\n*${g}*\n` + lines.join('\n') : ''; }).join('');
+    const done = () => showOk('✓ הועתק');
+    try { navigator.clipboard.writeText(text).then(done, () => alert(text)); } catch (e) { alert(text); } });
+  $('slMapBtn').addEventListener('click', () => { slMapOpen = !slMapOpen; slRenderMap(); });
+  $('slMap').addEventListener('change', e => { const s = e.target.closest('select[data-map]'); if (!s) return; const all = Object.assign({}, slPref('map', {}));
+    if (s.value === '#auto') delete all[s.dataset.map]; else all[s.dataset.map] = s.value; slSetPref('map', all); slEdits = {}; renderSalesPage(); });
+})();
+
+// ---------- sync with the sheet ----------
+function salesAt() { return Object.values(slWeeks).reduce((m, w) => Math.max(m, w.at || 0), 0); }
+function mergeSales(list) {
+  if (!Array.isArray(list) || !list.length) return;
+  const waiting = new Set(syncQueue.filter(o => o.op === 'sales').map(o => o.week));
+  let changed = false;
+  list.forEach(w => { if (!w || !w.week || waiting.has(w.week)) return; const cur = slWeeks[w.week];
+    if (!cur || (w.at || 0) >= (cur.at || 0)) { slWeeks[w.week] = { items: w.items || [], at: w.at || 0, by: w.by || '', hol: w.hol || '' }; changed = true; } });
+  if (changed) { slStore(); if (document.getElementById('page-sales').classList.contains('active')) renderSalesPage(); }
+}
+function mergePrefs(p) {
+  if (!p || typeof p !== 'object') return;
+  const waiting = new Set(syncQueue.filter(o => o.op === 'pref').map(o => o.k));
+  let changed = false;
+  Object.keys(p).forEach(k => { if (waiting.has(k)) return; const cur = slPrefs[k]; if (!cur || (p[k].at || 0) > (cur.at || 0)) { slPrefs[k] = p[k]; changed = true; } });
+  if (changed) { slStore(); if (document.getElementById('page-sales').classList.contains('active')) renderSalesPage(); }
+}
+
+</script>
+<script>
+// ===================== מיוחדים: פודיום הסניפים =====================
+// מנהל האזור בוחר אילו פריטים מדוח המכר הם "מיוחדים". כל סניף רואה כמה אחוז מהמכר שלו (בק״ג) הם מיוחדים,
+// לעומת שאר הסניפים של אותו מנהל אזור. המספרים מגיעים מהגיליון, מאותם דוחות מכר שכל סניף מעלה.
+let spPack = null, spPeriod = 'month', spEditOpen = false, spEditSel = null, spEditQ = '';
+try { spPack = JSON.parse(localStorage.getItem('specials') || 'null'); } catch (e) {}
+function mergeSpecials(p) {
+  if (!p || typeof p !== 'object') return;
+  spPack = p;
+  try { localStorage.setItem('specials', JSON.stringify(p)); } catch (e) {}
+  const pg = document.getElementById('page-sp');
+  if (pg && pg.classList.contains('active')) spRenderBranch();
+}
+const spDay = (w, k) => { const d = new Date(w + 'T00:00:00'); d.setDate(d.getDate() + k); return ymd(d); };
+const spDm = ds => +ds.slice(8) + '.' + +ds.slice(5, 7);
+const SP_MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+const spSumA = a => (a || []).reduce((s, v) => s + (v || 0), 0);
+
+// everything the screen shows, for one period ('month' / 'week')
+function spCompute(pack, period) {
+  const peers = (pack && pack.peers) || {}, list = (pack && pack.list) || [];
+  const weeks = [...new Set(Object.values(peers).flatMap(o => Object.keys(o)))].sort();
+  if (!weeks.length) return null;
+  // the latest day any branch reported
+  let lastDay = '';
+  weeks.forEach(w => Object.values(peers).forEach(o => { const x = o[w]; if (x) x.t.forEach((v, k) => { if (v != null && v > 0) { const d = spDay(w, k); if (d > lastDay) lastDay = d; } }); }));
+  if (!lastDay) return null;
+  let W = weekStartOf(lastDay), M = lastDay.slice(0, 7);
+  // early in a new week / month only the first branches have uploaded: keep the previous one until half of them have
+  const nb = Object.keys(peers).filter(b => Object.keys(peers[b]).length).length;
+  const reported = f => Object.keys(peers).filter(b => Object.keys(peers[b]).some(w => peers[b][w].t.some((v, k) => v > 0 && f(w, k)))).length;
+  if (nb > 1 && period === 'week' && reported(w => w === W) * 2 <= nb) { const d = new Date(W + 'T00:00:00'); d.setDate(d.getDate() - 7); const P = ymd(d); if (reported(w => w === P)) W = P; }
+  if (nb > 1 && period === 'month' && reported((w, k) => spDay(w, k).slice(0, 7) === M) * 2 <= nb) { const d = new Date(M + '-01T00:00:00'); d.setMonth(d.getMonth() - 1); const P = ymd(d).slice(0, 7); if (reported((w, k) => spDay(w, k).slice(0, 7) === P)) M = P; }
+  const inP = period === 'week' ? (w, k) => w === W : (w, k) => spDay(w, k).slice(0, 7) === M;
+  const label = period === 'week' ? 'שבוע ' + spDm(W) + '–' + spDm(spDay(W, 5)) : SP_MONTHS[+M.slice(5) - 1] + ' ' + M.slice(0, 4);
+  const rows = [], missing = [], champ = {};
+  Object.keys(peers).forEach(b => {
+    let total = 0, sp = 0; const per = {};
+    Object.keys(peers[b]).forEach(w => { const x = peers[b][w];
+      x.t.forEach((v, k) => { if (v != null && inP(w, k)) total += v; });
+      Object.keys(x.s || {}).filter(n => list.includes(n)).forEach(n => x.s[n].forEach((v, k) => { if (v != null && inP(w, k)) { sp += v; per[n] = (per[n] || 0) + v; } })); });
+    if (total <= 0) { missing.push(b); return; }
+    rows.push({ b, pct: sp / total * 100, kg: sp, total, per });
+    Object.keys(per).forEach(n => { const s = per[n] / total * 100; if (per[n] > 0 && (!champ[n] || s > champ[n].s)) champ[n] = { b, s, kg: per[n] }; });
+  });
+  rows.sort((a, b) => b.pct - a.pct || b.kg - a.kg);
+  rows.forEach((r, i) => { r.rank = i && r.pct.toFixed(1) === rows[i - 1].pct.toFixed(1) ? rows[i - 1].rank : i + 1; }); // the same % on screen = the same place
+  // sold more than usual: the latest week against the branch's own earlier weeks, on the same days
+  const jumps = [];
+  Object.keys(peers).forEach(b => {
+    const cur = peers[b][W]; if (!cur) return;
+    const days = cur.t.map((v, k) => v != null && v > 0 ? k : -1).filter(k => k >= 0); if (!days.length) return;
+    const prev = Object.keys(peers[b]).sort().filter(w => w < W && days.every(k => peers[b][w].t[k] != null)).slice(-8);
+    if (prev.length < 2) return;
+    list.forEach(n => {
+      const now = days.reduce((s, k) => s + (((cur.s || {})[n] || [])[k] || 0), 0);
+      const avg = prev.reduce((s, w) => s + days.reduce((t, k) => t + (((peers[b][w].s || {})[n] || [])[k] || 0), 0), 0) / prev.length;
+      if (avg > 0 && now - avg >= 2 && now / avg >= 1.2) jumps.push({ b, n, now, avg, up: (now / avg - 1) * 100 });
+    });
+  });
+  jumps.sort((a, b) => b.up - a.up);
+  // 🏆 the winner of the previous month (shown all through this month); only when that month has enough sales (3+ weeks)
+  const cm = lastDay.slice(0, 7), pd = new Date(cm + '-01T00:00:00'); pd.setMonth(pd.getMonth() - 1);
+  const PM = ymd(pd).slice(0, 7), inPM = (w, k) => spDay(w, k).slice(0, 7) === PM;
+  let cup = null;
+  if (weeks.filter(w => [0, 1, 2, 3, 4, 5].some(k => inPM(w, k))).length >= 3) {
+    const rs = [];
+    Object.keys(peers).forEach(b => { let total = 0, sp = 0;
+      Object.keys(peers[b]).forEach(w => { const x = peers[b][w];
+        x.t.forEach((v, k) => { if (v != null && inPM(w, k)) total += v; });
+        Object.keys(x.s || {}).filter(n => list.includes(n)).forEach(n => x.s[n].forEach((v, k) => { if (v != null && inPM(w, k)) sp += v; })); });
+      if (total > 0) rs.push({ b, pct: sp / total * 100 }); });
+    if (rs.length >= 2) { rs.sort((a, b) => b.pct - a.pct); const top = rs[0].pct.toFixed(1); cup = { names: rs.filter(r => r.pct.toFixed(1) === top).map(r => r.b), label: SP_MONTHS[+PM.slice(5) - 1] }; }
+  }
+  return { label, rows, missing: missing.sort((a, b) => a.localeCompare(b, 'he')), champ, jumps: jumps.slice(0, 6), W, M, lastDay, cup };
+}
+
+function spHtml(pack, me, ctx) {
+  const list = (pack && pack.list) || [];
+  if (!pack || !list.length) return `<div class="sp-empty"><b>🏆 עוד אין רשימת מיוחדים</b><br>${ctx === 'mgr' ? 'בוחרים כאן למעלה אילו פריטים מדוח המכר נחשבים מיוחדים, ואז כל הסניפים שלך רואים את הדירוג.' : 'מנהל האזור צריך לבחור באפליקציה אילו מוצרים נחשבים מיוחדים. אחרי זה יופיע כאן הדירוג של הסניפים.'}</div>`;
+  const C = spCompute(pack, spPeriod);
+  if (!C || !C.rows.length) return `<div class="sp-empty"><b>🏆 עוד אין מכר להשוואה</b><br>הדירוג יופיע אחרי שהסניפים יעלו דוח מכר במסך "מכר והזמנה".</div>`;
+  const R = C.rows, max = R[0].pct || 1, f1 = v => v.toFixed(1);
+  const won = b => !!(C.cup && C.cup.names.includes(b)), cupTag = b => won(b) ? ` <span class="sp-cupt" title="אלוף ${C.cup.label}">🏆</span>` : '';
+  const cell = (r, i) => r ? `<div class="sp-place p${i}${r.b === me ? ' me' : ''}"><span class="ic">${['', '👑', '🥈', '🥉'][r.rank] || ''}</span><div class="who">${esc(r.b)}${cupTag(r.b)}</div>
+    <div class="blk"><div class="rk">${r.rank}</div><div class="pc">${f1(r.pct)}%</div><div class="kg">${Math.round(r.kg)} ק״ג</div></div></div>` : '<div></div>';
+  const mi = me ? R.findIndex(r => r.b === me) : -1;
+  let mine = '';
+  if (me && mi >= 0) {
+    const r = R[mi], tops = Object.keys(r.per).filter(n => r.per[n] > 0).sort((a, b) => r.per[b] - r.per[a]);
+    mine = `<div class="sp-mine"><div class="n">${r.rank}</div><div class="t"><b>${esc(me)} · ${f1(r.pct)}%</b><br>${r.rank <= 3 ? `🏆 אתם על הפודיום · מקום ${r.rank} מתוך ${R.length}` : `מקום ${r.rank} מתוך ${R.length} · עוד ${f1(Math.max(0.1, R[2].pct - r.pct))}% לפודיום`}
+      ${won(me) ? `<br><b class="sp-cupme">🏆 אתם אלופי ${C.cup.label}!</b>` : ''}
+      <br><span class="sub">${Math.round(r.kg)} ק״ג מיוחדים מתוך ${Math.round(r.total)} ק״ג מכר</span></div></div>
+      ${tops.length ? `<h2 class="sp-h">המיוחדים אצלכם <small>${esc(C.label)}</small></h2><div class="sp-list">${tops.map(n => `<div class="sp-row two"><span class="name">${esc(n)}</span><span class="p">${f2(r.per[n])} ק״ג</span></div>`).join('')}</div>` : ''}`;
+  } else if (me) mine = `<div class="sp-mine"><div class="n">–</div><div class="t"><b>${esc(me)}</b><br>אין לכם עוד מכר ב${spPeriod === 'week' ? 'שבוע הזה' : 'חודש הזה'} · מעלים דוח במסך "המכר"</div></div>`;
+  const champs = list.filter(n => C.champ[n]).map(n => `<div class="sp-champ"><div class="prod">${esc(n)}</div><div class="br">🏅 ${esc(C.champ[n].b)}</div><div class="v">${f1(C.champ[n].s)}% מהמכר שלה · ${Math.round(C.champ[n].kg)} ק״ג</div></div>`).join('');
+  const jumps = C.jumps.map(j => `<div class="sp-row jump${j.b === me ? ' me' : ''}"><span class="r">📈</span><span><b>${esc(j.b)}</b> · ${esc(j.n)}<br><span class="sub">${f2(j.now)} ק״ג במקום ${f2(j.avg)} בממוצע</span></span><span class="up">+${Math.round(j.up)}%</span></div>`).join('');
+  return `<div class="sp-seg"><button type="button" data-p="month" class="${spPeriod === 'month' ? 'on' : ''}">החודש</button><button type="button" data-p="week" class="${spPeriod === 'week' ? 'on' : ''}">השבוע</button></div>
+    <p class="sp-sub">כמה מהמכר של המחלקה הם מוצרים מיוחדים · לפי ק״ג · ${esc(C.label)}</p>
+    ${C.cup ? `<div class="sp-cup">🏆 אלוף ${C.cup.label}: <b>${C.cup.names.map(esc).join(', ')}</b></div>` : ''}
+    <div class="sp-podium">${cell(R[1], 2)}${cell(R[0], 1)}${cell(R[2], 3)}</div><div class="sp-floor"></div>
+    ${mine}
+    ${R.length > 3 ? `<h2 class="sp-h">כל הסניפים <small>אחוז מיוחדים מתוך כל המכר</small></h2><div class="sp-list">${R.slice(3).map((r, k) => `<div class="sp-row${r.b === me ? ' me' : ''}"><span class="r">${r.rank}</span><span class="name">${esc(r.b)}${cupTag(r.b)}</span><span class="bar"><i style="width:${Math.max(3, r.pct / max * 100)}%"></i></span><span class="p">${f1(r.pct)}%</span></div>`).join('')}</div>` : ''}
+    ${C.missing.length ? `<p class="sp-sub">עוד לא העלו דוח ל${spPeriod === 'week' ? 'שבוע הזה' : 'חודש הזה'}: ${C.missing.map(esc).join(', ')}</p>` : ''}
+    ${champs ? `<h2 class="sp-h">אלופים לפי מוצר <small>מי מכר הכי הרבה ביחס למכר שלו</small></h2><div class="sp-champs">${champs}</div>` : ''}
+    ${jumps ? `<h2 class="sp-h">מכרו מעל הרגיל השבוע <small>לעומת הממוצע של הסניף עצמו באותם ימים</small></h2><div class="sp-list">${jumps}</div>` : ''}
+    <p class="sp-note">${list.length === 1 ? 'מוצר מיוחד אחד' : list.length + ' מוצרים מיוחדים'} · הרשימה נקבעת על ידי ${ctx === 'mgr' ? 'מנהל האזור' : esc(pack.mgr || 'מנהל האזור')}</p>`;
+}
+function spBind(el, rerender) {
+  el.querySelectorAll('.sp-seg button').forEach(b => b.onclick = () => { spPeriod = b.dataset.p; rerender(); });
+}
+
+// ---------- in the branch: its own page in the bottom bar ----------
+function spRenderBranch() {
+  const box = document.getElementById('spBox'); if (!box) return;
+  box.innerHTML = spHtml(spPack, branch && branch.name ? cleanName(branch.name) : '', 'branch');
+  spBind(box, spRenderBranch);
+}
+
+// ---------- the area manager: a "מיוחדים" page with the list editor ----------
+function spRenderMgr() {
+  const el = document.getElementById('spMgr'); if (!el || !mgr) return;
+  const pack = mgr.specials || { list: [], peers: {}, items: [] };
+  const ro = mgr.canEdit === false, list = pack.list || [];
+  let head = `<div class="sp-card"><div class="sp-ch"><div><b>🏆 מוצרים מיוחדים</b><br><span class="sub">${list.length ? (list.length === 1 ? 'מוצר אחד' : list.length + ' מוצרים') + ' · ' + esc(list.slice(0, 4).join(', ')) + (list.length > 4 ? '…' : '') : 'עוד לא נבחרו'}</span></div>
+    ${ro ? '' : `<button type="button" class="sp-edit-btn" onclick="spEditToggle()">${spEditOpen ? 'סגירה' : list.length ? 'עריכה' : 'בחירה'}</button>`}</div>`;
+  if (spEditOpen && !ro) {
+    const sel = spEditSel, q = spEditQ.trim();
+    const items = (pack.items || []).slice();
+    list.forEach(n => { if (!items.some(i => i[0] === n)) items.push([n, 0]); });
+    const shown = items.filter(i => !q || i[0].includes(q)).sort((a, b) => (sel.has(b[0]) - sel.has(a[0])) || b[1] - a[1]).slice(0, 150);
+    head += `<div class="sp-editor">
+      <input type="search" id="spQ" placeholder="חיפוש פריט מהדוח…" value="${esc(spEditQ)}" autocomplete="off">
+      <div class="sp-items">${shown.length ? shown.map(i => `<label class="sp-item${sel.has(i[0]) ? ' on' : ''}"><input type="checkbox" data-n="${esc(i[0])}"${sel.has(i[0]) ? ' checked' : ''}><span>${esc(i[0])}</span><small>${i[1] ? i[1] + ' ק״ג' : ''}</small></label>`).join('')
+        : `<div class="sub" style="padding:10px">${(pack.items || []).length ? 'לא נמצא פריט כזה' : 'עוד אין דוחות מכר מהסניפים שלך. כשסניף יעלה דוח, הפריטים שלו יופיעו כאן.'}</div>`}</div>
+      <div class="sp-ebtns"><button type="button" class="btn" id="spSave">שמירה · ${sel.size} נבחרו</button><button type="button" class="btn sl-alt" onclick="spEditToggle()">ביטול</button></div>
+      <p class="sub" style="margin:6px 2px 0">הפריטים לפי הכמות שנמכרה בסניפים שלך ב־3 החודשים האחרונים. הרשימה חלה על כל הסניפים שלך.</p>
+    </div>`;
+  }
+  head += '</div>';
+  el.innerHTML = head + spHtml(pack, null, 'mgr');
+  spBind(el, spRenderMgr);
+  const qi = document.getElementById('spQ');
+  if (qi) qi.oninput = () => { spEditQ = qi.value; const pos = qi.selectionStart; spRenderMgr(); const n = document.getElementById('spQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} };
+  // ticking keeps the list where it is (no re-render, so it doesn't jump back to the top)
+  el.querySelectorAll('.sp-item input').forEach(c => c.onchange = () => { if (c.checked) spEditSel.add(c.dataset.n); else spEditSel.delete(c.dataset.n);
+    c.closest('.sp-item').classList.toggle('on', c.checked); const b = document.getElementById('spSave'); if (b) b.textContent = 'שמירה · ' + spEditSel.size + ' נבחרו'; });
+  const sv = document.getElementById('spSave'); if (sv) sv.onclick = spSave;
+}
+function spEditToggle() {
+  spEditOpen = !spEditOpen;
+  spEditSel = new Set(((mgr && mgr.specials) || {}).list || []); spEditQ = '';
+  spRenderMgr();
+}
+async function spSave() {
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch (e) {}
+  const list = [...spEditSel];
+  const btn = document.getElementById('spSave'); btn.disabled = true; btn.textContent = 'שומר…';
+  try {
+    const res = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrSpecials', mcode: info.code, list }) });
+    const d = JSON.parse(await res.text());
+    if (!d.ok) throw new Error(d.error);
+    spEditOpen = false;
+    mgr.specials = Object.assign({}, mgr.specials, { list: d.list || list }); mgrStore(mgr); // saved, even if the refresh below fails
+    showOk('✓ רשימת המיוחדים נשמרה · הסניפים יראו אותה בעדכון הבא');
+    await mgrRefresh();   // brings the kg of the newly chosen items
+    spRenderMgr();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'שמירה · ' + list.length + ' נבחרו';
+    alert(e.message === 'read only' ? 'לעוזר יש הרשאת צפייה בלבד' : 'לא הצלחתי לשמור בגיליון. בדקו את החיבור ונסו שוב.');
+  }
+}
+const _spEnterMgr = enterMgr;
+enterMgr = function (d) { _spEnterMgr(d); const pg = document.getElementById('page-mgrsp'); if (pg && pg.classList.contains('active')) spRenderMgr(); };
+
 </script>
 </body>
 </html>
