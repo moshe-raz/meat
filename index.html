@@ -2777,10 +2777,43 @@ async function slSaveImport() {
   const rec = { items: merged, at: Date.now(), by: worker, hol };
   slWeeks[w] = rec; slStore();
   queueOps([{ op: 'sales', week: w, items: merged, at: rec.at, by: worker, hol }]);
-  const transferred = 0; // "נמכר" from the report: after checking with the user which items are which product
+  const transferred = await slSoldFromReport(w, merged);
   slPending = null; slSday = null; slViewWeek = w;
-  showOk(`✓ נקלט דוח ${slWeekLabel(w)} · ${P.items.length} פריטים` + (kept.length ? ` · נשמרו ${kept.length} פריטים מסוג אחר` : '') + (transferred ? ` · ${transferred} רשומות נמכר עודכנו` : ''));
+  showOk(`✓ נקלט דוח ${slWeekLabel(w)} · ${P.items.length} פריטים` + (kept.length ? ` · נשמרו ${kept.length} פריטים מסוג אחר` : '') + (transferred ? ` · נמכר עודכן ל־${transferred} ימים ומוצרים` : ''));
   renderSalesPage();
+}
+// ---------- "נמכר" straight from the daily sales report ----------
+// the three weighed products (and iron steak, which counts as shoulder) get their "נמכר" for every reported day.
+// these entries are written by "דוח מכר"; a newer report replaces them, so nothing is counted twice.
+const SL_REP_BY = 'דוח מכר';
+const SL_SOLD_MAP = [[/סטייק\s*עין|רוסביף|אנטריקוט\s*לתנור/, 'oven'], [/א[י]?ירון/, 'iron'], [/צלי\s*כתף/, 'shoulder'], [/אנטריקוט/, 'entrecote']];
+function slSoldOf(n) { if (/אצבעות|שיפוד/.test(n)) return null; const m = SL_SOLD_MAP.find(([re]) => re.test(n)); return m ? m[1] : null; }
+async function slSoldFromReport(w, items) {
+  if (mgrMode) return 0;
+  const want = {}, today = ymd(new Date());
+  items.forEach(it => { const m = slSoldOf(it.n); if (!m) return;
+    it.d.forEach((v, k) => { if (v == null) return; const date = slAddDays(w, k); if (date >= today) return; const key = date + '|' + m; want[key] = (want[key] || 0) + v; }); });
+  const keys = Object.keys(want).sort();
+  if (!keys.length) return 0;
+  const isRep = h => h.by === SL_REP_BY;
+  const soldOf = (date, meat) => history.filter(h => h.date === date && h.meat === meat && h.type === 'נמכר');
+  const manual = keys.filter(k => { const [d, m] = k.split('|'); return want[k] > 0 && soldOf(d, names[m]).some(h => !isRep(h)); });
+  let replaceManual = false;
+  if (manual.length) replaceManual = await ask({ title: 'כבר הוקלד נמכר ביד', icon: 'warn', ok: 'להחליף מהדוח', cancel: 'להשאיר את הידני',
+    html: `ל־<b>${manual.length}</b> ימים כבר יש "נמכר" שהוקלד ביד (${[...new Set(manual.map(k => names[k.split('|')[1]]))].join(', ')}).<br>להחליף אותו במספרים מהדוח? אם משאירים, הדוח לא נרשם לימים האלה, כדי שלא ייספר פעמיים.` });
+  const ops = []; let n = 0;
+  keys.forEach(k => {
+    const [date, m] = k.split('|'), kg = Math.round(want[k] * 100) / 100, meat = names[m];
+    const same = soldOf(date, meat), rep = same.filter(isRep), man = same.filter(h => !isRep(h));
+    if (man.length && !replaceManual) return;
+    if (!man.length && rep.length === 1 && Math.abs(parseFloat(rep[0].weight) - kg) < 0.005) return; // nothing changed
+    if (!man.length && !rep.length && kg <= 0) return;
+    same.forEach(h => { if (isRep(h) || replaceManual) { history.splice(history.indexOf(h), 1); if (h.id) ops.push({ op: 'del', id: h.id }); } });
+    if (kg > 0) { const entry = { id: newId(), dev: myDev, by: SL_REP_BY, date, time: '07:00', meat, type: 'נמכר', weight: kg.toFixed(2) }; history.unshift(entry); ops.push({ op: 'add', entry }); }
+    n++;
+  });
+  if (ops.length) { queueOps(ops); sortHistory(); saveData(); try { updateDisplay(); renderHistory(); } catch (e) {} }
+  return n;
 }
 function isSimilarReport(old, neu) {
   if (!old.length || !neu.length) return false;
