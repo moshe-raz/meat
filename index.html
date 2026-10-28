@@ -2500,12 +2500,18 @@ function slProductOf(it) {
   if (pg === 'עוף' && /סטייק\s*פרגי|פרגיות\s*סטייק/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' };
   // עוף מפורק is just whole fresh chicken
   if (pg === 'עוף' && /עוף.*מפורק|מפורק.*עוף/.test(it.n)) return { p: 'עוף שלם', g: 'עוף' };
+  // "עוף מצונן מס 3" is the whole chicken (that's just its name in the report)
+  if (pg === 'עוף' && /עוף\s*מצונן|מס['׳]?\s*3/.test(it.n)) return { p: 'עוף שלם', g: 'עוף' };
+  // פרגיות: a little comes as is, most is cut from boneless thigh → ordered as thigh
+  if (pg === 'עוף' && /פרגיות/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' };
+  // כנפית / שוקית are sometimes cut from the wings → ordered as wings
+  if (pg === 'עוף' && /כנפית|שוקית/.test(it.n)) return { p: 'כנפיים עוף טרי', g: 'עוף' };
   // ground turkey is made from turkey breast / turkey pieces
   if (pg === 'הודו' && /חזה|טחון/.test(it.n)) return { p: 'חזה הודו', g: 'הודו' };
   // specific turkey items that don't contain the word הודו
   if (/שוק\s*מפורק\s*טרי|שווארמה\s*נקבה\s*טרי/.test(it.n)) return { p: it.n, g: 'הודו' };
   // exclude turkey shawarma strips - only female shawarma is orderable
-  if (pg === 'הודו' && /רצועות\s*(שווארמה|שווראמה)/.test(it.n)) return null;
+  if (pg === 'הודו' && /רצועות\s*(שווארמה|שווראמה)/.test(it.n)) return { p: 'שווארמה נקבה טרי', g: 'הודו' }; // made from female shawarma
   if (pg) return { p: it.n, g: pg };
   for (const [re, p] of SL_RULES) if (re.test(it.n)) { if (!p) return null; const g = SL_BEEF.find(x => x[1].includes(p)); return { p, g: g ? g[0] : 'קדירה' }; }
   return null;
