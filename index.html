@@ -790,9 +790,9 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
   <div id="mgrLoss" class="controls mgr-only">
     <h3 style="margin:0 0 8px">אחוזי פחת · <span id="mgrLossBranch"></span></h3>
     <label class="set-row">אנטריקוט <span><input type="text" id="mg_entrecote" inputmode="decimal"> %</span></label>
-    <label class="set-row">צלי כתף <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row">צלי כתף (רק לסחורה בלי ארגזים) <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
     <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mg_oven" inputmode="decimal"> %</span></label>
-    <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
+    <label class="set-row">ניקוי לאיירון (רק לסחורה בלי ארגזים) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
     <details id="mgPriceBox" class="mg-price"><summary>💰 מחיר לק״ג<span id="mgPriceSum"></span></summary>
       <label class="set-row">אנטריקוט <span><input type="text" id="mgp_entrecote" inputmode="decimal"> ₪</span></label>
       <label class="set-row">צלי כתף <span><input type="text" id="mgp_shoulder" inputmode="decimal"> ₪</span></label>
@@ -815,8 +815,10 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <div class="set-row"><span id="setWorker"></span><button type="button" class="link-btn" onclick="openBranch(false, true)">שינוי</button></div>
     <h4>פחת מותר (קליפה)</h4>
     <label class="set-row">אנטריקוט <span><input type="text" id="allow_entrecote" inputmode="decimal"> %</span></label>
-    <label class="set-row">צלי כתף <span><input type="text" id="allow_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row">צלי כתף לארגז (כולל איירון) <span style="white-space:nowrap"><input type="text" id="boxKgShow" readonly> ק״ג</span></label>
     <label class="set-row">אנטריקוט לתנור <span><input type="text" id="allow_oven" inputmode="decimal"> %</span></label>
+    <div class="set-hint" style="margin-top:8px">כשסחורת צלי כתף נרשמת בלי מספר ארגזים:</div>
+    <label class="set-row">צלי כתף <span><input type="text" id="allow_shoulder" inputmode="decimal"> %</span></label>
     <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="ironAllow" inputmode="decimal"> %</span></label>
     <div class="set-hint">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14% · עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div>
     <div id="allowNote" class="set-hint" style="color:#1565C0" hidden>האחוזים נקבעים על ידי מנהל האזור או החברה ומתעדכנים לבד</div>
@@ -1287,6 +1289,7 @@ let sheetRules = false; // connected branches use the company's percentages from
 function syncAllowField() {
   PK.forEach(k => { const el = document.getElementById('allow_' + k); el.value = lossAllow[k]; el.readOnly = sheetRules; });
   const ia = document.getElementById('ironAllow'); ia.value = ironAllow; ia.readOnly = sheetRules;
+  const bk = document.getElementById('boxKgShow'); if (bk) bk.value = BOX_KG_SH; // set in the sheet ("הגדרות" row 13)
   document.getElementById('allowNote').hidden = !sheetRules;
 }
 function renderSettings() {
@@ -1425,7 +1428,7 @@ function updateAnalysis(days) {
       const note = (a.waiting ? 'יום אחרון ממתין לנמכר' : '') + (a.missing.length ? (a.waiting ? ' · ' : '') + missingText(a.missing).replace(/^ · /, '') : '');
       html += row(label + `<small>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}</small>`, j.cls, j.text, j.nums + (note ? `<div class="an-note">${note}</div>` : '') + outNote(a));
     });
-    if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · הפחת הצפוי כולל ניקוי לאיירון</div>';
+    if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · פחת מותר: ' + BOX_KG_SH + ' ק״ג לכל ארגז שנכנס (כולל הניקוי לאיירון)</div>';
     document.getElementById(k + '-analysis').innerHTML = html;
     // the worst status of day / week / month shows as a dot on the product switcher
     const rank = { none: 0, ok: 1, neg: 2, warn: 3, bad: 4 };
