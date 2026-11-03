@@ -775,6 +775,7 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     </select>
     <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב" enterkeyhint="next" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('weightInput').focus()}">
     <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
+    <input type="text" id="boxInput" class="entry-only" hidden placeholder="כמה ארגזים הגיעו" inputmode="numeric" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
     <div class="entry-only" style="font-size:12px;color:#888;margin-top:-2px">כמה מגשים? כותבים עם רווח: 5.2 4.8 6.1 והם יחוברו</div>
     <div id="soldNote" class="entry-only" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
     <button class="btn entry-only" onclick="addWeight()">הוסף</button>
@@ -1073,6 +1074,8 @@ function syncDateForType() {
     waste: 'בשר שנזרק · יוצא מהמלאי ולא נחשב פחת · ',
   };
   document.getElementById('convTo').hidden = type !== 'conv';
+  // shoulder: the allowed trim is per box (from the delivery), so a shoulder delivery asks how many boxes
+  document.getElementById('boxInput').hidden = !(type === 'recv' && document.getElementById('meatSelect').value === 'shoulder' && BOX_KG_SH > 0);
   document.getElementById('convOther').hidden = type !== 'conv' || document.getElementById('convTo').value !== 'אחר';
   if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value) + (type === 'sold' ? ' · לא נמכר כלום? רושמים 0' : ''); note.hidden = false; }
   else note.hidden = true;
@@ -1113,14 +1116,22 @@ async function addWeight() {
     if (weight > st + 0.005 && !await ask({ title: 'זה יותר ממה שיש במלאי', html: `במלאי של ${esc(names[meat])} יש רק <b>${f2(Math.max(0, st))} ק״ג</b>, ורושמים <b>${f2(weight)} ק״ג</b>.`, ok: 'לרשום בכל זאת', cancel: 'חזרה', icon: 'warn' })) return;
   }
   const tLabel = type === 'conv' ? 'המרה ל' + convTarget : typeNames[type];
+  let boxes = 0;
+  if (type === 'recv' && meat === 'shoulder' && BOX_KG_SH > 0) {
+    const bt = document.getElementById('boxInput').value.replace(/[^\d]/g, '');
+    boxes = bt ? parseInt(bt, 10) : 0;
+    if (!boxes && !await ask({ title: 'כמה ארגזים הגיעו?', text: `הפחת המותר בצלי כתף מחושב לפי ${BOX_KG_SH} ק״ג לארגז. בלי מספר ארגזים, הסחורה הזו תיחשב לפי האחוז הרגיל.`, ok: 'לשמור בלי ארגזים', cancel: 'חזרה להקליד', icon: 'warn' })) { document.getElementById('boxInput').focus(); return; }
+    if (boxes > 200) { alert('מספר הארגזים נראה גבוה מדי'); return; }
+  }
   const entry = { id: newId(), dev: myDev, by: worker, date, time: new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}), meat: names[meat], type: tLabel, weight: weight.toFixed(2) };
+  if (boxes) entry.boxes = boxes;
   history.unshift(entry);
   queueOps([{ op:'add', entry }]);
-  document.getElementById('weightInput').value = '';
+  document.getElementById('weightInput').value = ''; document.getElementById('boxInput').value = '';
   updateDisplay();
   renderHistory();
   saveData();
-  showOk(`✓ נשמר: ${entry.meat} · ${entry.type} · ${entry.weight} ק״ג` + (nums.length > 1 ? ` (${nums.length} מגשים)` : ''));
+  showOk(`✓ נשמר: ${entry.meat} · ${entry.type} · ${entry.weight} ק״ג` + (nums.length > 1 ? ` (${nums.length} מגשים)` : '') + (boxes ? ` · ${boxes} ארגזים` : ''));
   if (history.length > 12000) pruneOld();
 }
 
@@ -1151,7 +1162,7 @@ function buildCards() {
   </div>`).join('');
 }
 
-function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, xfer:0, conv:0, waste:0, hasClose:false }; }
+function emptyDay() { return { prep:0, close:0, recv:0, sold:0, iron:0, xfer:0, conv:0, waste:0, boxes:0, boxless:0, hasClose:false }; }
 function keyOf(h) { return Object.keys(names).find(k => names[k] === h.meat); }
 const TYPE_KEYS = { 'הכנות':'prep', 'סגירה':'close', 'נמכר':'sold', 'סחורה':'recv', 'העברה לאנטריקוט':'xfer', 'העברה לתנור':'xfer2', 'השמדה':'waste' };
 // anything else is ignored, like in the sheet; "המרה לטחון" / "המרה לאונטריב" … are conversions
@@ -1174,6 +1185,7 @@ function buildDays() {
     }
     const d = days[k][h.date] || (days[k][h.date] = emptyDay());
     d[t] += w;
+    if (t === 'recv') { if (Number(h.boxes) > 0) d.boxes += Number(h.boxes); else d.boxless += w; } // shoulder trim is per box
     if (t === 'close') d.hasClose = true;
     if (orig === 'iron') d.iron += w;
     if (t === 'sold' && orig !== 'iron') d.hasSold = true; // the product's own sales line for that day is in
@@ -1196,8 +1208,8 @@ function segmentsFor(dd, k) {
   for (let i = 1; i < closes.length; i++) {
     const c0 = closes[i-1], c1 = closes[i];
     const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0, pending: !dd[c1].hasSold };
-    s.xfer = 0; s.conv = 0; s.waste = 0;
-    dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; s.conv += dd[d].conv; s.waste += dd[d].waste; } });
+    s.xfer = 0; s.conv = 0; s.waste = 0; s.boxes = 0; s.boxless = 0;
+    dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; s.conv += dd[d].conv; s.waste += dd[d].waste; s.boxes += dd[d].boxes || 0; s.boxless += dd[d].boxless || 0; } });
     s.stock = s.open + s.recv + s.xfer - s.conv - s.waste; // converted or destroyed meat left the stock with a known reason
     s.went = s.stock - s.close;
     s.missing = workdaysBetween(c0, c1);
@@ -1269,6 +1281,7 @@ function updatePeriodTotals() {
 const lossAllow = { entrecote:0, shoulder:5, oven:5 }; // regular trim waste per product, % of what went
 let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of the raw shoulder used
 let SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
+var BOX_KG_SH = 1.1; // allowed trim per box of shoulder (the sheet's "הגדרות" row 13)
 let WARN_X = 2;    // up to this many times the expected waste = check, above = suspicion
 let sheetRules = false; // connected branches use the company's percentages from the sheet
 function syncAllowField() {
@@ -1290,11 +1303,13 @@ function applySheetSettings(s) {
   if (isFinite(s.iron)) { ironAllow = Number(s.iron); save('ironAllow', ironAllow); }
   if (isFinite(s.tol)) { SCALE_TOL = Number(s.tol); save('scaleTol', SCALE_TOL); }
   if (Number(s.warnX) > 0) { WARN_X = Number(s.warnX); save('warnX', WARN_X); }
+  if (s.boxKg != null && isFinite(s.boxKg)) { BOX_KG_SH = Number(s.boxKg); save('boxKgSh', BOX_KG_SH); }
   sheetRules = true; save('sheetRules', '1');
   syncAllowField(); updateAnalysis(buildDays()); renderProdTabs();
 }
 function loadAllow() {
   try {
+    const bk = parseFloat(localStorage.getItem('boxKgSh')); if (!isNaN(bk)) BOX_KG_SH = bk;
     PK.forEach(k => { const v = parseFloat(localStorage.getItem('lossAllow_' + k)); if (!isNaN(v)) lossAllow[k] = v; });
     const w = parseFloat(localStorage.getItem('ironAllow')); if (!isNaN(w)) ironAllow = w;
   } catch(e) {}
@@ -1322,7 +1337,10 @@ function loadAllow() {
 function expectedWaste(x) {
   const r = ironAllow / 100;
   const ironRaw = x.iron > 0 ? x.iron / (1 - r) : 0;
-  const trim = (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * (lossAllow[x.k] ?? 5) / 100;
+  // shoulder: a set kg per box that came in (deliveries typed without boxes keep the regular %)
+  const perBox = x.k === 'shoulder' && BOX_KG_SH > 0 && x.boxes > 0;
+  const trim = perBox ? (ironRaw - x.iron) + x.boxes * BOX_KG_SH + (x.boxless || 0) * (lossAllow[x.k] ?? 5) / 100
+    : (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * (lossAllow[x.k] ?? 5) / 100;
   return Math.max(trim, Math.max(0, x.went) * SCALE_TOL / 100);
 }
 
@@ -1343,12 +1361,12 @@ function judge(x) {
 
 // Sum segments; a segment whose sold isn't in yet is left out so it doesn't look like loss
 function aggregate(segs) {
-  const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, conv:0, waste:0, n:0, waiting:0, missing:[] };
+  const a = { k: segs.length ? segs[0].k : null, went:0, sold:0, iron:0, recv:0, prep:0, conv:0, waste:0, boxes:0, boxless:0, n:0, waiting:0, missing:[] };
   segs.forEach(s => {
     a.missing.push(...s.missing);
     if (s.pending) { a.waiting++; return; }
     a.conv += s.conv || 0; a.waste += s.waste || 0;
-    a.went += s.went; a.sold += s.sold; a.iron += s.iron; a.recv += s.recv; a.prep += s.prep; a.n += 1 + s.missing.length;
+    a.went += s.went; a.sold += s.sold; a.iron += s.iron; a.recv += s.recv; a.prep += s.prep; a.n += 1 + s.missing.length; a.boxes += s.boxes || 0; a.boxless += s.boxless || 0;
   });
   return a;
 }
@@ -1432,7 +1450,7 @@ function renderHistory() {
   };
   el.innerHTML = Object.keys(days).sort().reverse().map(d => `<div class="h-day">${dayHead(d)}</div>`
     + days[d].sort((a, b) => String(b.time).localeCompare(String(a.time))).map(h =>
-      `<div class="h-row"><span class="h-type t-${tcls[h.type] || (String(h.type).startsWith('המרה') ? 'conv' : 'xfer')}">${esc(tname(h.type))}</span><span class="h-meat">${esc(h.meat)}${h.type.startsWith('העברה') ? ' <small>' + (h.type === 'העברה לתנור' ? '→ תנור' : '→ אנטריקוט') + '</small>' : h.type.startsWith('המרה ל') ? ' <small>→ ' + esc(h.type.slice(6)) + '</small>' : ''}</span><b class="h-w">${h.weight}</b><span class="h-time">${esc(h.time)}${whoTag(h)}</span></div>`).join('')).join('');
+      `<div class="h-row"><span class="h-type t-${tcls[h.type] || (String(h.type).startsWith('המרה') ? 'conv' : 'xfer')}">${esc(tname(h.type))}</span><span class="h-meat">${esc(h.meat)}${h.type.startsWith('העברה') ? ' <small>' + (h.type === 'העברה לתנור' ? '→ תנור' : '→ אנטריקוט') + '</small>' : h.type.startsWith('המרה ל') ? ' <small>→ ' + esc(h.type.slice(6)) + '</small>' : ''}${Number(h.boxes) > 0 ? ' <small>· ' + Number(h.boxes) + ' ארגזים</small>' : ''}</span><b class="h-w">${h.weight}</b><span class="h-time">${esc(h.time)}${whoTag(h)}</span></div>`).join('')).join('');
 }
 // Shows who recorded a weighing, unless it is the person using this phone now
 function whoTag(h) {
@@ -2210,6 +2228,7 @@ function useSettings(s) {
   if (isFinite(s.iron)) ironAllow = Number(s.iron);
   if (isFinite(s.tol)) SCALE_TOL = Number(s.tol);
   if (Number(s.warnX) > 0) WARN_X = Number(s.warnX);
+  if (s.boxKg != null && isFinite(s.boxKg)) BOX_KG_SH = Number(s.boxKg);
 }
 function renderMgrLoss() {
   document.getElementById('mgrLossBranch').textContent = mgrBranch;
