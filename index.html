@@ -331,7 +331,7 @@
 .sp-item span { flex: 1; min-width: 0; } .sp-item small { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .sp-ebtns { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; } .sp-ebtns .btn { margin: 0; }
 #page-mgrsp { padding-bottom: 20px; }
-.set-row.sh-pct[hidden] { display: none !important; }
+.set-row.sh-pct { display: none !important; } /* shoulder % and iron trim: not used, shoulder goes by boxes */
 </style>
 
 <style>
@@ -1078,7 +1078,7 @@ function syncDateForType() {
   };
   document.getElementById('convTo').hidden = type !== 'conv';
   // shoulder: the allowed trim is per box (from the delivery), so a shoulder delivery asks how many boxes
-  document.getElementById('boxInput').hidden = !(type === 'recv' && document.getElementById('meatSelect').value === 'shoulder' && BOX_KG_SH > 0);
+  document.getElementById('boxInput').hidden = !(type === 'recv' && document.getElementById('meatSelect').value === 'shoulder');
   document.getElementById('convOther').hidden = type !== 'conv' || document.getElementById('convTo').value !== 'אחר';
   if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value) + (type === 'sold' ? ' · לא נמכר כלום? רושמים 0' : ''); note.hidden = false; }
   else note.hidden = true;
@@ -1120,7 +1120,7 @@ async function addWeight() {
   }
   const tLabel = type === 'conv' ? 'המרה ל' + convTarget : typeNames[type];
   let boxes = 0;
-  if (type === 'recv' && meat === 'shoulder' && BOX_KG_SH > 0) {
+  if (type === 'recv' && meat === 'shoulder') {
     const bt = document.getElementById('boxInput').value.replace(/[^\d]/g, '');
     boxes = bt ? parseInt(bt, 10) : 0;
     if (!boxes && !await ask({ title: 'כמה ארגזים הגיעו?', text: `הפחת המותר בצלי כתף מחושב לפי ${BOX_KG_SH} ק״ג לארגז. בלי מספר ארגזים, הסחורה הזו תיחשב לפי האחוז הרגיל.`, ok: 'לשמור בלי ארגזים', cancel: 'חזרה להקליד', icon: 'warn' })) { document.getElementById('boxInput').focus(); return; }
@@ -1293,7 +1293,7 @@ function syncAllowField() {
   const ia = document.getElementById('ironAllow'); ia.value = ironAllow; ia.readOnly = sheetRules;
   const bk = document.getElementById('boxKgShow'); if (bk) bk.value = BOX_KG_SH; // set in the sheet ("הגדרות" row 13)
   const bw = document.getElementById('boxWShow'); if (bw) bw.textContent = BOX_W_SH;
-  document.querySelectorAll('.sh-pct').forEach(e => { e.hidden = BOX_KG_SH > 0; }); // only used when the per-box rule is off (0)
+
   document.getElementById('allowNote').hidden = !sheetRules;
 }
 function renderSettings() {
@@ -1348,7 +1348,7 @@ function expectedWaste(x) {
   const ironRaw = x.iron > 0 ? x.iron / (1 - r) : 0;
   // shoulder: a set kg per box (≈14 kg) that came in, including the iron trim. Deliveries typed without boxes count
   // as their kg / box weight; a stretch with no delivery at all gets the same rate on what went.
-  const perBox = x.k === 'shoulder' && BOX_KG_SH > 0;
+  const perBox = x.k === 'shoulder'; // shoulder is always per box (no separate % or iron trim)
   const boxes = perBox ? (x.boxes || 0) + (x.boxless || 0) / (BOX_W_SH || 14) : 0;
   const trim = perBox ? (boxes > 0 ? boxes : Math.max(0, x.went) / (BOX_W_SH || 14)) * BOX_KG_SH
     : (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * (lossAllow[x.k] ?? 5) / 100;
@@ -2244,7 +2244,6 @@ function useSettings(s) {
 }
 function renderMgrLoss() {
   document.getElementById('mgrLossBranch').textContent = mgrBranch;
-  document.querySelectorAll('.sh-pct').forEach(e => { e.hidden = BOX_KG_SH > 0; });
   PK.forEach(k => { document.getElementById('mg_' + k).value = lossAllow[k]; });
   document.getElementById('mg_iron').value = ironAllow;
   document.getElementById('mgAll').checked = false;
