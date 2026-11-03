@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>שקילות בשר ומלאי</title>
 <style>
   * { box-sizing: border-box; }
@@ -332,6 +332,13 @@
 .sp-ebtns { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; } .sp-ebtns .btn { margin: 0; }
 #page-mgrsp { padding-bottom: 20px; }
 .set-row.sh-pct { display: none !important; } /* shoulder % and iron trim: not used, shoulder goes by boxes */
+
+/* ===== QA round: long names, scrolling dialogs, iPhone zoom, small screens ===== */
+.branch-bar, #branchText, #setBranch, #setWorker, #workerLine, .set-row > span:first-child, .br-card-head b { overflow-wrap: anywhere; min-width: 0; }
+#uiDlg .dl-card { max-height: calc(100dvh - 24px); overflow-y: auto; }
+#page-sales input[type=text], #page-sales input[type=number], #page-sales input:not([type]), #page-sales select, #invMonth, #slWkSel { font-size: 16px !important; }
+.section .total { padding: 0 10px; }
+@media (max-width: 340px) { .nav button { font-size: 10.5px !important; letter-spacing: -.2px; } }
 </style>
 
 <style>
@@ -1095,10 +1102,12 @@ async function addWeight() {
   const type = document.getElementById('typeSelect').value;
   const date = document.getElementById('dateInput').value;
   // one weight, or several trays at once: "5.2 4.8 6.1" (or with +) are added into one weighing
-  const parts = document.getElementById('weightInput').value.trim().split(/[\s+;]+/).filter(Boolean).map(x => x.replace(',', '.').replace(/\.$/, ''));
+  const parts = normDigits(document.getElementById('weightInput').value).trim().split(/[\s+;]+/).filter(Boolean).map(x => x.replace(',', '.').replace(/\.$/, ''));
   if (!date || !parts.length || parts.some(x => !/^\d+(\.\d+)?$/.test(x))) { alert('נא למלא תאריך ומשקל (מספרים בלבד, למשל 12.5 או כמה מגשים: 5.2 4.8)'); return; }
   const nums = parts.map(Number);
   const weight = Math.round(nums.reduce((a, n) => a + n, 0) * 1000) / 1000;
+  if (weight >= 100000) { alert('המשקל גדול מדי · בדקו את המספר'); return; }
+  if (weight > 500 && !await ask({ title: `${weight} ק״ג?`, text: 'זה משקל גדול מהרגיל. לרשום אותו?', ok: 'כן, לרשום', cancel: 'תיקון', icon: 'warn' })) return;
   if (nums.some(n => n <= 0) && !((type === 'sold' || type === 'close') && nums.length === 1)) { alert('המשקל צריך להיות גדול מ־0'); return; }
   if (meat === 'iron' && type !== 'sold') { alert('איירון סטייק נרשם רק בנמכר'); return; }
   if (type === 'xfer' && meat !== 'oven') { alert('העברה לאנטריקוט נרשמת רק מאנטריקוט לתנור'); return; }
@@ -1106,6 +1115,13 @@ async function addWeight() {
   if (!canEnterSold(date)) {
     alert('אי אפשר לרשום לתאריך עתידי');
     return;
+  }
+  if (type === 'sold') {
+    const rep = history.filter(h => h.date === date && h.meat === names[meat] && h.type === 'נמכר' && h.by === 'דוח מכר');
+    if (rep.length) {
+      if (!await ask({ title: 'כבר יש נמכר מדוח המכר', html: `ל${esc(names[meat])} ב${esc(heDate(date))} כבר נרשם מהדוח <b>${esc(rep[0].weight)} ק״ג</b>.<br>להחליף אותו במה שמקלידים עכשיו?`, ok: 'להחליף', cancel: 'ביטול', icon: 'warn' })) return;
+      const ops = []; rep.forEach(h => { history.splice(history.indexOf(h), 1); if (h.id) ops.push({ op: 'del', id: h.id }); }); queueOps(ops);
+    }
   }
   if (type === 'sold' && date === ymd(new Date()) && !await ask({ title: 'לרשום נמכר להיום?', text: 'הנמכר של היום מגיע בדרך כלל רק מחר.', ok: 'כן, להיום', cancel: 'לא', icon: 'warn' })) return;
   if (type === 'close' && date === ymd(new Date()) && !await ask({ title: 'לרשום סגירה להיום?', text: 'הסגירה של היום נשקלת בדרך כלל רק מחר בבוקר.', ok: 'כן, להיום', cancel: 'לא', icon: 'warn' })) return;
@@ -1487,7 +1503,9 @@ async function deleteLast() {
   const h = history[idx];
   if (!await ask({ title: 'למחוק את השקילה האחרונה?', icon: 'trash', ok: 'מחיקה', cancel: 'ביטול', danger: true,
     html: `<div class="dl-box"><b>${esc(h.meat)} · ${esc(h.type)}</b><div class="dl-w">${esc(h.weight)} ק״ג</div><small>${esc(shortDate(h.date))} · ${esc(h.time)}${h.by ? ' · ' + esc(h.by) : ''}</small></div>` })) return;
-  const removed = history.splice(idx, 1)[0];
+  const at = history.findIndex(x => x === h || (h.id && x.id === h.id));
+  if (at < 0) { alert('השקילה כבר לא ברשימה (אולי נמחקה בטלפון אחר)'); return; }
+  const removed = history.splice(at, 1)[0];
   if (removed.id) queueOps([{ op:'del', id: removed.id }]);
   updateDisplay(); renderHistory(); saveData();
 }
@@ -1645,9 +1663,10 @@ function setInvTab(t) {
   renderInventory();
 }
 
+let invMonthPicked = false;
 function setInvMonth(v) {
   if (!/^\d{4}-\d{2}$/.test(v)) return;
-  invMonth = v;
+  invMonth = v; invMonthPicked = true;
   selectedProduct = null;
   document.getElementById('calcPanel').style.display = 'none';
   renderInventory();
@@ -1687,8 +1706,14 @@ function selectProduct(i) {
 }
 
 // Accepts one number or several: "30 15 14.742", "30+15+14.742", "30;15", "14,742"
+// Arabic-Indic digits / separators and hidden direction marks (Hebrew and Arabic keyboards) become plain numbers
+function normDigits(s) {
+  return String(s || '').replace(/[\u0660-\u0669]/g, c => c.charCodeAt(0) - 0x660).replace(/[\u06f0-\u06f9]/g, c => c.charCodeAt(0) - 0x6f0)
+    .replace(/[\u066b\u060c]/g, '.').replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff\u061c]/g, '');
+}
 function parseNumbers(raw) {
-  return raw.replace(/,/g, '.').split(/[\s+;]+/).filter(Boolean).map(Number);
+  // only plain numbers count ("Infinity", "1e3", "0x1F" are not weights)
+  return normDigits(raw).replace(/,/g, '.').split(/[\s+;]+/).filter(Boolean).map(x => /^\d+(\.\d+)?$/.test(x.replace(/\.$/, '')) ? Number(x.replace(/\.$/, '')) : NaN);
 }
 
 function calcAdd() {
@@ -1696,7 +1721,7 @@ function calcAdd() {
   const input = document.getElementById('calcInput');
   const nums = parseNumbers(input.value.trim());
   if (!nums.length) return;
-  if (nums.some(n => isNaN(n) || n <= 0)) { alert('מספר לא תקין'); return; }
+  if (nums.some(n => isNaN(n) || n <= 0 || n > 10000)) { alert('מספר לא תקין'); return; }
   if (isUnit(selectedProduct) && nums.some(n => !Number.isInteger(n))) { alert('את ' + selectedProduct + ' סופרים ביחידות: מספר שלם, למשל 12'); return; }
   const p = selectedProduct, cat = catOf(p), ord = products.indexOf(p);
   const added = nums.map(n => ({ id: newId(), month: invMonth, product: p, w: n, dev: myDev, by: worker, cat, ord }));
@@ -1739,7 +1764,9 @@ document.getElementById('calcInput').addEventListener('keydown', e => {
 });
 
 // Counts from the other phones of the branch; same rules as for weighings
+const INV_RENAMED = { 'שוק כבש': 'כתף כבש' }; // older product names in counts already saved
 function mergeRemoteInv(list, since) {
+  list.forEach(e => { if (INV_RENAMED[e.product]) e.product = INV_RENAMED[e.product]; });
   const remote = new Map(list.map(e => [e.id, e]));
   const pending = new Set(syncQueue.filter(o => o.op === 'invAdd').map(o => o.e.id));
   const deleting = new Set(syncQueue.filter(o => o.op === 'invDel').map(o => o.id));
@@ -1861,7 +1888,7 @@ function saveData() { if (mgrMode) return; try { localStorage.setItem('meatWeigh
 // the phone's storage for the app is full (after a long time with many weighings): say so once, instead of failing silently
 let storageWarned = false;
 function storageWarn(e) {
-  if (storageWarned || !e || !/quota|exceeded|full/i.test((e.name || '') + ' ' + (e.message || ''))) return;
+  if (storageWarned || !e || !/quota|exceeded|full|security|denied/i.test((e.name || '') + ' ' + (e.message || ''))) return;
   storageWarned = true;
   setTimeout(() => { try { alert('הזיכרון של האפליקציה בטלפון התמלא, ולכן ייתכן שהשינוי האחרון לא נשמר בטלפון. כל מה שנשלח לגיליון שמור שם. כדאי לבדוק שיש קליטה ושהסנכרון הצליח, ולפנות אלינו.'); } catch (x) {} }, 50);
 }
@@ -1935,7 +1962,7 @@ function openBranch(first, focusWorker) {
 }
 // Leave the details screen and land on the weighing screen
 function cleanUrl(s) { const c = String(s || '').replace(/[^\x21-\x7E]/g, ''); const m = c.match(/https:\/\/script\.google\.com\/[\x21-\x7E]*/); return m ? m[0] : c; }
-function cleanName(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+function cleanName(s) { return String(s || '').replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u061c]/g, '').replace(/\s+/g, ' ').trim(); }
 function cleanKey(s) { return String(s || '').replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff\u061c]/g, '').trim(); }
 function closeBranch() {
   document.getElementById('branchPanel').hidden = true;
@@ -1955,15 +1982,21 @@ function saveBranch() {
     renderWorker(); renderHistory(); closeBranch(); return;
   }
   if (!name) { document.getElementById('branchMsg').textContent = 'צריך למלא לפחות את שם הסניף'; return; }
+  if ([name, w, document.getElementById('brManager').value, document.getElementById('brArea').value].some(x => /https?:|script\.google|\.com\b|\/\//i.test(x) || String(x).length > 60)) {
+    document.getElementById('branchMsg').textContent = 'נראה שהודבקה כתובת בשדה של שם. הכתובת נכנסת רק בשדה "כתובת חיבור".'; return; }
   // copying from WhatsApp often adds invisible direction marks or spaces; strip them
   const url = cleanUrl(document.getElementById('brUrl').value), key = cleanKey(document.getElementById('brKey').value);
   if (url && !/^https:\/\/script\.google\.com\//.test(url)) { document.getElementById('branchMsg').textContent = 'כתובת החיבור צריכה להתחיל ב־https://script.google.com/'; return; }
   if (url && !key) { document.getElementById('branchMsg').textContent = 'חסר קוד חברה'; return; }
   const newConn = url && (url !== branch.url || key !== branch.key);
+  if (newConn || (branch.name && name !== branch.name)) syncGen++;
+  if (branch.name && name !== branch.name) { // another branch: its own sales, settings and podium come from the sheet
+    try { if (typeof slWeeks !== 'undefined') { slWeeks = {}; slPrefs = {}; slStore(); } if (typeof spPack !== 'undefined') { spPack = null; localStorage.removeItem('specials'); } } catch (e) {}
+  }
   branch = { name, manager: document.getElementById('brManager').value.trim(), area: document.getElementById('brArea').value.trim(), url, key };
-  try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) {}
+  try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) { storageWarn(e); }
   worker = document.getElementById('brWorker').value.trim();
-  try { localStorage.setItem('workerName', worker); } catch(e) {}
+  try { localStorage.setItem('workerName', worker); } catch(e) { storageWarn(e); }
   renderWorker(); renderHistory();
   // On a new connection, send what this phone recorded (the sheet skips what it already has); deletes still waiting are kept
   if (newConn) {
@@ -2042,7 +2075,7 @@ async function mgrLogin() {
   mgrStore(d);
   enterMgr(d);
 }
-function mgrStore(d) { d.at = Date.now(); try { localStorage.setItem('mgrCache', JSON.stringify(d)); } catch(e) {} }
+function mgrStore(d) { d.at = Date.now(); try { localStorage.setItem('mgrCache', JSON.stringify(d)); } catch(e) { storageWarn(e); } }
 function startMgr() {
   if (!mgrMode) return;
   let d = null;
@@ -2057,9 +2090,16 @@ async function mgrRefresh() {
   document.getElementById('mgrText').textContent = (mgr ? roleName() + ': ' + mgr.name + ' · ' : '') + 'מעדכן…';
   try {
     const d = await mgrFetch(info.url, info.code);
-    if (!d.ok) { if (d.error === 'bad manager code') { alert('הקוד שלך כבר לא פעיל · פנה לחברה'); mgrExit(true); } else renderMgrBar(mgrError(d)); return; }
+    if (!d.ok) { if (d.error === 'bad manager code') { await ask({ title: 'הקוד שלך כבר לא פעיל', text: 'פנו לחברה לקבלת קוד חדש.', ok: 'הבנתי', cancel: false, icon: 'info' }); mgrExit(true); } else if (!mgr) mgrNoData(mgrError(d)); else renderMgrBar(mgrError(d)); return; }
     mgrStore(d); enterMgr(d);
-  } catch(e) { renderMgrBar('אין חיבור · מוצג המידע מהעדכון האחרון'); }
+  } catch(e) { if (!mgr) mgrNoData('אין חיבור לגיליון כרגע'); else renderMgrBar('אין חיבור · מוצג המידע מהעדכון האחרון'); }
+}
+// manager mode with nothing saved on this phone and no answer: back to the phone's own screens (nothing gets lost)
+async function mgrNoData(why) {
+  mgrMode = false; try { localStorage.removeItem('appMode'); } catch (e) {}
+  document.getElementById('mgrText').textContent = '';
+  await ask({ title: 'אין נתונים של מנהל האזור', text: why + '. אפשר להיכנס שוב כמנהל אזור כשיש קליטה.', ok: 'הבנתי', cancel: false, icon: 'info' });
+  location.reload();
 }
 async function mgrExit(silent) {
   if (!silent && !await ask({ title: 'לצאת ממצב מנהל אזור?', ok: 'יציאה', cancel: 'ביטול' })) return;
@@ -2081,7 +2121,10 @@ function renderMgrBar(note) {
 function enterMgr(d) {
   const first = !mgr;
   mgr = d;
+  const maxDay = ymd(new Date(Date.now() + 86400000));
   d.branches.forEach(b => {
+    // only real dates: a broken or future date from one phone must not hide the whole area's alerts (or carry code)
+    b.entries = (b.entries || []).filter(h => /^\d{4}-\d{2}-\d{2}$/.test(String(h.date)) && h.date <= maxDay && /^[\d:]{0,8}$/.test(String(h.time || '')));
     b.entries.forEach(h => { h.weight = (Number(h.weight) || 0).toFixed(2); h.dev = h.dev || 'other'; });
     b.entries.sort((x, y) => (y.date + y.time).localeCompare(x.date + x.time) || createdAt(y.id) - createdAt(x.id)); // newest day first
     b.inv.forEach(e => { e.w = Number(e.w) || 0; if (products.includes(e.product)) { e.cat = catOf(e.product); e.ord = products.indexOf(e.product); } });
@@ -2163,6 +2206,8 @@ function renderMgr() {
       <div class="br-grid"><span></span><span class="h">שבוע ${lastWeek ? weekLabel(lastWeek) : ''}</span><span class="h">חודש ${lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''}</span>
       ${PK.map(k => `<span>${pname[k]}</span>${cell(k, inWeek)}${cell(k, inMonth)}`).join('')}</div>${hasPr ? `<div class="br-money">💰 פחת: השבוע <b>${nis(all[i].nisW)}</b> · החודש <b>${nis(all[i].nisM)}</b></div>` : ''}${invLine(b)}</div>`;
   }).join('') || '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
+  // judging every branch left the last one's loss % in force: back to the branch that is open
+  const ob = mgr.branches.find(x => x.name === mgrBranch); if (ob) useSettings(ob.settings || mgr.settings);
 }
 // stock count of the latest month on the branch card: finished or not yet
 function invLine(b) {
@@ -2270,7 +2315,7 @@ async function mgrSaveLoss() {
   if (Object.values(loss).some(v => v === null)) { msg.style.color = '#c62828'; msg.textContent = 'כל אחוז צריך להיות מספר בין 0 ל־99'; return; }
   const price = {}; let badPrice = false;
   PK.forEach(k => { let t = document.getElementById('mgp_' + k).value.replace(/[₪\s]/g, ''); if (!t) { price[k] = null; return; }
-    t = /,\d{1,2}$/.test(t) && t.indexOf('.') < 0 ? t.replace(',', '.') : t.replace(/,/g, ''); const v = parseFloat(t);
+    t = /,\d{1,2}$/.test(t) && t.indexOf('.') < 0 ? t.replace(',', '.') : t.replace(/,/g, ''); const v = /^\d+(\.\d+)?$/.test(t) ? parseFloat(t) : NaN;
     if (isNaN(v) || v < 0 || v > 100000) badPrice = true; else price[k] = v > 0 ? v : null; }); // 0 = like blank: the company price
   if (badPrice) { msg.style.color = '#c62828'; msg.textContent = 'מחיר צריך להיות מספר, למשל 89.90'; document.getElementById('mgPriceBox').open = true; return; }
   const all = document.getElementById('mgAll').checked;
@@ -2360,13 +2405,14 @@ function renderSync() {
   el.textContent = '✓ מסונכרן עם הגיליון של החברה' + (lastPull ? ' · עודכן ' + lastPull.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' }) : '');
 }
 // Sends what is waiting, and with the last batch brings back the whole branch from the sheet
+let syncGen = 0, syncAgain = false; // a new connection / branch while a sync is out: that sync stops and starts over
 async function syncNow() {
   if (mgrMode) return;
   if (!branch.url || syncing) { renderSync(); return; }
   if (navigator.onLine === false) { syncError = ''; renderSync(); return; }
   syncing = true; syncError = ''; renderSync();
   // the branch details are copied once, so nothing that changes on screen meanwhile can send under another name
-  const conn = { url: branch.url, key: branch.key, info: { name: branch.name, manager: branch.manager, area: branch.area } };
+  const conn = { url: branch.url, key: branch.key, info: { name: branch.name, manager: branch.manager, area: branch.area } }, gen = syncGen;
   const errors = { 'bad key': 'קוד החברה שגוי · בדוק בפרטי הסניף', 'busy': 'הגיליון עסוק כרגע · ינסה שוב לבד', 'no branch': 'חסר שם סניף בפרטי הסניף' };
   try {
     do {
@@ -2376,11 +2422,12 @@ async function syncNow() {
       const res = await fetch(conn.url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
-        body: JSON.stringify({ key: conn.key, dev: myDev, pull: last, branch: conn.info, ops: batch, salesAt: typeof salesAt === 'function' ? salesAt() : 0 })
+        body: JSON.stringify({ key: conn.key, dev: myDev, pull: last, branch: conn.info, ops: batch, salesAt: typeof salesAt === 'function' ? salesAt() : 0, salesHave: typeof salesHave === 'function' ? salesHave() : (() => { try { const w = JSON.parse(localStorage.getItem('salesWeeks') || '{}') || {}, o = {}; Object.keys(w).forEach(k => { o[k] = w[k].sig || ''; }); return o; } catch (e) { return {}; } })() })
       });
       let data;
       try { data = JSON.parse(await res.text()); }
       catch(err) { syncError = `הכתובת לא החזירה תשובה מהגיליון (${res.status}) · בדוק את כתובת החיבור`; break; }
+      if (gen !== syncGen) { syncAgain = true; break; } // the branch / connection changed meanwhile: don't touch the new queue
       if (!data.ok) { syncError = errors[data.error] || 'הגיליון החזיר שגיאה'; break; }
       syncQueue.splice(0, batch.length); saveQueue();
       if (mgrMode) break; // switched to area-manager screens while waiting: keep his screens clean
@@ -2388,7 +2435,7 @@ async function syncNow() {
       if (last && Array.isArray(data.entries)) { mergeRemote(data.entries, data.since); lastPull = new Date(); }
       if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv, data.invSince);
       if (last && Array.isArray(data.done)) mergeDone(data.done);
-      if (last && Array.isArray(data.sales) && typeof mergeSales === 'function') mergeSales(data.sales);
+      if (last && data.sales && typeof mergeSales === 'function') mergeSales(data.sales);
       if (last && data.prefs && typeof mergePrefs === 'function') mergePrefs(data.prefs);
       if (last && data.specials && typeof mergeSpecials === 'function') mergeSpecials(data.specials);
     } while (syncQueue.length);
@@ -2396,10 +2443,19 @@ async function syncNow() {
     syncError = 'אין חיבור לגיליון כרגע';
   }
   syncing = false; renderSync();
+  if (syncAgain) { syncAgain = false; setTimeout(syncNow, 0); }
 }
 let lastPull = null;
 window.addEventListener('online', syncNow);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { document.getElementById('dateInput').max = ymd(new Date()); syncNow(); } });
+let shownDay = ymd(new Date());
+document.addEventListener('visibilitychange', () => { if (document.hidden) return;
+  const today = ymd(new Date()); document.getElementById('dateInput').max = today;
+  if (today !== shownDay) { // the app stayed open overnight
+    shownDay = today;
+    if (autoDate) { const t = document.getElementById('typeSelect').value; document.getElementById('dateInput').value = backdated(t) ? ymd(prevWorkDay(new Date())) : today; try { syncDateForType(); updateDisplay(); } catch (e) {} }
+    if (!invMonthPicked) { invMonth = defaultInvMonth(); try { document.getElementById('invMonth').value = invMonth; if (document.getElementById('page-inventory').classList.contains('active')) renderInventory(); } catch (e) {} }
+  }
+  syncNow(); });
 setInterval(syncNow, 60000);
 
 buildCards();
@@ -2425,12 +2481,14 @@ try { slWeeks = JSON.parse(localStorage.getItem('salesWeeks') || '{}') || {}; } 
 try { slPrefs = JSON.parse(localStorage.getItem('salesPrefs') || '{}') || {}; } catch (e) {}
 function slStore() { if (mgrMode) return; try { localStorage.setItem('salesWeeks', JSON.stringify(slWeeks)); localStorage.setItem('salesPrefs', JSON.stringify(slPrefs)); } catch (e) { if (typeof storageWarn === 'function') storageWarn(e); } }
 const slPref = (k, d) => slPrefs[k] && slPrefs[k].v !== undefined ? slPrefs[k].v : d;
-let slPrefTimer = null;
+let slPrefTimer = null; const slPrefDirty = new Set();
 function slSetPref(k, v) {
   slPrefs[k] = { v, at: Date.now() }; slStore();
-  // one op per key, sent shortly after the last change
-  clearTimeout(slPrefTimer);
-  slPrefTimer = setTimeout(() => { syncQueue = syncQueue.filter(o => !(o.op === 'pref' && o.k === k)); queueOps([{ op: 'pref', k, v: slPrefs[k].v, at: slPrefs[k].at }]); }, 1200);
+  // one op per changed key, sent shortly after the last change (all keys changed meanwhile, not only the last one)
+  slPrefDirty.add(k); clearTimeout(slPrefTimer);
+  slPrefTimer = setTimeout(() => { const ks = [...slPrefDirty]; slPrefDirty.clear();
+    syncQueue = syncQueue.filter(o => !(o.op === 'pref' && ks.includes(o.k)));
+    queueOps(ks.filter(x => slPrefs[x]).map(x => ({ op: 'pref', k: x, v: slPrefs[x].v, at: slPrefs[x].at }))); }, 1200);
 }
 const slSun = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return ymd(x); };
 const slAddDays = (ws, n) => { const d = new Date(ws + 'T00:00:00'); d.setDate(d.getDate() + n); return ymd(d); };
@@ -2484,7 +2542,7 @@ function slFindWeek(rows, fileName) {
 function slGuessWeek(reported) {
   const now = new Date(), wd = now.getDay(), last = reported.lastIndexOf(true);
   // Saturday: the week that just ended; during the week a report up to yesterday is this week's
-  if (wd === 6 || last < wd) return slSun(now);
+  if (wd === 6 || last <= wd) return slSun(now);
   return slAddDays(slSun(now), -7);
 }
 
@@ -2554,6 +2612,14 @@ const SL_TOP = g => SL_SUBS.includes(g) ? 'בקר' : g;
 // ---------- averages from the reports ----------
 const slWeekKeys = () => Object.keys(slWeeks).sort();
 // kg sold per product per weekday, for a set of weeks
+const slCatOf = it => slIsLamb(it) ? 'כבש' : slPoultry(it) || 'בקר';
+// for each category: in which weeks each weekday was reported
+function slRepDays(weeks) {
+  const out = {};
+  weeks.forEach(w => (slWeeks[w].items || []).forEach(it => { const c = slCatOf(it), r = out[c] = out[c] || SL_L.map(() => new Set());
+    it.d.forEach((v, k) => { if (v != null) r[k].add(w); }); }));
+  return out;
+}
 function slByProduct(weeks) {
   const out = {};
   weeks.forEach(w => (slWeeks[w].items || []).forEach(it => { const m = slProductOf(it); if (!m) return;
@@ -2565,8 +2631,10 @@ function slByProduct(weeks) {
 function slAverages() {
   const weeks = slWeekKeys().filter(w => !slWeeks[w].hol).slice(-8);
   const rep = SL_L.map((_, k) => weeks.filter(w => (slWeeks[w].items || []).some(it => it.d[k] != null)));
-  const by = slByProduct(weeks), avg = {};
-  Object.keys(by).forEach(p => { avg[p] = { g: by[p].g, a: SL_L.map((_, k) => rep[k].length ? r1(rep[k].reduce((s, w) => s + (by[p].d[w] ? by[p].d[w][k] : 0), 0) / rep[k].length) : 0) }; });
+  const repC = slRepDays(weeks), by = slByProduct(weeks), avg = {};
+  Object.keys(by).forEach(p => { const top = SL_TOP(by[p].g), rc = repC[top === 'כבש' || top === 'עוף' || top === 'הודו' ? top : 'בקר'];
+    const days = SL_L.map((_, k) => rc ? [...rc[k]] : rep[k]);
+    avg[p] = { g: by[p].g, a: SL_L.map((_, k) => days[k].length ? r1(days[k].reduce((s, w) => s + (by[p].d[w] ? by[p].d[w][k] : 0), 0) / days[k].length) : 0) }; });
   return { avg, days: rep.map(x => x.length), weeks };
 }
 // averages for chicken-breast sub-items (schnitzel, breast strips, ground chicken)
@@ -2586,11 +2654,11 @@ function slBreastSubs() {
       else if (/טחון/.test(n) && !/הודו/.test(n)) key = 'ground';
       else if (/חזה.*חצוי|חצוי.*חזה/.test(n)) key = 'half';
       if (!key) return;
-      it.d.forEach((v, k) => {
-        if (v != null) { buckets[key][k] += v; counts[key][k]++; }
-      });
+      it.d.forEach((v, k) => { if (v != null) buckets[key][k] += v; });
     });
   });
+  const repC = slRepDays(weeks).עוף;
+  Object.keys(counts).forEach(key => SL_L.forEach((_, k) => { counts[key][k] = repC ? repC[k].size : 0; }));
   const avg = {};
   for (const k of Object.keys(buckets)) {
     avg[k] = buckets[k].map((s, i) => counts[k][i] ? r1(s / counts[k][i]) : 0);
@@ -2630,13 +2698,13 @@ function slModel() {
   Object.keys(avg).filter(p => ['כבש', 'עוף', 'הודו'].includes(avg[p].g)).sort((a, b) => a.localeCompare(b, 'he')).forEach(p => list.push({ n: p, g: avg[p].g, kind: '' }));
   const zero = [0, 0, 0, 0, 0, 0];
   list.forEach(x => { x.avg = (avg[x.n] ? avg[x.n].a : zero).map(v => r1(v * mult(x.n))); x.mult = mult(x.n); x.hot = hot(x.n); x.box = box(x.n);
-    x.std = std[x.n] != null ? +std[x.n] : null; x.stock = slStockOf(x.n, stock, x.avg); });
+    x.std = std[x.n] != null ? +std[x.n] : null; x.stock = slStockOf(x.n, stock, x.avg, SL_TOP(x.g) === 'בקר' && x.std ? x.std * x.box : 0); });
   const oa = (avg['אונטריב'] ? avg['אונטריב'].a : zero).map(v => r1(v * mult('אונטריב')));
   const ong = { avg: oa, stock: slStockOf('אונטריב', stock, oa) };
   return { A, list, ong, morning, sunBuf, wd, hk, HF, manual, hasHolData: !!HF };
 }
 // what is on the shelf: typed in on this screen, or for entrecote / shoulder the latest close from the weighings
-function slStockOf(p, stock, avg) {
+function slStockOf(p, stock, avg, sundayKg) {
   const s = stock[p], key = { 'אנטריקוט': 'entrecote', 'צלי כתף': 'shoulder' }[p];
   let fromClose = null;
   let dd = null;
@@ -2649,6 +2717,8 @@ function slStockOf(p, stock, avg) {
     const d = new Date(res.at); d.setHours(0, 0, 0, 0);
     let gone = 0; for (let n = 0; n < 14; n++) { d.setDate(d.getDate() + 1); if (d >= today) break; if (d.getDay() > 5) continue;
       const day = dd && dd[ymd(d)]; gone += day && day.hasSold ? day.sold : avg[d.getDay()] || 0; }
+    // the standing order arrives on Sunday: a count from before a Sunday that has passed doesn't include it
+    if (sundayKg > 0 && !res.close) { const c = new Date(res.at); c.setHours(0, 0, 0, 0); for (let n = 0; n < 14; n++) { c.setDate(c.getDate() + 1); if (c > today) break; if (c.getDay() === 0) gone -= sundayKg; } }
     if (gone > 0) return Object.assign({}, res, { kg: Math.max(0, r1(res.kg - gone)), gone: r1(gone) });
   }
   return res;
@@ -2736,7 +2806,12 @@ function renderSalesPage() {
     ctrl.innerHTML = `<select id="slWkSel">${keys.slice().reverse().map(w => `<option value="${w}"${w === sel ? ' selected' : ''}>${slWeekLabel(w)}</option>`).join('')}</select><button type="button" id="slWkDel" title="מחיקת שבוע">🗑</button>`;
     document.getElementById('slWkSel').onchange = e => { slViewWeek = e.target.value; renderSalesPage(); };
     document.getElementById('slWkDel').onclick = async () => { const wk = slViewWeek || latest;
-      if (await ask({ title: `למחוק את דוח ${slWeekLabel(wk)}?`, text: 'הדוח יימחק מהטלפון הזה בלבד.', ok: 'מחיקה', cancel: 'ביטול', danger: true, icon: 'warn' })) { delete slWeeks[wk]; slViewWeek = null; slStore(); renderSalesPage(); } };
+      if (await ask({ title: `למחוק את דוח ${slWeekLabel(wk)}?`, text: 'הדוח יימחק מכל הטלפונים של הסניף ומהגיליון, יחד עם ה"נמכר" שנרשם ממנו.', ok: 'מחיקה', cancel: 'ביטול', danger: true, icon: 'warn' })) {
+        delete slWeeks[wk]; slViewWeek = null; slStore();
+        const dates = SL_L.map((_, k) => slAddDays(wk, k)), ops = [{ op: 'salesDel', week: wk }];
+        history.filter(h => h.by === SL_REP_BY && dates.includes(h.date)).forEach(h => { history.splice(history.indexOf(h), 1); if (h.id) ops.push({ op: 'del', id: h.id }); });
+        queueOps(ops); saveData(); try { updateDisplay(); renderHistory(); } catch (e) {}
+        renderSalesPage(); } };
   } else if (ctrl) ctrl.innerHTML = '';
   const showWeek = slViewWeek && slWeeks[slViewWeek] ? slViewWeek : latest;
   document.getElementById('slRepName').textContent = has ? 'דוח מכר ' + slWeekLabel(showWeek) : 'עוד לא הועלה דוח מכר';
@@ -2789,7 +2864,7 @@ function slRenderImport() {
     <div class="sl-lbl">של איזה שבוע?</div>
     <div class="sl-chips">${opts.map(w => `<button type="button" data-wk="${w}" class="${w === P.weekPick ? 'on' : ''}">${slWeekLabel(w)}${w === thisW ? ' · השבוע' : ''}</button>`).join('')}</div>
     ${slWeeks[P.weekPick] ? '<div class="sl-note">כבר יש דוח לשבוע הזה. הפריטים מאותו סוג יוחלפו, פריטים מסוג אחר (בקר/עוף) יישמרו.</div>' : ''}
-    <label class="sl-check"><input type="checkbox" id="slImpHol"${P.hol ? ' checked' : ''}> שבוע של חג${P.hol ? ': ' + esc((SL_HOL.find(h => h[0] === P.hol) || [, ''])[1]) : ''}</label>
+    <label class="sl-check"><input type="checkbox" id="slImpHol"${(P.holChecked != null ? P.holChecked : !!P.hol) ? ' checked' : ''} onchange="if (slPending) slPending.holChecked = this.checked"> שבוע של חג${P.hol ? ': ' + esc((SL_HOL.find(h => h[0] === P.hol) || [, ''])[1]) : ''}</label>
     ${unmatched ? `<div class="sl-note">${unmatched} פריטים לא שויכו למוצר בהמלצה. אפשר לשייך אותם ב"שיוך פריטים" למטה.</div>` : ''}
     <div class="sl-btns"><button type="button" class="btn" id="slImpOk">שמירת הדוח</button><button type="button" class="btn sl-alt" id="slImpNo">ביטול</button></div></div>`;
 }
@@ -2806,18 +2881,31 @@ async function slSaveImport() {
   const hol = document.getElementById('slImpHol').checked ? (P.hol || slPref('hol', '') || 'other') : '';
   const w = P.weekPick;
   const existing = (slWeeks[w] && slWeeks[w].items) || [];
+  const depOf = it => String(it.dept == null ? '' : it.dept).trim();
+  const newDepts = new Set(P.items.map(depOf).filter(Boolean)), newNames = new Set(P.items.map(it => it.n));
+  const sameCat = it => depOf(it) ? newDepts.has(depOf(it)) : newNames.has(it.n);
+  // a report with numbers for today or later in this week is probably the wrong week
+  const today = ymd(new Date());
+  const future = P.items.some(it => it.d.some((v, k) => v > 0 && slAddDays(w, k) >= today));
+  if (future && !await ask({ title: 'השבוע נראה לא נכון', text: `בדוח יש מכר לימים שעוד לא הגיעו בשבוע ${slWeekLabel(w)}. כנראה שזה דוח של שבוע אחר. לשמור בכל זאת?`, ok: 'לשמור', cancel: 'לבחור שבוע אחר', icon: 'warn' })) return;
+  // a cumulative report never changes days that already passed: different numbers = probably another week
+  const old = existing.filter(sameCat);
+  if (old.length) {
+    const sumDay = (list, k) => list.reduce((s, it) => s + (it.d[k] || 0), 0);
+    const diff = SL_L.some((_, k) => { const a = sumDay(old, k), b = sumDay(P.items, k); return a > 0 && b > 0 && Math.abs(a - b) / Math.max(a, b) > 0.05; });
+    if (diff && !await ask({ title: 'לשבוע הזה כבר יש דוח אחר', text: `בשבוע ${slWeekLabel(w)} כבר שמור דוח מאותו סוג, עם מספרים אחרים לאותם ימים. להחליף אותו?`, ok: 'להחליף', cancel: 'ביטול', icon: 'warn' })) return;
+  }
   // check if the new report is almost identical to existing
   if (existing.length && isSimilarReport(existing, P.items)) {
     if (!await ask({ title: 'הדוח כמעט זהה לקיים', text: 'הדוח החדש כמעט זהה לדוח שכבר נקלט לשבוע הזה (אותם מספרים). לקלוט בכל זאת?', ok: 'לקלוט', cancel: 'ביטול', icon: 'warn' })) { slPending = null; renderSalesPage(); return; }
   }
-  // keep items from other categories (beef report doesn't wipe chicken, and vice versa)
-  const newTops = new Set(P.items.map(itemTop)), newNames = new Set(P.items.map(it => it.n));
-  const kept = existing.filter(it => { const t = itemTop(it); return t === 'אחר' ? !newNames.has(it.n) : !newTops.has(t) && !newNames.has(it.n); });
+  // keep the other departments (a beef report doesn't wipe the chicken one, and vice versa); the sheet does the same
+  const kept = existing.filter(it => !sameCat(it));
   const merged = kept.concat(P.items);
-  const rec = { items: merged, at: Date.now(), by: worker, hol };
+  const rec = { items: merged, at: Date.now(), by: worker, hol, sig: '' };
   slWeeks[w] = rec; slStore();
-  queueOps([{ op: 'sales', week: w, items: merged, at: rec.at, by: worker, hol }]);
-  const transferred = await slSoldFromReport(w, merged);
+  queueOps([{ op: 'sales', week: w, items: P.items, at: rec.at, by: worker, hol }]);
+  const transferred = await slSoldFromReport(w, P.items);
   slPending = null; slSday = null; slViewWeek = w;
   showOk(`✓ נקלט דוח ${slWeekLabel(w)} · ${P.items.length} פריטים` + (kept.length ? ` · נשמרו ${kept.length} פריטים מסוג אחר` : '') + (transferred ? ` · נמכר עודכן ל־${transferred} ימים ומוצרים` : ''));
   renderSalesPage();
@@ -2827,7 +2915,7 @@ async function slSaveImport() {
 // these entries are written by "דוח מכר"; a newer report replaces them, so nothing is counted twice.
 const SL_REP_BY = 'דוח מכר';
 const SL_SOLD_MAP = [[/סטייק\s*עין|רוסט?ביף|אנטריקוט\s*לתנור/, 'oven'], [/א[י]?ירון/, 'iron'], [/צלי\s*כתף/, 'shoulder'], [/אנטריקוט/, 'entrecote']];
-function slSoldOf(n) { if (/אצבעות|שיפוד/.test(n)) return null; const m = SL_SOLD_MAP.find(([re]) => re.test(n)); return m ? m[1] : null; }
+function slSoldOf(n) { if (/אצבעות|שיפוד|מעובד|מופשר|קפוא|טלה|כבש|עגל/.test(n)) return null; const m = SL_SOLD_MAP.find(([re]) => re.test(n)); return m ? m[1] : null; }
 async function slSoldFromReport(w, items) {
   if (mgrMode) return 0;
   const want = {}, today = ymd(new Date());
@@ -2837,25 +2925,26 @@ async function slSoldFromReport(w, items) {
   if (!keys.length) return 0;
   const isRep = h => h.by === SL_REP_BY;
   const soldOf = (date, meat) => history.filter(h => h.date === date && h.meat === meat && h.type === 'נמכר');
-  const manual = keys.filter(k => { const [d, m] = k.split('|'); return want[k] > 0 && soldOf(d, names[m]).some(h => !isRep(h)); });
+  const manual = keys.filter(k => { const [d, m] = k.split('|'); return soldOf(d, names[m]).some(h => !isRep(h)); });
   let replaceManual = false;
   if (manual.length) replaceManual = await ask({ title: 'כבר הוקלד נמכר ביד', icon: 'warn', ok: 'להחליף מהדוח', cancel: 'להשאיר את הידני',
-    html: `ל־<b>${manual.length}</b> ימים כבר יש "נמכר" שהוקלד ביד (${[...new Set(manual.map(k => names[k.split('|')[1]]))].join(', ')}).<br>להחליף אותו במספרים מהדוח? אם משאירים, הדוח לא נרשם לימים האלה, כדי שלא ייספר פעמיים.` });
+    html: `ל־<b>${new Set(manual.map(k => k.split('|')[0])).size}</b> ימים כבר יש "נמכר" שהוקלד ביד (${[...new Set(manual.map(k => names[k.split('|')[1]]))].join(', ')}).<br>להחליף אותו במספרים מהדוח? אם משאירים, הדוח לא נרשם לימים האלה, כדי שלא ייספר פעמיים.` });
   const ops = []; let n = 0;
   keys.forEach(k => {
     const [date, m] = k.split('|'), kg = Math.round(want[k] * 100) / 100, meat = names[m];
     const same = soldOf(date, meat), rep = same.filter(isRep), man = same.filter(h => !isRep(h));
-    if (man.length && !replaceManual) return;
+    if (man.length && !replaceManual) { rep.forEach(h => { history.splice(history.indexOf(h), 1); if (h.id) ops.push({ op: 'del', id: h.id }); }); return; } // the typed one stays alone
     if (!man.length && rep.length === 1 && Math.abs(parseFloat(rep[0].weight) - kg) < 0.005) return; // nothing changed
-    if (!man.length && !rep.length && kg <= 0) return;
     same.forEach(h => { if (isRep(h) || replaceManual) { history.splice(history.indexOf(h), 1); if (h.id) ops.push({ op: 'del', id: h.id }); } });
-    if (kg > 0) { const entry = { id: newId(), dev: myDev, by: SL_REP_BY, date, time: '07:00', meat, type: 'נמכר', weight: kg.toFixed(2) }; history.unshift(entry); ops.push({ op: 'add', entry }); }
+    // a reported day with nothing sold is written as 0, so the day isn't left waiting for its "נמכר"
+    { const entry = { id: newId(), dev: myDev, by: SL_REP_BY, date, time: '07:00', meat, type: 'נמכר', weight: kg.toFixed(2) }; history.unshift(entry); ops.push({ op: 'add', entry }); }
     n++;
   });
   if (ops.length) { queueOps(ops); sortHistory(); saveData(); try { updateDisplay(); renderHistory(); } catch (e) {} }
   return n;
 }
 function isSimilarReport(old, neu) {
+  const dep = new Set(neu.map(it => String(it.dept || '').trim())); old = old.filter(it => dep.has(String(it.dept || '').trim()));
   if (!old.length || !neu.length) return false;
   const sum = items => items.reduce((s, it) => s + it.d.reduce((a, v) => a + (v || 0), 0), 0);
   const oldSum = sum(old), newSum = sum(neu);
@@ -3004,7 +3093,7 @@ function slRow(x, c, val, M, poultry) {
       const subs = slBreastSubs();
       if (subs) {
         const day = (c.o && c.o.cov && c.o.cov.length) ? c.o.cov[0] : (M.wd <= 5 ? M.wd : 0);
-        const next = (day + 1) % 7;
+        const next = day === 5 ? 0 : day + 1; // after Friday comes Sunday (no sales on Saturday)
         const schn = r1((subs.schnitzel[day] || 0) + 0.5 * (subs.schnitzel[next] || 0));
         const strp = r1(subs.strips[day] || 0);
         const grnd = r1(subs.ground[day] || 0);
@@ -3127,20 +3216,33 @@ function slRenderMap() {
 
 // ---------- sync with the sheet ----------
 function salesAt() { return Object.values(slWeeks).reduce((m, w) => Math.max(m, w.at || 0), 0); }
+function salesHave() { const o = {}; Object.keys(slWeeks).forEach(k => { o[k] = slWeeks[k].sig || ''; }); return o; }
+// re-render the sales page only when nobody is typing in it (a sync must not eat what is being typed)
+function slRerender() {
+  const pg = document.getElementById('page-sales'); if (!pg.classList.contains('active')) return;
+  const a = document.activeElement; if (a && pg.contains(a) && /INPUT|SELECT|TEXTAREA/.test(a.tagName)) { slRerender.later = true; return; }
+  renderSalesPage();
+}
+document.addEventListener('focusout', () => { if (slRerender.later) { slRerender.later = false; setTimeout(slRerender, 0); } });
 function mergeSales(list) {
-  if (!Array.isArray(list) || !list.length) return;
-  const waiting = new Set(syncQueue.filter(o => o.op === 'sales').map(o => o.week));
+  if (!list) return;
+  const waiting = new Set(syncQueue.filter(o => o.op === 'sales' || o.op === 'salesDel').map(o => o.week));
   let changed = false;
-  list.forEach(w => { if (!w || !w.week || waiting.has(w.week)) return; const cur = slWeeks[w.week];
-    if (!cur || (w.at || 0) >= (cur.at || 0)) { slWeeks[w.week] = { items: w.items || [], at: w.at || 0, by: w.by || '', hol: w.hol || '' }; changed = true; } });
-  if (changed) { slStore(); if (document.getElementById('page-sales').classList.contains('active')) renderSalesPage(); }
+  const take = w => { if (!w || !w.week || waiting.has(w.week)) return; const cur = slWeeks[w.week];
+    if (w.sig || !cur || (w.at || 0) >= (cur.at || 0)) { slWeeks[w.week] = { items: w.items || [], at: w.at || 0, by: w.by || '', hol: w.hol || '', sig: w.sig || '' }; changed = true; } };
+  if (Array.isArray(list)) list.forEach(take);                 // an older sheet: the weeks newer than this phone's
+  else {                                                        // the sheet sends the weeks that differ, and the ones deleted
+    (list.weeks || []).forEach(take);
+    (list.gone || []).forEach(k => { if (slWeeks[k] && !waiting.has(k) && slWeeks[k].sig) { delete slWeeks[k]; changed = true; } });
+  }
+  if (changed) { slStore(); slRerender(); }
 }
 function mergePrefs(p) {
   if (!p || typeof p !== 'object') return;
   const waiting = new Set(syncQueue.filter(o => o.op === 'pref').map(o => o.k));
   let changed = false;
   Object.keys(p).forEach(k => { if (waiting.has(k)) return; const cur = slPrefs[k]; if (!cur || (p[k].at || 0) > (cur.at || 0)) { slPrefs[k] = p[k]; changed = true; } });
-  if (changed) { slStore(); if (document.getElementById('page-sales').classList.contains('active')) renderSalesPage(); }
+  if (changed) { slStore(); slRerender(); }
 }
 
 </script>
