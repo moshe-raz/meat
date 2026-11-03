@@ -331,6 +331,7 @@
 .sp-item span { flex: 1; min-width: 0; } .sp-item small { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .sp-ebtns { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; } .sp-ebtns .btn { margin: 0; }
 #page-mgrsp { padding-bottom: 20px; }
+.set-row.sh-pct[hidden] { display: none !important; }
 </style>
 
 <style>
@@ -790,9 +791,9 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
   <div id="mgrLoss" class="controls mgr-only">
     <h3 style="margin:0 0 8px">אחוזי פחת · <span id="mgrLossBranch"></span></h3>
     <label class="set-row">אנטריקוט <span><input type="text" id="mg_entrecote" inputmode="decimal"> %</span></label>
-    <label class="set-row">צלי כתף (רק לסחורה בלי ארגזים) <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row sh-pct">צלי כתף <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
     <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mg_oven" inputmode="decimal"> %</span></label>
-    <label class="set-row">ניקוי לאיירון (רק לסחורה בלי ארגזים) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
+    <label class="set-row sh-pct">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
     <details id="mgPriceBox" class="mg-price"><summary>💰 מחיר לק״ג<span id="mgPriceSum"></span></summary>
       <label class="set-row">אנטריקוט <span><input type="text" id="mgp_entrecote" inputmode="decimal"> ₪</span></label>
       <label class="set-row">צלי כתף <span><input type="text" id="mgp_shoulder" inputmode="decimal"> ₪</span></label>
@@ -817,9 +818,9 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <label class="set-row">אנטריקוט <span><input type="text" id="allow_entrecote" inputmode="decimal"> %</span></label>
     <label class="set-row">צלי כתף לארגז (כולל איירון) <span style="white-space:nowrap"><input type="text" id="boxKgShow" readonly> ק״ג</span></label>
     <label class="set-row">אנטריקוט לתנור <span><input type="text" id="allow_oven" inputmode="decimal"> %</span></label>
-    <div class="set-hint" style="margin-top:8px">כשסחורת צלי כתף נרשמת בלי מספר ארגזים:</div>
-    <label class="set-row">צלי כתף <span><input type="text" id="allow_shoulder" inputmode="decimal"> %</span></label>
-    <label class="set-row">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="ironAllow" inputmode="decimal"> %</span></label>
+    <div class="set-hint" style="margin-top:4px">צלי כתף שנרשם בלי מספר ארגזים נחשב לפי ארגז של <b id="boxWShow">14</b> ק״ג</div>
+    <label class="set-row sh-pct">צלי כתף <span><input type="text" id="allow_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row sh-pct">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="ironAllow" inputmode="decimal"> %</span></label>
     <div class="set-hint">ארגז 14 ק״ג ← 2 ק״ג קליפה = 14% · עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div>
     <div id="allowNote" class="set-hint" style="color:#1565C0" hidden>האחוזים נקבעים על ידי מנהל האזור או החברה ומתעדכנים לבד</div>
     <h4>מחיקה</h4>
@@ -1283,13 +1284,16 @@ function updatePeriodTotals() {
 const lossAllow = { entrecote:0, shoulder:5, oven:5 }; // regular trim waste per product, % of what went
 let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of the raw shoulder used
 let SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
-var BOX_KG_SH = 1.1; // allowed trim per box of shoulder (the sheet's "הגדרות" row 13)
+var BOX_KG_SH = 1.1; // allowed trim per box of shoulder, iron cleaning included (the sheet's "הגדרות" row 13)
+var BOX_W_SH = 14;   // average shoulder box, for deliveries typed without boxes (row 14)
 let WARN_X = 2;    // up to this many times the expected waste = check, above = suspicion
 let sheetRules = false; // connected branches use the company's percentages from the sheet
 function syncAllowField() {
   PK.forEach(k => { const el = document.getElementById('allow_' + k); el.value = lossAllow[k]; el.readOnly = sheetRules; });
   const ia = document.getElementById('ironAllow'); ia.value = ironAllow; ia.readOnly = sheetRules;
   const bk = document.getElementById('boxKgShow'); if (bk) bk.value = BOX_KG_SH; // set in the sheet ("הגדרות" row 13)
+  const bw = document.getElementById('boxWShow'); if (bw) bw.textContent = BOX_W_SH;
+  document.querySelectorAll('.sh-pct').forEach(e => { e.hidden = BOX_KG_SH > 0; }); // only used when the per-box rule is off (0)
   document.getElementById('allowNote').hidden = !sheetRules;
 }
 function renderSettings() {
@@ -1307,12 +1311,14 @@ function applySheetSettings(s) {
   if (isFinite(s.tol)) { SCALE_TOL = Number(s.tol); save('scaleTol', SCALE_TOL); }
   if (Number(s.warnX) > 0) { WARN_X = Number(s.warnX); save('warnX', WARN_X); }
   if (s.boxKg != null && isFinite(s.boxKg)) { BOX_KG_SH = Number(s.boxKg); save('boxKgSh', BOX_KG_SH); }
+  if (Number(s.boxW) > 0) { BOX_W_SH = Number(s.boxW); save('boxWSh', BOX_W_SH); }
   sheetRules = true; save('sheetRules', '1');
   syncAllowField(); updateAnalysis(buildDays()); renderProdTabs();
 }
 function loadAllow() {
   try {
     const bk = parseFloat(localStorage.getItem('boxKgSh')); if (!isNaN(bk)) BOX_KG_SH = bk;
+    const bw = parseFloat(localStorage.getItem('boxWSh')); if (bw > 0) BOX_W_SH = bw;
     PK.forEach(k => { const v = parseFloat(localStorage.getItem('lossAllow_' + k)); if (!isNaN(v)) lossAllow[k] = v; });
     const w = parseFloat(localStorage.getItem('ironAllow')); if (!isNaN(w)) ironAllow = w;
   } catch(e) {}
@@ -1340,9 +1346,11 @@ function loadAllow() {
 function expectedWaste(x) {
   const r = ironAllow / 100;
   const ironRaw = x.iron > 0 ? x.iron / (1 - r) : 0;
-  // shoulder: a set kg per box that came in (deliveries typed without boxes keep the regular %)
-  const perBox = x.k === 'shoulder' && BOX_KG_SH > 0 && x.boxes > 0;
-  const trim = perBox ? x.boxes * BOX_KG_SH + (x.boxless || 0) * (lossAllow[x.k] ?? 5) / 100 // the kg per box already includes the iron trim
+  // shoulder: a set kg per box (≈14 kg) that came in, including the iron trim. Deliveries typed without boxes count
+  // as their kg / box weight; a stretch with no delivery at all gets the same rate on what went.
+  const perBox = x.k === 'shoulder' && BOX_KG_SH > 0;
+  const boxes = perBox ? (x.boxes || 0) + (x.boxless || 0) / (BOX_W_SH || 14) : 0;
+  const trim = perBox ? (boxes > 0 ? boxes : Math.max(0, x.went) / (BOX_W_SH || 14)) * BOX_KG_SH
     : (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * (lossAllow[x.k] ?? 5) / 100;
   return Math.max(trim, Math.max(0, x.went) * SCALE_TOL / 100);
 }
@@ -2232,9 +2240,11 @@ function useSettings(s) {
   if (isFinite(s.tol)) SCALE_TOL = Number(s.tol);
   if (Number(s.warnX) > 0) WARN_X = Number(s.warnX);
   if (s.boxKg != null && isFinite(s.boxKg)) BOX_KG_SH = Number(s.boxKg);
+  if (Number(s.boxW) > 0) BOX_W_SH = Number(s.boxW);
 }
 function renderMgrLoss() {
   document.getElementById('mgrLossBranch').textContent = mgrBranch;
+  document.querySelectorAll('.sh-pct').forEach(e => { e.hidden = BOX_KG_SH > 0; });
   PK.forEach(k => { document.getElementById('mg_' + k).value = lossAllow[k]; });
   document.getElementById('mg_iron').value = ironAllow;
   document.getElementById('mgAll').checked = false;
