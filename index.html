@@ -816,9 +816,9 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <div class="set-row"><span id="setWorker"></span><button type="button" class="link-btn" onclick="openBranch(false, true)">שינוי</button></div>
     <h4>פחת מותר (קליפה)</h4>
     <label class="set-row">אנטריקוט <span><input type="text" id="allow_entrecote" inputmode="decimal"> %</span></label>
-    <label class="set-row">צלי כתף לארגז (כולל איירון) <span style="white-space:nowrap"><input type="text" id="boxKgShow" readonly> ק״ג</span></label>
+    <label class="set-row"><span>צלי כתף · לכל <b id="boxWLbl">14</b> ק״ג</span> <span style="white-space:nowrap"><input type="text" id="boxKgShow" readonly> ק״ג</span></label>
     <label class="set-row">אנטריקוט לתנור <span><input type="text" id="allow_oven" inputmode="decimal"> %</span></label>
-    <div class="set-hint" style="margin-top:4px">צלי כתף שנרשם בלי מספר ארגזים נחשב לפי ארגז של <b id="boxWShow">14</b> ק״ג</div>
+    <div class="set-hint" style="margin-top:4px">כולל הניקוי לאיירון · כ־<b id="boxWShow">7.9</b>% ממה שיצא · ככל שיש יותר בשר יש יותר קליפה</div>
     <label class="set-row sh-pct">צלי כתף <span><input type="text" id="allow_shoulder" inputmode="decimal"> %</span></label>
     <label class="set-row sh-pct">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="ironAllow" inputmode="decimal"> %</span></label>
     <div class="set-hint">עד הפחת הצפוי = תקין · עד פי 2 = לבדוק · מעל = חשד · סטייה עד 1% תמיד תקינה (דיוק משקל)</div>
@@ -1078,7 +1078,7 @@ function syncDateForType() {
   };
   document.getElementById('convTo').hidden = type !== 'conv';
   // shoulder: the allowed trim is per box (from the delivery), so a shoulder delivery asks how many boxes
-  document.getElementById('boxInput').hidden = !(type === 'recv' && document.getElementById('meatSelect').value === 'shoulder');
+  document.getElementById('boxInput').hidden = true; // not needed: shoulder goes by weight
   document.getElementById('convOther').hidden = type !== 'conv' || document.getElementById('convTo').value !== 'אחר';
   if (notes[type] && dateEl.value) { note.textContent = notes[type] + heDate(dateEl.value) + (type === 'sold' ? ' · לא נמכר כלום? רושמים 0' : ''); note.hidden = false; }
   else note.hidden = true;
@@ -1120,7 +1120,7 @@ async function addWeight() {
   }
   const tLabel = type === 'conv' ? 'המרה ל' + convTarget : typeNames[type];
   let boxes = 0;
-  if (type === 'recv' && meat === 'shoulder') {
+  if (false) { // box count no longer asked (shoulder goes by weight)
     const bt = document.getElementById('boxInput').value.replace(/[^\d]/g, '');
     boxes = bt ? parseInt(bt, 10) : 0;
     if (!boxes && !await ask({ title: 'כמה ארגזים הגיעו?', text: `הפחת המותר בצלי כתף מחושב לפי ${BOX_KG_SH} ק״ג לארגז. בלי מספר ארגזים, הסחורה הזו תיחשב לפי האחוז הרגיל.`, ok: 'לשמור בלי ארגזים', cancel: 'חזרה להקליד', icon: 'warn' })) { document.getElementById('boxInput').focus(); return; }
@@ -1292,7 +1292,8 @@ function syncAllowField() {
   PK.forEach(k => { const el = document.getElementById('allow_' + k); el.value = lossAllow[k]; el.readOnly = sheetRules; });
   const ia = document.getElementById('ironAllow'); ia.value = ironAllow; ia.readOnly = sheetRules;
   const bk = document.getElementById('boxKgShow'); if (bk) bk.value = BOX_KG_SH; // set in the sheet ("הגדרות" row 13)
-  const bw = document.getElementById('boxWShow'); if (bw) bw.textContent = BOX_W_SH;
+  const bw = document.getElementById('boxWShow'); if (bw) bw.textContent = (Math.round(BOX_KG_SH / (BOX_W_SH || 14) * 1000) / 10);
+  const bl = document.getElementById('boxWLbl'); if (bl) bl.textContent = BOX_W_SH;
 
   document.getElementById('allowNote').hidden = !sheetRules;
 }
@@ -1348,9 +1349,10 @@ function expectedWaste(x) {
   const ironRaw = x.iron > 0 ? x.iron / (1 - r) : 0;
   // shoulder: a set kg per box (≈14 kg) that came in, including the iron trim. Deliveries typed without boxes count
   // as their kg / box weight; a stretch with no delivery at all gets the same rate on what went.
-  const perBox = x.k === 'shoulder'; // shoulder is always per box (no separate % or iron trim)
-  const boxes = perBox ? (x.boxes || 0) + (x.boxless || 0) / (BOX_W_SH || 14) : 0;
-  const trim = perBox ? (boxes > 0 ? boxes : Math.max(0, x.went) / (BOX_W_SH || 14)) * BOX_KG_SH
+  // shoulder: the bigger the meat, the more trim, so the allowance follows the weight that went:
+  // 1.1 kg for every 14 kg box (≈7.9%), iron cleaning included (some boxes need more, some less; it evens out)
+  const perBox = x.k === 'shoulder';
+  const trim = perBox ? Math.max(0, x.went) * BOX_KG_SH / (BOX_W_SH || 14)
     : (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * (lossAllow[x.k] ?? 5) / 100;
   return Math.max(trim, Math.max(0, x.went) * SCALE_TOL / 100);
 }
@@ -1436,7 +1438,7 @@ function updateAnalysis(days) {
       const note = (a.waiting ? 'יום אחרון ממתין לנמכר' : '') + (a.missing.length ? (a.waiting ? ' · ' : '') + missingText(a.missing).replace(/^ · /, '') : '');
       html += row(label + `<small>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}</small>`, j.cls, j.text, j.nums + (note ? `<div class="an-note">${note}</div>` : '') + outNote(a));
     });
-    if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · פחת מותר: ' + BOX_KG_SH + ' ק״ג לכל ארגז שנכנס (כולל הניקוי לאיירון)</div>';
+    if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · פחת מותר: ' + BOX_KG_SH + ' ק״ג לכל ' + BOX_W_SH + ' ק״ג (כולל הניקוי לאיירון)</div>';
     document.getElementById(k + '-analysis').innerHTML = html;
     // the worst status of day / week / month shows as a dot on the product switcher
     const rank = { none: 0, ok: 1, neg: 2, warn: 3, bad: 4 };
