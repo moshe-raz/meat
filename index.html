@@ -1339,7 +1339,7 @@ function expectedWaste(x) {
   const ironRaw = x.iron > 0 ? x.iron / (1 - r) : 0;
   // shoulder: a set kg per box that came in (deliveries typed without boxes keep the regular %)
   const perBox = x.k === 'shoulder' && BOX_KG_SH > 0 && x.boxes > 0;
-  const trim = perBox ? (ironRaw - x.iron) + x.boxes * BOX_KG_SH + (x.boxless || 0) * (lossAllow[x.k] ?? 5) / 100
+  const trim = perBox ? x.boxes * BOX_KG_SH + (x.boxless || 0) * (lossAllow[x.k] ?? 5) / 100 // the kg per box already includes the iron trim
     : (ironRaw - x.iron) + Math.max(0, x.went - ironRaw) * (lossAllow[x.k] ?? 5) / 100;
   return Math.max(trim, Math.max(0, x.went) * SCALE_TOL / 100);
 }
