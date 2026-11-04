@@ -555,6 +555,9 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
 /* burgundy only for the header, the main buttons and the +; red stays for problems */
 :root { --sel: #3b302b; }
 .nav button.active, .prod-tabs button.active, .inv-tabs button.active { color: var(--sel) !important; }
+.prod-tabs button.active { background: var(--sel) !important; color: #fff !important; box-shadow: 0 3px 10px rgba(59,48,43,.28); }
+.prod-tabs button.active .dot { box-shadow: 0 0 0 2px #fff; }
+.prod-tabs button:not(.active) { opacity: .8; }
 #btnWeigh.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b302b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18'/%3E%3Cpath d='M5 7h14'/%3E%3Cpath d='M5 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M19 7l-3 7a3 3 0 0 0 6 0z'/%3E%3Cpath d='M8 21h8'/%3E%3C/svg%3E") !important; }
 #btnInv.active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b302b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='4' width='12' height='17' rx='2'/%3E%3Cpath d='M9 4V3h6v1'/%3E%3Cpath d='M9 10h6M9 14h6M9 18h4'/%3E%3C/svg%3E") !important; }
 .nav button.active { font-weight: 800; }
