@@ -362,6 +362,15 @@
 .an-more > summary::-webkit-details-marker { display: none; }
 .an-more > summary::after { content: ' ▾'; } .an-more[open] > summary::after { content: ' ▴'; }
 .an-more .an-rows { display: grid; gap: 8px; margin-top: 4px; }
+
+/* ===== tray weight (הכנות) ===== */
+.tray-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 2px 0 6px; }
+.tray-l { font-size: 13.5px; color: #5b4a44; font-weight: 600; }
+.tray-seg { display: inline-flex; background: var(--seg, #efe8e0); border-radius: 999px; padding: 3px; gap: 2px; }
+.tray-seg button { border: 0; background: transparent; border-radius: 999px; padding: 6px 12px; font: 600 14px inherit; font-family: inherit; color: #6b5a50; cursor: pointer; }
+.tray-seg button.on { background: var(--sel, #3b302b); color: #fff; }
+#trayCount { width: 110px !important; flex: none; margin: 0 !important; }
+.tray-note { width: 100%; font-size: 13px; color: #1565C0; }
 </style>
 
 <style>
@@ -815,6 +824,12 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
     <input type="text" id="boxInput" class="entry-only" hidden placeholder="כמה ארגזים הגיעו" inputmode="numeric" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
     <div class="entry-only" style="font-size:12px;color:#888;margin-top:-2px">כמה מגשים? כותבים עם רווח: 5.2 4.8 6.1 והם יחוברו</div>
+    <div id="trayRow" class="entry-only tray-row" hidden>
+      <span class="tray-l">להוריד משקל מגש:</span>
+      <div class="tray-seg" id="traySeg" role="radiogroup"><button type="button" data-t="0">בלי</button><button type="button" data-t="0.026">0.026</button><button type="button" data-t="0.012">0.012</button></div>
+      <input type="text" id="trayCount" inputmode="numeric" placeholder="כמה מגשים" aria-label="כמה מגשים" hidden enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
+      <div id="trayNote" class="tray-note" hidden></div>
+    </div>
     <div id="soldNote" class="entry-only" style="font-size:13px;color:#1565C0;margin:4px 0" hidden></div>
     <button class="btn entry-only" onclick="addWeight()">הוסף</button>
     <div id="workerLine" class="entry-only" style="font-size:13px;color:#555;margin:4px 0"></div>
@@ -1117,6 +1132,7 @@ function syncDateForType() {
     waste: 'בשר שנזרק · יוצא מהמלאי ולא נחשב פחת · ',
   };
   document.getElementById('convTo').hidden = type !== 'conv';
+  document.getElementById('trayRow').hidden = type !== 'prep'; trayUi();
   // shoulder: the allowed trim is per box (from the delivery), so a shoulder delivery asks how many boxes
   document.getElementById('boxInput').hidden = true; // not needed: shoulder goes by weight
   document.getElementById('convOther').hidden = type !== 'conv' || document.getElementById('convTo').value !== 'אחר';
@@ -1138,7 +1154,18 @@ async function addWeight() {
   const parts = normDigits(document.getElementById('weightInput').value).trim().split(/[\s+;]+/).filter(Boolean).map(x => x.replace(',', '.').replace(/\.$/, ''));
   if (!date || !parts.length || parts.some(x => !/^\d+(\.\d+)?$/.test(x))) { alert('נא למלא תאריך ומשקל (מספרים בלבד, למשל 12.5 או כמה מגשים: 5.2 4.8)'); return; }
   const nums = parts.map(Number);
-  const weight = Math.round(nums.reduce((a, n) => a + n, 0) * 1000) / 1000;
+  let weight = Math.round(nums.reduce((a, n) => a + n, 0) * 1000) / 1000;
+  // הכנות on trays: optionally take off the trays' own weight (count × tray weight)
+  let trays = 0, tare = 0;
+  if (type === 'prep' && trayW > 0) {
+    const ct = normDigits(document.getElementById('trayCount').value).replace(/[^\d]/g, '');
+    trays = ct ? parseInt(ct, 10) : (nums.length > 1 ? nums.length : 0);
+    if (!trays) { alert('כמה מגשים? כתבו את מספר המגשים, או בחרו "בלי"'); document.getElementById('trayCount').focus(); return; }
+    if (trays > 500) { alert('מספר המגשים נראה גבוה מדי'); return; }
+    tare = Math.round(trays * trayW * 1000) / 1000;
+    if (tare >= weight) { alert(`משקל המגשים (${tare} ק״ג) גדול מהמשקל שנשקל · בדקו את המספרים`); return; }
+    weight = Math.round((weight - tare) * 1000) / 1000;
+  }
   if (weight >= 100000) { alert('המשקל גדול מדי · בדקו את המספר'); return; }
   if (weight > 500 && !await ask({ title: `${weight} ק״ג?`, text: 'זה משקל גדול מהרגיל. לרשום אותו?', ok: 'כן, לרשום', cancel: 'תיקון', icon: 'warn' })) return;
   if (nums.some(n => n <= 0) && !((type === 'sold' || type === 'close') && nums.length === 1)) { alert('המשקל צריך להיות גדול מ־0'); return; }
@@ -1179,13 +1206,30 @@ async function addWeight() {
   if (boxes) entry.boxes = boxes;
   history.unshift(entry);
   queueOps([{ op:'add', entry }]);
-  document.getElementById('weightInput').value = ''; document.getElementById('boxInput').value = '';
+  document.getElementById('weightInput').value = ''; document.getElementById('boxInput').value = ''; document.getElementById('trayCount').value = ''; trayUi();
   updateDisplay();
   renderHistory();
   saveData();
-  showOk(`✓ נשמר: ${entry.meat} · ${entry.type} · ${entry.weight} ק״ג` + (nums.length > 1 ? ` (${nums.length} מגשים)` : '') + (boxes ? ` · ${boxes} ארגזים` : ''));
+  showOk(`✓ נשמר: ${entry.meat} · ${entry.type} · ${entry.weight} ק״ג` + (tare ? ` (אחרי הורדת ${trays} מגשים · ${f2(tare)} ק״ג)` : nums.length > 1 ? ` (${nums.length} מגשים)` : '') + (boxes ? ` · ${boxes} ארגזים` : ''));
   if (history.length > 12000) pruneOld();
 }
+
+// ---------- tray weight for הכנות (optional; the choice is remembered on this phone) ----------
+var trayW = 0; try { trayW = Number(localStorage.getItem('trayW')) || 0; } catch (e) {}
+if (![0, 0.026, 0.012].includes(trayW)) trayW = 0;
+function trayUi() {
+  document.querySelectorAll('#traySeg button').forEach(b => { const on = Number(b.dataset.t) === trayW; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  const cnt = document.getElementById('trayCount'), note = document.getElementById('trayNote');
+  cnt.hidden = !(trayW > 0);
+  const parts = normDigits(document.getElementById('weightInput').value).trim().split(/[\s+;]+/).filter(Boolean);
+  const n = parseInt(normDigits(cnt.value).replace(/[^\d]/g, ''), 10) || (parts.length > 1 ? parts.length : 0);
+  cnt.placeholder = parts.length > 1 ? `כמה מגשים (${parts.length})` : 'כמה מגשים';
+  note.hidden = !(trayW > 0 && n);
+  if (!note.hidden) note.textContent = `יורד ${n} × ${trayW} = ${f2(n * trayW)} ק״ג`;
+}
+document.getElementById('traySeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; trayW = Number(b.dataset.t) || 0; try { localStorage.setItem('trayW', String(trayW)); } catch (err) {} trayUi(); if (trayW > 0) document.getElementById('trayCount').focus(); });
+document.getElementById('trayCount').addEventListener('input', trayUi);
+document.getElementById('weightInput').addEventListener('input', () => { if (!document.getElementById('trayRow').hidden) trayUi(); });
 
 // ---------- Stock model ----------
 // close  = all stock left (boxes + what came back), weighed the next morning, recorded under the day it closes
