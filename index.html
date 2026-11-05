@@ -1132,7 +1132,7 @@ function syncDateForType() {
     waste: 'בשר שנזרק · יוצא מהמלאי ולא נחשב פחת · ',
   };
   document.getElementById('convTo').hidden = type !== 'conv';
-  document.getElementById('trayRow').hidden = type !== 'prep'; trayUi();
+  document.getElementById('trayRow').hidden = type !== 'prep' && type !== 'close'; trayUi();
   // shoulder: the allowed trim is per box (from the delivery), so a shoulder delivery asks how many boxes
   document.getElementById('boxInput').hidden = true; // not needed: shoulder goes by weight
   document.getElementById('convOther').hidden = type !== 'conv' || document.getElementById('convTo').value !== 'אחר';
@@ -1155,9 +1155,9 @@ async function addWeight() {
   if (!date || !parts.length || parts.some(x => !/^\d+(\.\d+)?$/.test(x))) { alert('נא למלא תאריך ומשקל (מספרים בלבד, למשל 12.5 או כמה מגשים: 5.2 4.8)'); return; }
   const nums = parts.map(Number);
   let weight = Math.round(nums.reduce((a, n) => a + n, 0) * 1000) / 1000;
-  // הכנות on trays: optionally take off the trays' own weight (count × tray weight)
+  // הכנות / סגירה on trays: optionally take off the trays' own weight (count × tray weight); a close of 0 has no trays
   let trays = 0, tare = 0;
-  if (type === 'prep' && trayW > 0) {
+  if ((type === 'prep' || type === 'close') && trayW > 0 && weight > 0) {
     const ct = normDigits(document.getElementById('trayCount').value).replace(/[^\d]/g, '');
     trays = ct ? parseInt(ct, 10) : (nums.length > 1 ? nums.length : 0);
     if (!trays) { alert('כמה מגשים? כתבו את מספר המגשים, או בחרו "בלי"'); document.getElementById('trayCount').focus(); return; }
@@ -1214,7 +1214,7 @@ async function addWeight() {
   if (history.length > 12000) pruneOld();
 }
 
-// ---------- tray weight for הכנות (optional; the choice is remembered on this phone) ----------
+// ---------- tray weight for הכנות and סגירה (optional; the choice is remembered on this phone) ----------
 var trayW = 0; try { trayW = Number(localStorage.getItem('trayW')) || 0; } catch (e) {}
 if (![0, 0.026, 0.012].includes(trayW)) trayW = 0;
 function trayUi() {
