@@ -2150,7 +2150,11 @@ async function mgrLogin() {
   mgrStore(d);
   enterMgr(d);
 }
-function mgrStore(d) { d.at = Date.now(); try { localStorage.setItem('mgrCache', JSON.stringify(d)); } catch(e) { storageWarn(e); } }
+function mgrStore(d) { // the manager's copy for opening offline; if the phone has no room it just isn't kept (nothing of his is lost)
+  d.at = Date.now();
+  try { localStorage.setItem('mgrCache', JSON.stringify(d)); }
+  catch (e) { try { localStorage.removeItem('mgrCache'); localStorage.setItem('mgrCache', JSON.stringify(d)); } catch (e2) { try { localStorage.removeItem('mgrCache'); } catch (e3) {} console.warn('manager copy not kept', e2); } }
+}
 function startMgr() {
   if (!mgrMode) return;
   let d = null;
