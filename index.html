@@ -1333,7 +1333,7 @@ function updatePeriodTotals() {
 }
 
 // ---------- Loss analysis ----------
-const lossAllow = { entrecote:0, shoulder:5, oven:5, eye:5 }; // regular trim waste per product, % of what went
+const lossAllow = { entrecote:0, shoulder:5, oven:0, eye:0 }; // regular trim waste per product, % of what went
 let ironAllow = 14;  // trim waste when cleaning shoulder for iron steak, % of the raw shoulder used
 let SCALE_TOL = 1; // % of what went that is always fine (scale accuracy)
 var BOX_KG_SH = 1.1; // allowed trim per box of shoulder, iron cleaning included (the sheet's "הגדרות" row 13)
