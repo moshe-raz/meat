@@ -844,6 +844,7 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <h3 style="margin:0 0 8px">אחוזי פחת · <span id="mgrLossBranch"></span></h3>
     <label class="set-row">אנטריקוט <span><input type="text" id="mg_entrecote" inputmode="decimal"> %</span></label>
     <label class="set-row sh-pct">צלי כתף <span><input type="text" id="mg_shoulder" inputmode="decimal"> %</span></label>
+    <label class="set-row">צלי כתף <span><input type="text" id="mg_shkg" inputmode="decimal"> ק״ג לכל <b id="mgShW">14</b> ק״ג</span></label>
     <label class="set-row">אנטריקוט לתנור <span><input type="text" id="mg_oven" inputmode="decimal"> %</span></label>
     <label class="set-row">סטייק עין <span><input type="text" id="mg_eye" inputmode="decimal"> %</span></label>
     <label class="set-row sh-pct">ניקוי לאיירון (מצלי כתף) <span><input type="text" id="mg_iron" inputmode="decimal"> %</span></label>
@@ -2416,6 +2417,7 @@ function renderMgrLoss() {
   document.getElementById('mgrLossBranch').textContent = mgrBranch;
   PK.forEach(k => { document.getElementById('mg_' + k).value = lossAllow[k]; });
   document.getElementById('mg_iron').value = ironAllow;
+  document.getElementById('mg_shkg').value = BOX_KG_SH; document.getElementById('mgShW').textContent = BOX_W_SH || 14;
   document.getElementById('mgAll').checked = false;
   document.getElementById('mgLossMsg').textContent = '';
   // prices: the branch's own in the box, the company price as the grey hint; the closed row shows what applies
@@ -2436,6 +2438,9 @@ async function mgrSaveLoss() {
   const read = id => { const v = parseFloat(document.getElementById(id).value.replace(',', '.')); return isNaN(v) || v < 0 || v >= 100 ? null : v; };
   const loss = { entrecote: read('mg_entrecote'), shoulder: read('mg_shoulder'), oven: read('mg_oven'), eye: read('mg_eye'), iron: read('mg_iron') };
   if (Object.values(loss).some(v => v === null)) { msg.style.color = '#c62828'; msg.textContent = 'כל אחוז צריך להיות מספר בין 0 ל־99'; return; }
+  const shKg = parseFloat(document.getElementById('mg_shkg').value.replace(',', '.'));
+  if (isNaN(shKg) || shKg < 0 || shKg > 10) { msg.style.color = '#c62828'; msg.textContent = 'צלי כתף: כמה ק״ג פחת לכל ארגז, מספר בין 0 ל־10 (למשל 1.1)'; return; }
+  loss.shKg = shKg;
   const price = {}; let badPrice = false;
   PK.forEach(k => { let t = document.getElementById('mgp_' + k).value.replace(/[₪\s]/g, ''); if (!t) { price[k] = null; return; }
     t = /,\d{1,2}$/.test(t) && t.indexOf('.') < 0 ? t.replace(',', '.') : t.replace(/,/g, ''); const v = /^\d+(\.\d+)?$/.test(t) ? parseFloat(t) : NaN;
