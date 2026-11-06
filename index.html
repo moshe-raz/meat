@@ -401,6 +401,25 @@
 .av-cap { font-size: 12.5px; color: var(--muted); } .av-cap b { color: #b3261e; font-weight: 700; }
 .an-nums { flex-basis: 100%; }
 .an-rows .an-note, .an-row .an-note { display: inline-block; margin-top: 6px; background: #fff3cd; color: #6d4c00; border-radius: 8px; padding: 3px 8px; font-size: 12.5px; }
+
+/* ===== join link / QR ===== */
+.join-box { display: grid; gap: 4px; text-align: right; } .join-box span { font-size: 13px; color: var(--muted); } .join-box .btn { margin: 6px 0 0; }
+body:not(.mgr-mode) #mgrJoin, body.mgr-ro #mgrJoin { display: none !important; }
+.join-ok { margin-top: 12px; background: #e3f4e8; color: #1b6b34; border-radius: 12px; padding: 10px 12px; font-weight: 600; display: grid; gap: 8px; }
+.join-ok[hidden], #brConnRows[hidden] { display: none !important; }
+.jd-btns a.btn { background: #1f8f4e; color: #fff; border-radius: 12px; padding: 12px 8px; font-weight: 700; }
+.join-add { font: 700 14px inherit; font-family: inherit; border: 1px solid #9fd3ae; background: #fff; color: #1b6b34; border-radius: 10px; padding: 8px; cursor: pointer; }
+.br-old summary { font-size: 13px; color: var(--muted); cursor: pointer; margin: 8px 0 4px; }
+.join-dlg { position: fixed; inset: 0; background: rgba(30,20,15,.5); z-index: 1000; display: grid; place-items: center; padding: 16px; }
+.join-dlg[hidden] { display: none; }
+.jd-card { background: #fff; border-radius: 20px; padding: 18px 16px; width: 100%; max-width: 380px; max-height: 92vh; overflow-y: auto; text-align: right; }
+.jd-card h3 { margin: 0 0 6px; } .jd-card p { margin: 0 0 10px; font-size: 14px; color: #5b4a44; line-height: 1.5; }
+.jd-qr { width: 230px; height: 230px; margin: 0 auto 12px; display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; }
+.jd-qr svg { width: 100%; height: 100%; }
+.jd-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .jd-btns .btn { margin: 0; text-align: center; text-decoration: none; display: block; }
+.jd-warn { font-size: 12.5px; color: #7a4f00; background: #fff3cd; border-radius: 10px; padding: 7px 9px; margin-top: 10px; }
+.jd-rot { display: block; width: 100%; margin-top: 10px; background: #fff; border: 1px solid #e6c34d; color: #6d4c00; border-radius: 12px; padding: 9px; font: 700 14px inherit; font-family: inherit; cursor: pointer; }
+.jd-close { margin-top: 10px !important; background: #6c757d !important; }
 </style>
 
 <style>
@@ -801,9 +820,15 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
   <label class="br-row">שם מנהל המחלקה<input type="text" id="brManager" autocomplete="off"></label>
   <label class="br-row">שם מנהל האזור<input type="text" id="brArea" autocomplete="off"></label>
   <label class="br-row">השם שלך<input type="text" id="brWorker" autocomplete="off" placeholder="מי רושם בטלפון הזה"></label>
-  <div style="font-size:13px;color:#555;margin-top:12px">חיבור לגיליון של החברה (מקבלים ממנהל האזור · אפשר להשאיר ריק)</div>
+  <div id="brJoined" class="join-ok" hidden>✓ מחובר לגיליון בקישור של הסניף<button type="button" class="join-add" onclick="branchJoinLink()">📱 הוספת טלפון לסניף</button></div>
+  <div id="brConnRows">
+  <div style="font-size:13px;color:#555;margin-top:12px">חיבור לגיליון של החברה (מקבלים קישור ממנהל המחלקה או מנהל האזור · אפשר להשאיר ריק)</div>
+  <label class="br-row">קישור חיבור<input type="url" id="brJoin" autocomplete="off" dir="ltr" placeholder="מדביקים כאן את הקישור שקיבלתם"></label>
+  <details class="br-old"><summary>חיבור ידני (כתובת וקוד חברה)</summary>
   <label class="br-row">כתובת חיבור<input type="url" id="brUrl" autocomplete="off" dir="ltr" placeholder="https://script.google.com/..."></label>
   <label class="br-row">קוד חברה<input type="text" id="brKey" autocomplete="off" dir="ltr"></label>
+  </details>
+  </div>
   <div id="branchMsg" style="color:#c62828;font-size:13px;min-height:16px"></div>
   <button class="btn" id="branchSave" onclick="saveBranch()">שמור</button>
   <button class="btn" id="branchCancel" style="background:#6c757d" onclick="skipBranch()">ביטול</button>
@@ -870,6 +895,7 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
   <div id="prodTabs" class="prod-tabs"></div>
   <div id="cards"></div>
 
+  <div id="mgrJoin" class="controls mgr-only join-box"><b>📱 חיבור טלפונים לסניף</b><span>קישור / QR למנהל המחלקה · הוא מחבר את העובדים שלו</span><button type="button" class="btn" onclick="mgrJoinLink()">הצגת קישור</button></div>
   <div id="mgrLoss" class="controls mgr-only">
     <h3 style="margin:0 0 8px">אחוזי פחת · <span id="mgrLossBranch"></span></h3>
     <label class="set-row">אנטריקוט <span><input type="text" id="mg_entrecote" inputmode="decimal"> %</span></label>
@@ -2085,7 +2111,7 @@ function loadData() {
   updateDisplay(); renderHistory();
 }
 // ---------- Branch details ----------
-let branch = { name:'', manager:'', area:'', url:'', key:'' };
+let branch = { name:'', manager:'', area:'', url:'', key:'', bkey:'' };
 let worker = ''; // the person recording on this phone; kept only on this phone
 try { worker = localStorage.getItem('workerName') || ''; } catch(e) {}
 function loadBranch() {
@@ -2111,6 +2137,10 @@ function openBranch(first, focusWorker) {
   document.getElementById('brArea').value = branch.area;
   document.getElementById('brUrl').value = branch.url || '';
   document.getElementById('brKey').value = branch.key || '';
+  document.getElementById('brJoin').value = '';
+  document.getElementById('brJoined').hidden = !(branch.url && branch.bkey);
+  document.getElementById('brConnRows').hidden = !!(branch.url && branch.bkey);
+  document.getElementById('brName').readOnly = !!branch.bkey; // the link decides the branch
   document.getElementById('brWorker').value = worker;
   document.getElementById('branchMsg').textContent = '';
   document.getElementById('brTitle').textContent = first ? 'ברוכים הבאים' : 'פרטי סניף';
@@ -2124,6 +2154,93 @@ function openBranch(first, focusWorker) {
   window.scrollTo(0, 0);
   document.getElementById(focusWorker ? 'brWorker' : 'brName').focus();
 }
+// ---------- join links: "#join=…" carries the sheet address and the branch's own code ----------
+function b64u(s) { return btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function unb64u(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return decodeURIComponent(escape(atob(s))); }
+function joinUrl(j) { return location.href.split('#')[0].split('?')[0] + '#join=' + b64u(JSON.stringify({ u: j.url, k: j.key, n: j.name, m: j.manager || '', a: j.area || '' })); }
+function parseJoin(text) {
+  const m = String(text || '').match(/#join=([A-Za-z0-9_-]+)/); if (!m) return null;
+  try { const o = JSON.parse(unb64u(m[1]));
+    const u = cleanUrl(o.u), k = cleanKey(o.k), n = cleanName(o.n);
+    if (!/^https:\/\/script\.google\.com\//.test(u) || k.length < 12 || !n) return null;
+    return { url: u, bkey: k, name: n, manager: String(o.m || '').slice(0, 60), area: String(o.a || '').slice(0, 60) };
+  } catch (e) { return null; }
+}
+async function checkJoinHash() {
+  if (!/#join=/.test(location.hash)) return;
+  const j = parseJoin(location.hash);
+  try { history.replaceState(null, '', location.href.split('#')[0]); } catch (e) { try { location.hash = ''; } catch (e2) {} } // the code is not left in the address bar
+  if (!j) { alert('הקישור לא תקין · בקשו קישור חדש'); return; }
+  if (mgrMode) { alert('הקישור הוא לטלפון של הסניף. כדי להשתמש בו, צאו קודם ממצב מנהל אזור.'); return; }
+  if (branch.bkey === j.bkey && branch.url === j.url) { showOk('✓ הטלפון כבר מחובר לסניף ' + j.name); return; }
+  const other = branch.name && cleanName(branch.name) !== j.name;
+  if (!await ask({ title: 'חיבור לסניף ' + j.name, text: other ? `הטלפון רשום עכשיו לסניף ${branch.name}. מעכשיו הוא יישלח לסניף ${j.name}.` : 'הטלפון יתחבר לגיליון של החברה ויסונכרן עם שאר הטלפונים בסניף.', ok: 'התחברות', cancel: 'ביטול' })) return;
+  applyJoin(j);
+  if (!worker) openBranch(false, true); // only the worker's own name is left to type
+}
+function applyJoin(j) {
+  syncGen++;
+  if (branch.name && cleanName(branch.name) !== j.name) { try { if (typeof slWeeks !== 'undefined') { slWeeks = {}; slPrefs = {}; slStore(); } if (typeof spPack !== 'undefined') { spPack = null; localStorage.removeItem('specials'); } } catch (e) {} }
+  branch = { name: j.name, manager: j.manager || branch.manager || '', area: j.area || branch.area || '', url: j.url, key: '', bkey: j.bkey };
+  try { localStorage.setItem('branchInfo', JSON.stringify(branch)); localStorage.setItem('branchSkipped', '1'); } catch (e) { storageWarn(e); }
+  // send what this phone recorded (the sheet skips what it already has); deletes still waiting are kept
+  const keep = syncQueue.filter(o => ['del', 'invDel', 'invDone', 'sales', 'pref'].includes(o.op)), mine = x => !x.dev || x.dev === myDev;
+  syncQueue = [];
+  queueOps(history.filter(mine).reverse().map(entry => ({ op:'add', entry })).concat(invEvents.filter(mine).map(e => ({ op:'invAdd', e })), keep));
+  renderBranch(); renderWorker(); renderSync(); showOk('✓ מחובר לסניף ' + j.name);
+  setTimeout(syncNow, 300);
+}
+// the link window: QR to scan, WhatsApp, copy; the area manager can also make a new code
+let qrLib = null;
+function loadQrLib() {
+  if (qrLib) return qrLib;
+  qrLib = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; s.onload = () => res(window.qrcode); s.onerror = () => { qrLib = null; rej(new Error('qr')); }; document.head.appendChild(s); });
+  return qrLib;
+}
+async function showJoin(j, canRotate) {
+  const url = joinUrl(j);
+  let box = document.getElementById('joinDlg');
+  if (!box) { box = document.createElement('div'); box.id = 'joinDlg'; box.className = 'join-dlg'; document.body.appendChild(box); }
+  box.innerHTML = `<div class="jd-card" role="dialog" aria-modal="true"><h3>חיבור טלפון · ${esc(j.name)}</h3>
+    <p>מכוונים את המצלמה של הטלפון החדש לקוד, או שולחים לו את הקישור. בטלפון החדש לוחצים על הקישור (או מדביקים אותו בפרטי הסניף).</p>
+    <div class="jd-qr" id="jdQr">טוען קוד…</div>
+    <div class="jd-btns"><a class="btn" href="https://wa.me/?text=${encodeURIComponent('חיבור לאפליקציית השקילות של סניף ' + j.name + ':\n' + url)}" target="_blank" rel="noopener">שליחה בוואטסאפ</a>
+    <button type="button" class="btn" id="jdCopy">העתקת קישור</button></div>
+    <div class="jd-warn">⚠ מי שמקבל את הקישור יכול לשלוח שקילות לסניף. שולחים רק לעובדי הסניף.</div>
+    ${canRotate ? '<button type="button" class="jd-rot" id="jdRot">🔄 קוד חדש לסניף (אם הקישור דלף)</button>' : ''}
+    <button type="button" class="btn jd-close" id="jdClose">סגירה</button></div>`;
+  box.hidden = false;
+  document.getElementById('jdClose').onclick = () => { box.hidden = true; };
+  box.onclick = e => { if (e.target === box) box.hidden = true; };
+  document.getElementById('jdCopy').onclick = async () => { try { await navigator.clipboard.writeText(url); showOk('✓ הקישור הועתק'); } catch (e) { prompt('העתיקו את הקישור:', url); } };
+  if (canRotate) document.getElementById('jdRot').onclick = async () => {
+    box.hidden = true;
+    if (!await ask({ title: 'קוד חדש לסניף ' + j.name + '?', text: 'הקישור הישן יפסיק לעבוד. כל הטלפונים של הסניף יצטרכו את הקישור החדש (שקילות שלא נשלחו מחכות בטלפון ולא נמחקות).', ok: 'קוד חדש', cancel: 'ביטול', icon: 'warn' })) { box.hidden = false; return; }
+    mgrJoinLink(true);
+  };
+  try { const qrcode = await loadQrLib(); const q = qrcode(0, 'M'); q.addData(url); q.make(); document.getElementById('jdQr').innerHTML = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); }
+  catch (e) { document.getElementById('jdQr').textContent = 'אין חיבור לאינטרנט להצגת הקוד · אפשר לשלוח את הקישור'; }
+}
+async function mgrJoinLink(rotate) {
+  if (mgr && mgr.canEdit === false) { alert('לעוזר יש הרשאת צפייה בלבד'); return; }
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch (e) {}
+  try {
+    const r = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'mgrLink', mcode: info.code, branch: mgrBranch, rotate: !!rotate }) });
+    const d = JSON.parse(await r.text());
+    if (!d.ok) throw new Error(d.error);
+    if (rotate) showOk('✓ נוצר קוד חדש לסניף ' + d.name);
+    showJoin({ url: info.url, key: d.key, name: d.name, manager: d.manager, area: d.area }, true);
+  } catch (e) { alert({ 'read only': 'לעוזר יש הרשאת צפייה בלבד', 'no branch': 'הסניף הזה לא ברשימת הסניפים שלך', 'busy': 'הגיליון עסוק · נסו שוב בעוד רגע' }[e.message] || 'לא הצלחתי להביא קישור מהגיליון. בדקו את החיבור לאינטרנט ונסו שוב.'); }
+}
+async function branchJoinLink() {
+  try {
+    const r = await fetch(branch.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ mode: 'branchLink', key: branch.key || undefined, bkey: branch.bkey || undefined, dev: myDev, branch: { name: branch.name, manager: branch.manager, area: branch.area } }) });
+    const d = JSON.parse(await r.text());
+    if (!d.ok) throw new Error(d.error);
+    showJoin({ url: branch.url, key: d.key, name: d.name, manager: d.manager || branch.manager, area: d.area || branch.area }, false);
+  } catch (e) { alert(e.message === 'bad branch key' ? 'הקישור של הסניף הוחלף · בקשו קישור חדש ממנהל האזור' : 'לא הצלחתי להביא קישור מהגיליון. בדקו את החיבור לאינטרנט ונסו שוב.'); }
+}
+
 // Leave the details screen and land on the weighing screen
 function cleanUrl(s) { const c = String(s || '').replace(/[^\x21-\x7E]/g, ''); const m = c.match(/https:\/\/script\.google\.com\/[\x21-\x7E]*/); return m ? m[0] : c; }
 function cleanName(s) { return String(s || '').replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u061c]/g, '').replace(/\s+/g, ' ').trim(); }
@@ -2139,6 +2256,16 @@ function skipBranch() {
   closeBranch();
 }
 function saveBranch() {
+  const jl = document.getElementById('brJoin').value.trim();
+  if (jl) { const j = parseJoin(jl); if (!j) { document.getElementById('branchMsg').textContent = 'הקישור לא תקין · העתיקו אותו שוב מההודעה'; return; }
+    worker = document.getElementById('brWorker').value.trim(); try { localStorage.setItem('workerName', worker); } catch (e) {}
+    applyJoin(j); closeBranch(); return; }
+  if (branch.bkey) { // joined by link: only the names change here
+    branch.manager = document.getElementById('brManager').value.trim(); branch.area = document.getElementById('brArea').value.trim();
+    try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) { storageWarn(e); }
+    worker = document.getElementById('brWorker').value.trim(); try { localStorage.setItem('workerName', worker); } catch(e) { storageWarn(e); }
+    renderWorker(); renderHistory(); renderBranch(); closeBranch(); return;
+  }
   const name = cleanName(document.getElementById('brName').value);
   const w = document.getElementById('brWorker').value.trim();
   if (!name && w && !document.getElementById('brUrl').value.trim()) { // only the worker's name: save it without branch details
@@ -2157,7 +2284,7 @@ function saveBranch() {
   if (branch.name && name !== branch.name) { // another branch: its own sales, settings and podium come from the sheet
     try { if (typeof slWeeks !== 'undefined') { slWeeks = {}; slPrefs = {}; slStore(); } if (typeof spPack !== 'undefined') { spPack = null; localStorage.removeItem('specials'); } } catch (e) {}
   }
-  branch = { name, manager: document.getElementById('brManager').value.trim(), area: document.getElementById('brArea').value.trim(), url, key };
+  branch = { name, manager: document.getElementById('brManager').value.trim(), area: document.getElementById('brArea').value.trim(), url, key, bkey: '' };
   try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) { storageWarn(e); }
   worker = document.getElementById('brWorker').value.trim();
   try { localStorage.setItem('workerName', worker); } catch(e) { storageWarn(e); }
@@ -2605,8 +2732,9 @@ async function syncNow() {
   if (navigator.onLine === false) { syncError = ''; renderSync(); return; }
   syncing = true; syncError = ''; renderSync();
   // the branch details are copied once, so nothing that changes on screen meanwhile can send under another name
-  const conn = { url: branch.url, key: branch.key, info: { name: branch.name, manager: branch.manager, area: branch.area } }, gen = syncGen;
-  const errors = { 'bad key': 'קוד החברה שגוי · בדוק בפרטי הסניף', 'busy': 'הגיליון עסוק כרגע · ינסה שוב לבד', 'no branch': 'חסר שם סניף בפרטי הסניף' };
+  const conn = { url: branch.url, key: branch.key, bkey: branch.bkey, info: { name: branch.name, manager: branch.manager, area: branch.area } }, gen = syncGen;
+  const errors = { 'bad key': 'קוד החברה שגוי · בדוק בפרטי הסניף', 'busy': 'הגיליון עסוק כרגע · ינסה שוב לבד', 'no branch': 'חסר שם סניף בפרטי הסניף',
+    'bad branch key': 'הקישור של הסניף הוחלף · בקשו קישור חדש ממנהל המחלקה' };
   try {
     do {
       if (mgrMode) break;
@@ -2615,7 +2743,7 @@ async function syncNow() {
       const res = await fetch(conn.url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
-        body: JSON.stringify({ key: conn.key, dev: myDev, pull: last, branch: conn.info, ops: batch, salesAt: typeof salesAt === 'function' ? salesAt() : 0, salesHave: typeof salesHave === 'function' ? salesHave() : (() => { try { const w = JSON.parse(localStorage.getItem('salesWeeks') || '{}') || {}, o = {}; Object.keys(w).forEach(k => { o[k] = w[k].sig || ''; }); return o; } catch (e) { return {}; } })() })
+        body: JSON.stringify({ key: conn.key, bkey: conn.bkey || undefined, dev: myDev, pull: last, branch: conn.info, ops: batch, salesAt: typeof salesAt === 'function' ? salesAt() : 0, salesHave: typeof salesHave === 'function' ? salesHave() : (() => { try { const w = JSON.parse(localStorage.getItem('salesWeeks') || '{}') || {}, o = {}; Object.keys(w).forEach(k => { o[k] = w[k].sig || ''; }); return o; } catch (e) { return {}; } })() })
       });
       let data;
       try { data = JSON.parse(await res.text()); }
@@ -2653,6 +2781,7 @@ setInterval(syncNow, 60000);
 
 buildCards();
 loadBranch();
+checkJoinHash();
 loadAllow();
 loadData();
 renderSync();
