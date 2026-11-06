@@ -2179,7 +2179,7 @@ async function checkJoinHash() {
   if (!worker) openBranch(false, true); // only the worker's own name is left to type
 }
 function applyJoin(j) {
-  syncGen++;
+  syncGen++; forcePull = true;
   if (branch.name && cleanName(branch.name) !== j.name) { try { if (typeof slWeeks !== 'undefined') { slWeeks = {}; slPrefs = {}; slStore(); } if (typeof spPack !== 'undefined') { spPack = null; localStorage.removeItem('specials'); } } catch (e) {} }
   branch = { name: j.name, manager: j.manager || branch.manager || '', area: j.area || branch.area || '', url: j.url, key: '', bkey: j.bkey };
   try { localStorage.setItem('branchInfo', JSON.stringify(branch)); localStorage.setItem('branchSkipped', '1'); } catch (e) { storageWarn(e); }
@@ -2291,6 +2291,7 @@ function saveBranch() {
   renderWorker(); renderHistory();
   // On a new connection, send what this phone recorded (the sheet skips what it already has); deletes still waiting are kept
   if (newConn) {
+    forcePull = true;
     const keep = syncQueue.filter(o => ['del', 'invDel', 'invDone', 'sales', 'pref'].includes(o.op));
     const mine = x => !x.dev || x.dev === myDev;
     syncQueue = [];
@@ -2740,10 +2741,11 @@ async function syncNow() {
       if (mgrMode) break;
       const batch = syncQueue.slice(0, 200);
       const last = batch.length === syncQueue.length;
+      const pullNow = last && (forcePull || !lastPull || Date.now() - lastPull.getTime() > (pageIs('inventory') ? 55000 : PULL_EVERY)); // while counting stock: every minute // the whole branch comes back every few minutes, not every minute
       const res = await fetch(conn.url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // keeps it a simple request Google accepts
-        body: JSON.stringify({ key: conn.key, bkey: conn.bkey || undefined, dev: myDev, pull: last, branch: conn.info, ops: batch, salesAt: typeof salesAt === 'function' ? salesAt() : 0, salesHave: typeof salesHave === 'function' ? salesHave() : (() => { try { const w = JSON.parse(localStorage.getItem('salesWeeks') || '{}') || {}, o = {}; Object.keys(w).forEach(k => { o[k] = w[k].sig || ''; }); return o; } catch (e) { return {}; } })() })
+        body: JSON.stringify({ key: conn.key, bkey: conn.bkey || undefined, dev: myDev, pull: pullNow, branch: conn.info, ops: batch, salesAt: typeof salesAt === 'function' ? salesAt() : 0, salesHave: typeof salesHave === 'function' ? salesHave() : (() => { try { const w = JSON.parse(localStorage.getItem('salesWeeks') || '{}') || {}, o = {}; Object.keys(w).forEach(k => { o[k] = w[k].sig || ''; }); return o; } catch (e) { return {}; } })() })
       });
       let data;
       try { data = JSON.parse(await res.text()); }
@@ -2753,7 +2755,7 @@ async function syncNow() {
       syncQueue.splice(0, batch.length); saveQueue();
       if (mgrMode) break; // switched to area-manager screens while waiting: keep his screens clean
       if (data.settings) applySheetSettings(data.settings);
-      if (last && Array.isArray(data.entries)) { mergeRemote(data.entries, data.since); lastPull = new Date(); }
+      if (last && Array.isArray(data.entries)) { mergeRemote(data.entries, data.since); lastPull = new Date(); forcePull = false; }
       if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv, data.invSince);
       if (last && Array.isArray(data.done)) mergeDone(data.done);
       if (last && data.sales && typeof mergeSales === 'function') mergeSales(data.sales);
@@ -2766,8 +2768,10 @@ async function syncNow() {
   syncing = false; renderSync();
   if (syncAgain) { syncAgain = false; setTimeout(syncNow, 0); }
 }
-let lastPull = null;
-window.addEventListener('online', syncNow);
+let lastPull = null, forcePull = true; // a full pull: on opening, on coming back to the app, and every few minutes
+const PULL_EVERY = 4 * 60000;
+function pageIs(p) { const el = document.getElementById('page-' + p); return !!(el && el.classList.contains('active')); }
+window.addEventListener('online', () => { forcePull = true; syncNow(); });
 let shownDay = ymd(new Date());
 document.addEventListener('visibilitychange', () => { if (document.hidden) return;
   const today = ymd(new Date()); document.getElementById('dateInput').max = today;
@@ -2776,7 +2780,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) retur
     if (autoDate) { const t = document.getElementById('typeSelect').value; document.getElementById('dateInput').value = backdated(t) ? ymd(prevWorkDay(new Date())) : today; try { syncDateForType(); updateDisplay(); } catch (e) {} }
     if (!invMonthPicked) { invMonth = defaultInvMonth(); try { document.getElementById('invMonth').value = invMonth; if (document.getElementById('page-inventory').classList.contains('active')) renderInventory(); } catch (e) {} }
   }
-  syncNow(); });
+  forcePull = true; syncNow(); });
 setInterval(syncNow, 60000);
 
 buildCards();
