@@ -371,6 +371,18 @@
 .tray-seg button.on { background: var(--sel, #3b302b); color: #fff; }
 #trayCount { width: 110px !important; flex: none; margin: 0 !important; }
 .tray-note { width: 100%; font-size: 13px; color: #1565C0; }
+
+/* ===== grouped suspicion alerts ===== */
+.alert-box.al h3 { background: #b3261e; text-align: right; padding: 11px 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.alert-box.al h3 small { font-size: 12.5px; font-weight: 400; opacity: .9; }
+.al-row { display: flex; align-items: center; gap: 10px; width: 100%; background: #fff; border: 0; border-bottom: 1px solid #f3e3e1; padding: 11px 14px; text-align: right; cursor: pointer; font-family: inherit; }
+.al-row:hover { background: #fdf6f5; }
+.al-name { font-weight: 800; font-size: 15px; color: var(--ink, #2f2622); min-width: 78px; }
+.al-chips { flex: 1; display: flex; flex-wrap: wrap; gap: 5px; }
+.al-chip { background: #fde3e1; color: #8e1b1b; border-radius: 999px; padding: 3px 10px; font-size: 13px; white-space: nowrap; }
+.al-chip b { font-weight: 800; }
+.al-go { color: #b3261e; font-weight: 700; }
+.al-more { display: block; width: 100%; border: 0; background: #fbf1f0; color: #8a3a33; font: 700 13.5px inherit; font-family: inherit; padding: 10px; cursor: pointer; }
 </style>
 
 <style>
@@ -2312,15 +2324,13 @@ function renderMgr() {
     const miss = j.gap - j.exp; // missing beyond the allowed trim
     if (j.cls === 'bad' && a.went > 0 && miss >= KKG && miss / a.went * 100 >= KP)
       kabat.push({ id: b.name + '|' + k + '|' + key, i, b, k, label, gap: j.gap, miss, pct: j.gap / a.went * 100, end: lastEnd(segs[k], inP) });
-    if (j.cls === 'bad') alerts.push(`<button type="button" class="alert-row" onclick="mgrOpenAt(${i}, '${lastEnd(segs[k], inP)}')">🔴 <b>${esc(b.name)}</b> · ${pname[k]} · ${label} · ${j.text} · פער ${f2(a.went - a.sold)} ק״ג ←</button>`);
+    if (j.cls === 'bad') alerts.push({ i, b, k, label, pct: a.went > 0 ? j.gap / a.went * 100 : 0, gap: j.gap, miss, end: lastEnd(segs[k], inP), week: key[0] === 'w' });
   })));
   const lossNis = (b, segs, inP) => PK.reduce((s, k) => { const a = aggregate(segs[k].filter(inP)); const pr = mgrPriceOf(b, k); if (!a.n || !(pr > 0)) return s; const j = judgeIn(b, a); return s + (j.gap > 0 ? j.gap * pr : 0); }, 0);
   all.forEach(x => { x.nisW = hasPr ? lossNis(x.b, x.segs, inWeek) : 0; x.nisM = hasPr ? lossNis(x.b, x.segs, inMonth) : 0; });
   const money = hasPr ? `<div class="mgr-money"><span>💰 פחת בכל הסניפים שלך</span><span>השבוע <b>${nis(all.reduce((s, x) => s + x.nisW, 0))}</b></span><span>החודש <b>${nis(all.reduce((s, x) => s + x.nisM, 0))}</b></span></div>`
     : mgr.canEdit !== false ? '<div class="mgr-money none">💰 כדי לראות את הפחת בשקלים, ממלאים מחיר לק״ג במסך "פחת ושקילות" (💰 מחיר לק״ג), או בלשונית "הגדרות" בגיליון (שורות 10–12, 16).</div>' : '';
-  document.getElementById('mgrAlerts').innerHTML = money + kabatCfgHtml() + kabatHtml(kabat, pname) + (alerts.length
-    ? `<div class="alert-box"><h3>התראות · ${alerts.length}</h3>${alerts.join('')}</div>`
-    : `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`);
+  document.getElementById('mgrAlerts').innerHTML = money + kabatCfgHtml() + kabatHtml(kabat, pname) + alertsHtml(alerts, pname);
   // one card per branch: this week and this month for the three products
   document.getElementById('mgrList').innerHTML = all.map(({ b, segs }, i) => {
     const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judgeIn(b, a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
@@ -2332,6 +2342,29 @@ function renderMgr() {
   }).join('') || '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
   // judging every branch left the last one's loss % in force: back to the branch that is open
   const ob = mgr.branches.find(x => x.name === mgrBranch); if (ob) useSettings(ob.settings || mgr.settings);
+}
+// ---------- suspicion alerts: one row per branch, one chip per product (its worst week/month), the worst branches first ----------
+let alertsAll = false;
+function alertsHtml(list, pname) {
+  if (!list.length) return `<div class="alert-box clear"><h3>✓ אין חשדות בשבועיים האחרונים ובחודש</h3></div>`;
+  const by = new Map();
+  list.forEach(a => {
+    const g = by.get(a.b.name) || { i: a.i, b: a.b, ks: {}, miss: 0, end: '' };
+    const cur = g.ks[a.k];
+    if (!cur || a.miss > cur.miss) g.ks[a.k] = a; // the worst period of this product
+    if (!g.end || (a.week && a.end > g.end)) g.end = a.end;
+    by.set(a.b.name, g);
+  });
+  const groups = [...by.values()].map(g => Object.assign(g, { miss: Object.values(g.ks).reduce((s, a) => s + Math.max(0, a.miss), 0) })).sort((x, y) => y.miss - x.miss);
+  const SHOW = 5, shown = alertsAll ? groups : groups.slice(0, SHOW);
+  const short = { entrecote: 'אנטריקוט', shoulder: 'צלי כתף', oven: 'לתנור', eye: 'סטייק עין' };
+  const row = g => `<button type="button" class="al-row" onclick="mgrOpenAt(${g.i}, '${g.end}')">
+      <span class="al-name">${esc(g.b.name)}</span>
+      <span class="al-chips">${PK.filter(k => g.ks[k]).map(k => { const a = g.ks[k]; return `<span class="al-chip" title="${esc(a.label)} · חסר ${f2(a.gap)} ק״ג">${short[k]} <b>${a.pct.toFixed(1)}%</b></span>`; }).join('')}</span>
+      <span class="al-go">←</span></button>`;
+  return `<div class="alert-box al"><h3>🔴 חשד ב־${groups.length} ${groups.length === 1 ? 'סניף' : 'סניפים'}<small>השבועיים האחרונים והחודש · הכי חמור למעלה</small></h3>
+    ${shown.map(row).join('')}
+    ${groups.length > SHOW ? `<button type="button" class="al-more" onclick="alertsAll=!alertsAll;renderMgr()">${alertsAll ? 'פחות ▴' : `עוד ${groups.length - SHOW} סניפים ▾`}</button>` : ''}</div>`;
 }
 // stock count of the latest month on the branch card: finished or not yet
 function invLine(b) {
