@@ -538,6 +538,39 @@ h1 { background: linear-gradient(135deg, #8e2626, #b23a3a); color: #fff; margin:
 .analysis > div:last-child:not(.an-row) { padding: 0 6px; }
 .period { border-top: none; }
 .controls { border-radius: 20px; }
+.wk-seg { display: grid; grid-template-columns: 1fr 1fr; background: #efe8e0; border-radius: 999px; padding: 4px; margin-bottom: 12px; }
+.wk-seg button { border: 0; background: none; font: inherit; font-weight: 600; font-size: 15px; color: var(--muted, #857469); padding: 10px 6px; border-radius: 999px; cursor: pointer; }
+.wk-seg button[aria-pressed="true"] { background: #fff; color: var(--ink, #2f2622); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+#wkMine[aria-pressed="true"] { color: #2c5f7c; }
+body:not(.mgr-mode) #page-weigh.mine > .controls, body:not(.mgr-mode) #page-weigh.mine > #prodTabs, body:not(.mgr-mode) #page-weigh.mine > #cards, body:not(.mgr-mode) #page-weigh.mine > #historyList { display: none; }
+body.mgr-mode #myCheck { display: none !important; }
+.my-check { background: #eef5f9; border: 1px solid #cfe2ec; border-radius: 20px; padding: 14px; display: grid; gap: 12px; margin-bottom: 12px; }
+.my-check[hidden] { display: none; }
+.mc-banner { font-size: 13px; color: #2c5f7c; background: #fff; border: 1px dashed #cfe2ec; border-radius: 12px; padding: 8px 10px; line-height: 1.5; }
+.mc-l { font-size: 13px; color: var(--muted, #857469); display: block; margin-bottom: 4px; }
+.my-check input[type=text], .my-check input[type=date] { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 11px 12px; border: 1px solid #d8d0c6; border-radius: 12px; background: #fff; margin: 0; }
+.mc-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mc-save { background: #2c5f7c !important; width: 100%; margin: 0 !important; }
+.mc-hint { font-size: 12.5px; color: var(--muted, #857469); line-height: 1.5; }
+.mc-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.mc-list:empty { display: none; }
+.mc-list button { border: 1px solid #cfe2ec; background: #fff; border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 14px; cursor: pointer; color: var(--ink, #2f2622); }
+.mc-list button.on { background: #2c5f7c; color: #fff; border-color: #2c5f7c; }
+.mc-list button small { opacity: .8; }
+.mc-sum { background: #fff; border: 1px solid #cfe2ec; border-radius: 14px; padding: 12px; display: grid; gap: 4px; }
+.mc-sum:empty { display: none; }
+.mc-sum h3 { margin: 0; font-size: 15px; } .mc-sum .big { font-size: 21px; font-weight: 800; }
+.mc-tbl { overflow-x: auto; }
+.mc-tbl table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.mc-tbl th { font-weight: 600; color: var(--muted, #857469); font-size: 12px; padding: 6px 3px; }
+.mc-tbl td { text-align: center; padding: 8px 3px; border-top: 1px solid #cfe2ec; }
+.mc-tbl td:first-child, .mc-tbl th:first-child { text-align: right; white-space: nowrap; }
+.mc-tbl tr[data-d] { cursor: pointer; }
+.mc-tbl tr.sel td { background: #fff; }
+.mc-tbl .miss { color: #b3261e; font-weight: 700; } .mc-tbl .fine { color: #1b6b34; font-weight: 600; }
+.mc-tbl td.wait { color: #7a5a00; background: #fff3cd; font-size: 12px; font-weight: 600; }
+.mc-tbl td.none { color: var(--muted, #857469); font-size: 12px; }
+.mc-del { justify-self: center; color: #b3261e !important; }
 #calcPanel { background: #fff !important; }
 /* settings button in the burgundy band */
 .gear-btn { position: absolute; top: 14px; left: 10px; width: 44px; height: 44px; border: none; border-radius: 50%; background: rgba(255,255,255,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'/%3E%3C/svg%3E") no-repeat center / 22px; cursor: pointer; z-index: 5; }
@@ -930,6 +963,31 @@ var demoLS = (function () {
 
 <!-- WEIGHING PAGE -->
 <div id="page-weigh" class="page active">
+  <div class="wk-seg entry-only" role="group" aria-label="סוג שקילה">
+    <button type="button" id="wkReg" aria-pressed="true" onclick="setWeighMode(false)">שקילה רגילה</button>
+    <button type="button" id="wkMine" aria-pressed="false" onclick="setWeighMode(true)">🔍 בדיקה אישית</button>
+  </div>
+  <section id="myCheck" class="my-check" hidden>
+    <div class="mc-banner">🔒 רק בטלפון שלך. לא נשלח לגיליון ולא למנהל האזור. נמחק לבד אחרי 14 יום.</div>
+    <div id="mcList" class="mc-list"></div>
+    <div>
+      <label class="mc-l" for="mcProd">איזה מוצר בודקים?</label>
+      <input type="text" id="mcProd" list="mcProds" placeholder="מקלידים שם, למשל דנוור" autocomplete="off" enterkeyhint="next" onchange="mcPick(this.value)">
+      <datalist id="mcProds"></datalist>
+      <div id="mcProdHint" class="mc-hint"></div>
+    </div>
+    <div class="mc-two">
+      <div><label class="mc-l" for="mcDate">יום</label><input type="date" id="mcDate" onchange="mcFill()"></div>
+      <div><label class="mc-l" for="mcMade">כמה הכנתי (ק״ג)</label><input type="text" id="mcMade" inputmode="decimal" placeholder="בבוקר"></div>
+      <div><label class="mc-l" for="mcLeft">כמה נשאר (ק״ג)</label><input type="text" id="mcLeft" inputmode="decimal" placeholder="בערב"></div>
+      <div><label class="mc-l" for="mcMoved">הועבר לטחינה / המרה</label><input type="text" id="mcMoved" inputmode="decimal" placeholder="לא חובה"></div>
+    </div>
+    <button type="button" class="btn mc-save" onclick="mcSave()">שמירה</button>
+    <div id="mcSum" class="mc-sum"></div>
+    <div class="mc-tbl"><table><thead><tr><th>יום</th><th>הכנתי</th><th>נשאר</th><th>הועבר</th><th>הלך</th><th>נמכר</th><th>פער</th></tr></thead><tbody id="mcRows"></tbody></table></div>
+    <div class="mc-hint">"נמכר" מגיע לבד מדוח המכר. יום שהדוח שלו עוד לא הועלה מסומן "ממתין לדוח" ולא נכנס לסיכום. לחיצה על יום בטבלה פותחת אותו לתיקון.</div>
+    <button type="button" class="link-btn mc-del" onclick="mcDelete()">מחיקת הבדיקה של המוצר הזה</button>
+  </section>
   <div class="controls">
     <input type="date" id="dateInput">
     <select id="meatSelect" class="entry-only">
@@ -2169,6 +2227,102 @@ function openFinish() {
   document.getElementById('finishSheet').hidden = false;
 }
 function closeFinish() { document.getElementById('finishSheet').hidden = true; }
+
+// ---------- personal check: any product, made / left / moved vs sold (from the sales report). Only on this phone, 14 days.
+const MC_DAYS = 14;
+let myChecks = {}, mcProdNow = '';
+try { myChecks = JSON.parse(demoLS.getItem('myChecks') || '{}') || {}; } catch (e) { myChecks = {}; }
+try { mcProdNow = demoLS.getItem('myCheckProd') || ''; } catch (e) {}
+function mcPrune() {
+  const cut = new Date(); cut.setDate(cut.getDate() - MC_DAYS); const c = ymd(cut);
+  Object.keys(myChecks).forEach(p => { Object.keys(myChecks[p]).forEach(d => { if (d < c) delete myChecks[p][d]; }); if (!Object.keys(myChecks[p]).length) delete myChecks[p]; });
+}
+function mcStore() { mcPrune(); try { demoLS.setItem('myChecks', JSON.stringify(myChecks)); demoLS.setItem('myCheckProd', mcProdNow); } catch (e) { if (typeof storageWarn === 'function') storageWarn(e); } }
+function mcReportItems() { const s = new Set(); Object.values(typeof slWeeks === 'object' ? slWeeks : {}).forEach(w => (w.items || []).forEach(it => it.n && s.add(it.n))); return [...s].sort((a, b) => a.localeCompare(b, 'he')); }
+// sold on a day: a number, null = that day's report hasn't arrived, undefined = the product isn't in any report
+function mcSold(p, d) {
+  const items = mcReportItems(); if (!items.includes(p)) return undefined;
+  const k = new Date(d + 'T12:00:00').getDay(); if (k > 5) return 'sat'; // the report has no Saturday
+  const w = (typeof slWeeks === 'object' && slWeeks[weekStartOf(d)]) || null;
+  if (!w || !(w.items || []).some(it => it.d && it.d[k] != null)) return null;
+  const it = w.items.find(x => x.n === p);
+  return it && it.d[k] != null ? Number(it.d[k]) || 0 : 0;
+}
+function setWeighMode(mine) {
+  if (mgrMode) mine = false;
+  document.getElementById('page-weigh').classList.toggle('mine', mine);
+  document.getElementById('myCheck').hidden = !mine;
+  document.getElementById('wkReg').setAttribute('aria-pressed', !mine);
+  document.getElementById('wkMine').setAttribute('aria-pressed', mine);
+  try { demoLS.setItem('weighMode', mine ? 'mine' : ''); } catch (e) {}
+  if (mine) mcRender();
+}
+function mcPick(p) {
+  p = String(p || '').trim().slice(0, 40); if (!p) return;
+  mcProdNow = p; document.getElementById('mcProd').value = p; mcStore(); mcFill(); mcRender();
+}
+function mcFill() { // the chosen day's numbers, for a correction
+  const d = document.getElementById('mcDate').value, e = (myChecks[mcProdNow] || {})[d];
+  document.getElementById('mcMade').value = e ? e[0] : ''; document.getElementById('mcLeft').value = e ? e[1] : ''; document.getElementById('mcMoved').value = e && e[2] ? e[2] : '';
+  document.querySelectorAll('#mcRows tr').forEach(r => r.classList.toggle('sel', r.dataset.d === d));
+}
+function mcSave() {
+  const p = String(document.getElementById('mcProd').value || '').trim().slice(0, 40);
+  if (!p) { alert('בחרו מוצר לבדיקה'); document.getElementById('mcProd').focus(); return; }
+  const d = document.getElementById('mcDate').value;
+  const n = id => { const v = String(document.getElementById(id).value).replace(',', '.').trim(); return v === '' ? 0 : parseFloat(v); };
+  const m = n('mcMade'), l = n('mcLeft'), t = n('mcMoved');
+  if (!(m > 0) || !(l >= 0) || !(t >= 0) || l + t > m) { alert('רשמו כמה הכנתם וכמה נשאר. נשאר והועבר יחד לא יכולים להיות יותר ממה שהכנתם.'); return; }
+  const cut = new Date(); cut.setDate(cut.getDate() - MC_DAYS + 1);
+  if (d < ymd(cut) || d > ymd(new Date())) { alert('אפשר לרשום רק את 14 הימים האחרונים'); return; }
+  mcProdNow = p; myChecks[p] = myChecks[p] || {}; myChecks[p][d] = [m, l, t];
+  mcStore(); mcRender(); showOk('נשמר · ' + p);
+}
+async function mcDelete() {
+  if (!mcProdNow || !myChecks[mcProdNow]) return;
+  if (!await ask({ title: 'למחוק את הבדיקה?', text: 'כל הימים של ' + mcProdNow + ' יימחקו מהטלפון.', ok: 'מחיקה', cancel: 'ביטול', icon: 'warn' })) return;
+  delete myChecks[mcProdNow]; mcStore(); mcRender(); mcFill();
+}
+function mcRender() {
+  if (!document.getElementById('myCheck')) return;
+  mcPrune();
+  const items = mcReportItems();
+  document.getElementById('mcProds').innerHTML = items.map(n => `<option value="${esc(n)}">`).join('');
+  const dt = document.getElementById('mcDate'); if (!dt.value) dt.value = ymd(new Date());
+  const cut = new Date(); cut.setDate(cut.getDate() - MC_DAYS + 1); dt.min = ymd(cut); dt.max = ymd(new Date());
+  if (!mcProdNow) mcProdNow = Object.keys(myChecks)[0] || '';
+  document.getElementById('mcProd').value = mcProdNow;
+  const f = x => (Math.round(x * 100) / 100).toFixed(2);
+  // the products being checked: one tap switches
+  const gapOf = p => { let g = 0, s = 0; Object.entries(myChecks[p] || {}).forEach(([d, [m, l, t]]) => { const so = mcSold(p, d); if (typeof so !== 'number') return; g += m - l - (t || 0); s += so; }); return { went: g, sold: s }; };
+  document.getElementById('mcList').innerHTML = Object.keys(myChecks).map(p => {
+    const r = gapOf(p), gap = r.went - r.sold;
+    return `<button type="button" class="${p === mcProdNow ? 'on' : ''}" onclick="mcPick(this.dataset.p)" data-p="${esc(p)}">${esc(p)} <small>${r.went ? (gap > 0.3 ? 'חסר ' + f(gap) : '✓') : '…'}</small></button>`;
+  }).join('');
+  const inRep = items.includes(mcProdNow);
+  document.getElementById('mcProdHint').textContent = !mcProdNow ? 'הרשימה מגיעה מדוח המכר. אפשר לבדוק כמה מוצרים, כל אחד בנפרד.'
+    : inRep ? '' : (items.length ? 'המוצר הזה לא מופיע בדוח המכר, אז לא יהיה "נמכר". אפשר לבחור את השם מהרשימה.' : 'עוד לא הועלה דוח מכר, אז "נמכר" יופיע אחרי ההעלאה.');
+  const days = Object.keys(myChecks[mcProdNow] || {}).sort();
+  let went = 0, sold = 0, waiting = 0, counted = 0;
+  document.getElementById('mcRows').innerHTML = days.map(d => {
+    const [m, l, t] = myChecks[mcProdNow][d], g = m - l - (t || 0), so = mcSold(mcProdNow, d);
+    const dd = new Date(d + 'T12:00:00'), lbl = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'][dd.getDay()] + ' ' + dd.getDate() + '.' + (dd.getMonth() + 1);
+    const head = `<tr data-d="${d}" onclick="document.getElementById('mcDate').value='${d}';mcFill()"><td>${lbl}</td><td>${f(m)}</td><td>${f(l)}</td><td>${t ? f(t) : '—'}</td><td>${f(g)}</td>`;
+    if (so === undefined) return head + '<td colspan="2" class="none">לא בדוח</td></tr>';
+    if (so === 'sat') return head + '<td colspan="2" class="none">שבת · אין דוח</td></tr>';
+    if (so === null) { waiting++; return head + '<td colspan="2" class="wait">ממתין לדוח</td></tr>'; }
+    went += g; sold += so; counted++; const gap = g - so;
+    return head + `<td>${f(so)}</td><td class="${gap > 0.3 ? 'miss' : 'fine'}">${gap > 0 ? '−' + f(gap) : '✓'}</td></tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;color:#857469">עוד אין ימים. בוחרים מוצר ורושמים כמה הכנתם וכמה נשאר.</td></tr>';
+  const gap = went - sold, pct = went ? gap / went * 100 : 0;
+  const cls = pct > 8 ? 'bad' : pct > 3 ? 'warn' : 'ok', word = { ok: '✓ נראה תקין', warn: 'לשים לב', bad: 'חסר הרבה' }[cls];
+  document.getElementById('mcSum').innerHTML = !mcProdNow || !days.length ? '' : counted > 0
+    ? `<h3>${esc(mcProdNow)} · ${counted} ימים עם דוח מכר${waiting ? ` <span class="mc-hint">(ועוד ${waiting} ממתינים)</span>` : ''}</h3>
+       <div>הלך <b>${f(went)}</b> ק״ג · נמכר <b>${f(sold)}</b> ק״ג</div>
+       <div class="big">${gap > 0 ? 'חסר ' + f(gap) + ' ק״ג' : 'אין חוסר'} <span class="pill ${cls}">${word} · ${pct.toFixed(1)}%</span></div>`
+    : `<h3>${esc(mcProdNow)}</h3><div class="mc-hint">${inRep ? 'הסיכום יופיע כשיגיע דוח המכר של הימים האלה.' : 'בלי דוח מכר אין השוואה. רואים רק כמה הלך.'}</div>`;
+  mcFill();
+}
 // turns what was heard ("שלושים ושתיים נקודה חמש", "32 וחצי", "12 ועוד 8.4") into weights
 function heNums(text) {
   const U = { 'אפס':0,'אחד':1,'אחת':1,'שתיים':2,'שתים':2,'שניים':2,'שנים':2,'שתי':2,'שני':2,'שלוש':3,'שלושה':3,'שלש':3,'שלשה':3,'ארבע':4,'ארבעה':4,'חמש':5,'חמישה':5,'חמשה':5,'שש':6,'שישה':6,'ששה':6,'שבע':7,'שבעה':7,'שמונה':8,'תשע':9,'תשעה':9 };
@@ -3256,6 +3410,7 @@ buildCards();
 loadBranch();
 checkJoinHash();
 window.addEventListener('hashchange', checkJoinHash);
+try { if (demoLS.getItem('weighMode') === 'mine' && !mgrMode) setWeighMode(true); } catch (e) {}
 loadAllow();
 loadData();
 renderSync();
