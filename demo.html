@@ -442,6 +442,19 @@ select:focus, input:focus { outline: 2px solid var(--pri); outline-offset: 0; bo
 #page-weigh .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
 #page-weigh .controls > * { margin: 0; }
 #dateInput, #meatSelect, #typeSelect, #weightInput { width: calc(50% - 4px); }
+.mic-wrap { display: inline-block; position: relative; vertical-align: middle; }
+#weightWrap { width: calc(50% - 4px); }
+.mic-wrap > input { width: 100% !important; padding-inline-end: 46px !important; box-sizing: border-box; margin: 0; }
+.mic-btn { position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; border: 0; background: #f3ebe4; font-size: 18px; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.mic-btn.on { background: #c62828; animation: micPulse 1s infinite; }
+@keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(198,40,40,.5); } 50% { box-shadow: 0 0 0 8px rgba(198,40,40,0); } }
+.mic-flash { animation: micFlash 1.2s; }
+@keyframes micFlash { 0% { background: #d8f3df; } 100% { background: inherit; } }
+#micBubble { position: fixed; left: 12px; right: 12px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 90; max-width: 520px; margin: 0 auto; background: #2f2622; color: #fff; border-radius: 16px; padding: 12px 14px; font-size: 15px; line-height: 1.5; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+#micBubble[hidden] { display: none; }
+#micBubble b { font-size: 20px; direction: ltr; unicode-bidi: isolate; }
+#micBubble small { display: block; opacity: .8; font-size: 13px; }
+
 #soldNote, #workerLine, #page-weigh .controls > div { width: 100%; text-align: center; }
 button.btn { border-radius: 12px; font-weight: 700; padding: 12px 16px; background: var(--pri); font-family: inherit; box-shadow: none; }
 button[onclick="addWeight()"] { width: 100%; font-size: 18px; padding: 14px; }
@@ -861,7 +874,7 @@ var demoLS = (function () {
   run();
 })();
 </script>
-<div class="preview-note"><b>🎬 הדמיה · כל הנתונים מומצאים ולא נשלחים לשום מקום</b><br>סניף רמת גן לדוגמה, עם חודש של שימוש. אפשר לשקול, לספור ולשנות הכול. <a href="#" onclick="resetDemo();return false">החזרה להתחלה</a><br>לראות את מסך מנהל האזור (13 סניפים): <a href="#" onclick="demoMgr();return false">כניסה כמנהל אזור</a></div>
+<div class="preview-note"><b>🎬 הדמיה · כל הנתונים מומצאים ולא נשלחים לשום מקום</b><br>סניף רמת גן לדוגמה, עם חודש של שימוש. אפשר לשקול, לספור ולשנות הכול. <a href="#" onclick="resetDemo();return false">החזרה להתחלה</a><br>לראות את מסך מנהל האזור (13 סניפים): <a href="#" onclick="demoMgr();return false">כניסה כמנהל אזור</a><br><b>🎤 חדש לניסיון:</b> הקלדת משקל בקול. לוחצים על המיקרופון בשדה המשקל ואומרים את המספר.</div>
 <h1>שקילות בשר ומלאי</h1>
 <button type="button" class="gear-btn" aria-label="הגדרות" onclick="showPage('settings')"></button>
 <div class="branch-bar"><span id="branchText"></span></div>
@@ -941,7 +954,7 @@ var demoLS = (function () {
       <option value="אחר">המרה למוצר אחר…</option>
     </select>
     <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב" enterkeyhint="next" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('weightInput').focus()}">
-    <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
+    <span class="mic-wrap entry-only" id="weightWrap"><input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}"><button type="button" class="mic-btn" aria-label="הקלדה בקול" onclick="micStart('weightInput', this)">🎤</button></span>
     <input type="text" id="boxInput" class="entry-only" hidden placeholder="כמה ארגזים הגיעו" inputmode="numeric" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
     <div class="entry-only" style="font-size:12px;color:#888;margin-top:-2px">כמה מגשים? כותבים עם רווח: 5.2 4.8 6.1 והם יחוברו</div>
     <div id="trayRow" class="entry-only tray-row" hidden>
@@ -1069,7 +1082,7 @@ var demoLS = (function () {
       <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
       <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
       <div id="calcSteps" dir="ltr"></div>
-      <input type="text" id="calcInput" class="entry-only" placeholder="משקל" style="width:170px; font-size:18px; text-align:center" inputmode="decimal" enterkeyhint="done">
+      <span class="mic-wrap entry-only" style="width:190px"><input type="text" id="calcInput" class="entry-only" placeholder="משקל" style="width:170px; font-size:18px; text-align:center" inputmode="decimal" enterkeyhint="done"><button type="button" class="mic-btn" aria-label="הקלדה בקול" onclick="micStart('calcInput', this)">🎤</button></span>
       <button class="btn entry-only" onclick="calcAdd()">הוסף לסכום</button>
       <button class="btn entry-only" style="background:#ff9800" onclick="calcUndo()">בטל אחרון</button>
       <button class="btn entry-only" style="background:#6c757d" onclick="calcClear()">נקה</button>
@@ -2156,6 +2169,119 @@ function openFinish() {
   document.getElementById('finishSheet').hidden = false;
 }
 function closeFinish() { document.getElementById('finishSheet').hidden = true; }
+// turns what was heard ("שלושים ושתיים נקודה חמש", "32 וחצי", "12 ועוד 8.4") into weights
+function heNums(text) {
+  const U = { 'אפס':0,'אחד':1,'אחת':1,'שתיים':2,'שתים':2,'שניים':2,'שנים':2,'שתי':2,'שני':2,'שלוש':3,'שלושה':3,'שלש':3,'שלשה':3,'ארבע':4,'ארבעה':4,'חמש':5,'חמישה':5,'חמשה':5,'שש':6,'שישה':6,'ששה':6,'שבע':7,'שבעה':7,'שמונה':8,'תשע':9,'תשעה':9 };
+  const T = { 'עשרים':20,'שלושים':30,'שלשים':30,'ארבעים':40,'חמישים':50,'שישים':60,'ששים':60,'שבעים':70,'שמונים':80,'תשעים':90 };
+  const H = { 'מאה':100,'מאתיים':200 };
+  const SEP = ['ועוד','עוד','פלוס','וגם','גם','+','אחר','כך','ואז','מגש','ומגש'];
+  const IGN = ['ו','קילו','קילוגרם','ק"ג','קג','ק״ג','בערך','משקל'];
+  const words = String(text || '').replace(/(\d),(\d)/g, '$1.$2').replace(/[+,]/g, ' + ').replace(/(\d)\s*\.\s*(\d)/g, '$1.$2').split(/\s+/).filter(Boolean);
+  const out = [];
+  let acc = null, kind = null, dec = null, zeros = 0, inDec = false, decAcc = null, decKind = null;
+  const flush = () => {
+    if (acc === null && decAcc === null && !zeros) return;
+    let v = acc || 0;
+    if (inDec && (decAcc !== null || zeros)) v = parseFloat(v + '.' + '0'.repeat(zeros) + (decAcc === null ? '' : decAcc));
+    out.push(v);
+    acc = null; kind = null; inDec = false; decAcc = null; decKind = null; zeros = 0;
+  };
+  // adds a number word to the integer (or the decimal part); false when it can't belong to it
+  const join = (a, k, val, vk) => {
+    if (a === null) return [val, vk];
+    if (vk === 'u' && (k === 't' || k === 'h') && a % 10 === 0) return [a + val, 'u'];
+    if (vk === 't' && k === 'h' && a % 100 === 0) return [a + val, 't'];
+    if (vk === 'ten' && k === 'u' && a < 10) return [a + 10, 'teen'];
+    if (vk === 'u' && k === 'h' && a % 100 === 0) return [a + val, 'u'];
+    if (vk === 'ten' && k === 'h' && a % 100 === 0) return [a + 10, 'teen'];
+    return null;
+  };
+  const word = (val, vk) => {
+    if (inDec) {
+      if (val === 0 && vk === 'u' && decAcc === null) { zeros++; return; }
+      const r = join(decAcc, decKind, val, vk);
+      if (r) { [decAcc, decKind] = r; return; }
+      flush();
+    } else {
+      const r = join(acc, kind, val, vk);
+      if (r) { [acc, kind] = r; return; }
+      flush();
+    }
+    acc = val; kind = vk;
+  };
+  for (let w of words) {
+    w = w.replace(/^["'״׳(]+|["'״׳).!?]+$/g, '');
+    if (!w) continue;
+    if (/^\d+(\.\d+)?$/.test(w)) {
+      if (inDec && decAcc === null && !zeros && !w.includes('.')) { decAcc = w; decKind = 'num'; continue; }
+      flush(); acc = parseFloat(w); kind = 'num';
+      if (w.includes('.')) flush();
+      continue;
+    }
+    if (w === 'נקודה' || w === '.' || w === 'פסיק') { if (acc === null) acc = 0; inDec = true; continue; }
+    if (w === 'גרם' && out.length && acc !== null && !inDec && acc < 1000 && out[out.length - 1] === Math.floor(out[out.length - 1])) { out[out.length - 1] += acc / 1000; acc = null; kind = null; continue; }
+    if (w === 'וחצי' || w === 'חצי' || w === 'ורבע' || w === 'רבע') {
+      const f = w.includes('חצי') ? 0.5 : 0.25;
+      if (acc !== null && !inDec) { acc += f; kind = 'frac'; flush(); } else { flush(); out.push(f); }
+      continue;
+    }
+    if (w === 'מאות' && inDec && decAcc !== null && decAcc < 10 && decKind === 'u') { decAcc *= 100; decKind = 'h'; continue; }
+    if (w === 'מאות' && !inDec && acc !== null && acc < 10 && kind === 'u') { acc *= 100; kind = 'h'; continue; }
+    if (w === 'קילו' || w === 'קילוגרם') { flush(); continue; }
+    if (SEP.includes(w)) { flush(); continue; }
+    if (IGN.includes(w)) continue;
+    let base = w;
+    const look = x => U[x] !== undefined ? [U[x], 'u'] : T[x] !== undefined ? [T[x], 't'] : H[x] !== undefined ? [H[x], 'h'] : (x === 'עשר' || x === 'עשרה') ? [10, acc !== null && kind === 'u' && acc < 10 && !inDec || inDec && decKind === 'u' && decAcc < 10 ? 'ten' : 'tenw'] : null;
+    let hit = look(base);
+    if (!hit && base[0] === 'ו') hit = look(base.slice(1));
+    if (!hit) continue; // a word we don't know: skip it
+    let [val, vk] = hit;
+    if (vk === 'tenw') vk = 't'; // "עשר" alone is ten
+    word(val, vk);
+  }
+  flush();
+  return out.filter(v => isFinite(v) && v >= 0).map(v => Math.round(v * 1000) / 1000);
+}
+
+// voice: the phone hears the weight and writes it in the box; nothing is saved until "הוסף" is pressed
+let micRec = null, micTimer = null;
+function micSay(html, ms) {
+  let el = document.getElementById('micBubble');
+  if (!el) { el = document.createElement('div'); el.id = 'micBubble'; el.setAttribute('role', 'status'); el.onclick = () => { el.hidden = true; }; document.body.appendChild(el); }
+  el.innerHTML = html; el.hidden = false;
+  clearTimeout(micTimer); if (ms) micTimer = setTimeout(() => { el.hidden = true; }, ms);
+}
+function micStart(inputId, btn) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { micSay('בטלפון או בדפדפן הזה אין זיהוי קולי.<small>אפשר להקליד כרגיל. באנדרואיד זה עובד בכרום.</small>', 5000); return; }
+  if (micRec) { try { micRec.stop(); } catch (e) {} return; }
+  const r = new SR(); micRec = r;
+  r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 4; r.continuous = false;
+  let alts = [], heard = '', err = '';
+  btn.classList.add('on');
+  micSay('🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש"</small>');
+  r.onresult = e => {
+    heard = [...e.results].map(x => x[0].transcript).join(' ');
+    const last = e.results[e.results.length - 1];
+    if (last.isFinal) alts = [...last].map(a => a.transcript);
+    micSay('🎤 ' + esc(heard));
+  };
+  r.onerror = e => { err = e.error; };
+  r.onend = () => {
+    btn.classList.remove('on'); micRec = null;
+    if (err === 'not-allowed' || err === 'service-not-allowed') { micSay('צריך לאשר גישה למיקרופון<small>בהגדרות הדפדפן של האתר הזה</small>', 6000); return; }
+    if (err === 'network') { micSay('אין אינטרנט<small>הזיהוי הקולי צריך חיבור. אפשר להקליד כרגיל.</small>', 6000); return; }
+    if (!heard && !alts.length) { micSay('לא שמעתי כלום. נסו שוב, קרוב לטלפון.', 4000); return; }
+    let nums = [];
+    for (const t of (alts.length ? alts : [heard])) { nums = heNums(t); if (nums.length) { heard = t; break; } }
+    if (!nums.length) { micSay(`שמעתי: "${esc(heard)}"<small>לא מצאתי בזה מספר. נסו שוב או הקלידו.</small>`, 6000); return; }
+    const inp = document.getElementById(inputId);
+    inp.value = nums.map(n => String(n)).join(' ');
+    inp.classList.remove('mic-flash'); void inp.offsetWidth; inp.classList.add('mic-flash');
+    micSay(`<b>${esc(inp.value)}</b> ק״ג<small>שמעתי: "${esc(heard)}" · בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 7000);
+  };
+  try { r.start(); } catch (e) { btn.classList.remove('on'); micRec = null; micSay('לא הצלחתי להפעיל את המיקרופון. נסו שוב.', 4000); }
+}
 // Typing list: the final totals in a fixed order, so the dept manager can type them into the company site and tick each one
 let typed = {};
 try { typed = JSON.parse(demoLS.getItem('typedChecks') || '{}') || {}; } catch (e) { typed = {}; }
