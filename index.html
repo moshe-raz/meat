@@ -571,6 +571,32 @@ button.btn.danger { background: #fff !important; color: #c62828; border: 1px sol
 #finishSheet .fs-dim { position: absolute; inset: 0; background: rgba(40,25,18,.4); }
 #finishSheet .fs-card { position: absolute; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; background: #fff; border-radius: 22px 22px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 12px; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,.2); }
 #finishSheet h3 { margin: 0; font-size: 19px; }
+#typeSheet { position: fixed; inset: 0; z-index: 85; background: var(--bg, #f6f3ef); overflow-y: auto; }
+#typeSheet[hidden] { display: none; }
+#typeSheet .ty-head { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line, #ebe3da); padding: 12px 14px 10px; display: grid; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+#typeSheet .ty-top { display: flex; align-items: center; gap: 10px; }
+#typeSheet .ty-top h3 { margin: 0; font-size: 18px; flex: 1; }
+#typeSheet .ty-x { border: 0; background: #efe8e0; border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+#typeSheet .ty-prog { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+#typeSheet .ty-prog .ip-bar { flex: 1; }
+#typeSheet .ty-opts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13.5px; color: var(--muted, #857469); align-items: center; }
+#typeSheet .ty-opts label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+#typeSheet .ty-opts button { border: 0; background: none; color: var(--pri, #9f2d2d); font: inherit; font-weight: 600; cursor: pointer; padding: 0; margin-inline-start: auto; }
+#typeSheet .ty-body { max-width: 560px; margin: 0 auto; padding: 10px 12px 40px; }
+#typeSheet .ty-fam { font-size: 17px; font-weight: 800; margin: 18px 4px 6px; }
+#typeSheet .ty-grp { font-size: 13.5px; font-weight: 700; color: var(--muted, #857469); margin: 10px 6px 5px; display: flex; justify-content: space-between; }
+#typeSheet .ty-row { display: flex; align-items: center; gap: 12px; width: 100%; background: #fff; border: 1px solid var(--line, #ebe3da); border-radius: 14px; padding: 11px 12px; margin-bottom: 6px; font: inherit; color: inherit; text-align: right; cursor: pointer; }
+#typeSheet .ty-box { flex: none; width: 30px; height: 30px; border-radius: 9px; border: 2px solid #cbbfb3; display: grid; place-items: center; font-weight: 800; font-size: 18px; color: transparent; }
+#typeSheet .ty-name { flex: 1; font-size: 16px; font-weight: 600; }
+#typeSheet .ty-val { font-size: 20px; font-weight: 800; direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
+#typeSheet .ty-val small { font-size: 13px; font-weight: 600; color: var(--muted, #857469); }
+#typeSheet .ty-row.done { background: #eef7f0; border-color: #bfe3cb; }
+#typeSheet .ty-row.done .ty-box { background: #2e8b57; border-color: #2e8b57; color: #fff; }
+#typeSheet .ty-row.done .ty-name, #typeSheet .ty-row.done .ty-val { color: #5f7a68; }
+#typeSheet .ty-row.zero .ty-val { color: #b3a79c; }
+#typeSheet .ty-row.changed { border-color: #e8a317; background: #fff8e6; }
+#typeSheet .ty-chg { display: block; font-size: 12px; color: #7a5a00; font-weight: 600; }
+#typeSheet .ty-all { text-align: center; font-weight: 800; color: #1b6b34; background: #e3f4e8; border-radius: 14px; padding: 14px; margin-top: 16px; }
 #finishSheet .inv-totals { margin: 0; }
 .fs-warn { background: #fff4e5; border: 1px solid #f3d2a2; color: #7a4a00; border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.55; }
 .fs-ok { background: #e3f4e8; color: #1b6b34; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
@@ -997,6 +1023,7 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <div id="invDoneBox" hidden></div>
     <button class="btn entry-only" id="invFinishBtn" type="button" onclick="openFinish()">סיום ספירה</button>
     <div id="invFinishNote" class="kv-note entry-only" hidden></div>
+    <button class="btn" type="button" style="background:#fff;color:var(--ink);border:1px solid var(--line)" onclick="openTypeList()">📝 רשימה להקלדה במחשב</button>
     <button class="btn" style="background:#28a745" onclick="exportInventory()">ייצא מלאי לאקסל</button>
   </div>
   <div id="calcPanel" style="display:none; background:#e3f2fd; padding:10px; border-radius:8px; margin:0 0 10px;">
@@ -1019,6 +1046,14 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
     <div id="dlText"></div>
     <div class="dl-btns" id="dlBtns"><button type="button" class="dl-no" id="dlNo"></button><button type="button" class="dl-yes" id="dlYes"></button></div>
   </div>
+</div>
+<div id="typeSheet" hidden role="dialog" aria-modal="true" aria-labelledby="tyTitle">
+  <div class="ty-head">
+    <div class="ty-top"><h3 id="tyTitle">רשימה להקלדה</h3><button type="button" class="ty-x" onclick="closeTypeList()">סגירה</button></div>
+    <div class="ty-prog"><div class="ip-bar"><i id="tyFill"></i></div><span id="tyText"></span></div>
+    <div class="ty-opts"><label><input type="checkbox" id="tyZeros" onchange="renderTypeList()"> להציג גם מה שלא נספר (0)</label><button type="button" onclick="clearTyped()">ניקוי הסימונים</button></div>
+  </div>
+  <div class="ty-body" id="tyBody"></div>
 </div>
 <div id="finishSheet" hidden>
   <div class="fs-dim" onclick="closeFinish()"></div>
@@ -2017,6 +2052,67 @@ function openFinish() {
   document.getElementById('finishSheet').hidden = false;
 }
 function closeFinish() { document.getElementById('finishSheet').hidden = true; }
+// Typing list: the final totals in a fixed order, so the dept manager can type them into the company site and tick each one
+let typed = {};
+try { typed = JSON.parse(localStorage.getItem('typedChecks') || '{}') || {}; } catch (e) { typed = {}; }
+function persistTyped() { try { localStorage.setItem('typedChecks', JSON.stringify(typed)); } catch (e) {} }
+function typeFamilies() {
+  const beef = [['בקר', beefProducts.filter(p => !p.includes('מעובד'))], ['בקר מעובד', beefProducts.filter(p => p.includes('מעובד'))]];
+  return [['בקר', beef], ['כבש', lambGroups], ['עוף והודו', poultryGroups], ['ציוד ושונות', supplyGroups]];
+}
+function typeItems() {
+  const zeros = (document.getElementById('tyZeros') || {}).checked;
+  return typeFamilies().flatMap(([, gs]) => gs.flatMap(([, items]) => items)).filter(p => zeros || invValue(p));
+}
+function openTypeList() {
+  document.getElementById('tyTitle').textContent = 'הקלדה במחשב · ' + monthLabel(invMonth);
+  document.getElementById('typeSheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderTypeList();
+  document.getElementById('typeSheet').scrollTop = 0;
+}
+function closeTypeList() { document.getElementById('typeSheet').hidden = true; document.body.style.overflow = ''; }
+function renderTypeList() {
+  const zeros = document.getElementById('tyZeros').checked, marks = typed[invMonth] || {};
+  let html = '', total = 0, done = 0;
+  typeFamilies().forEach(([fam, gs]) => {
+    let famHtml = '';
+    gs.forEach(([g, items]) => {
+      const shown = items.filter(p => zeros || invValue(p));
+      if (!shown.length) return;
+      const hidden = items.length - shown.length;
+      famHtml += `<div class="ty-grp"><span>${g === fam ? '' : esc(g)}</span>${hidden ? `<span>${hidden} לא נספרו</span>` : ''}</div>`;
+      shown.forEach(p => {
+        const v = invValue(p), m = marks[p], isDone = m !== undefined && m === v, changed = m !== undefined && m !== v;
+        total++; if (isDone) done++;
+        const val = isUnit(p) ? Math.round(v) + ' <small>יח׳</small>' : fmt(v) + ' <small>ק״ג</small>';
+        famHtml += `<button type="button" class="ty-row${isDone ? ' done' : ''}${changed ? ' changed' : ''}${v ? '' : ' zero'}" onclick="toggleTyped(${products.indexOf(p)})" aria-pressed="${isDone}">`
+          + `<span class="ty-box">✓</span><span class="ty-name">${esc(p)}${changed ? `<span class="ty-chg">הכמות השתנתה אחרי הסימון · להקליד שוב</span>` : ''}</span><span class="ty-val">${val}</span></button>`;
+      });
+    });
+    if (famHtml) html += `<div class="ty-fam">${esc(fam)}</div>` + famHtml;
+  });
+  if (!total) html = '<div class="kv-note" style="text-align:center;padding:30px 10px">עוד לא נספר כלום בחודש הזה</div>';
+  else if (done === total) html += '<div class="ty-all">✓ הכול הוקלד</div>';
+  document.getElementById('tyBody').innerHTML = html;
+  document.getElementById('tyFill').style.width = (total ? done / total * 100 : 0) + '%';
+  document.getElementById('tyText').textContent = `הוקלדו ${done} מתוך ${total}`;
+}
+function toggleTyped(i) {
+  const p = products[i]; if (!p) return;
+  const m = typed[invMonth] = typed[invMonth] || {};
+  const v = invValue(p);
+  if (m[p] === v) delete m[p]; else m[p] = v;
+  // keep only the last few months
+  Object.keys(typed).sort().slice(0, -4).forEach(k => delete typed[k]);
+  persistTyped();
+  renderTypeList();
+}
+function clearTyped() {
+  if (!Object.keys(typed[invMonth] || {}).length) return;
+  if (!confirm('לנקות את כל הסימונים של ' + monthLabel(invMonth) + '?')) return;
+  delete typed[invMonth]; persistTyped(); renderTypeList();
+}
 function doFinish() {
   if (!isDeptManager()) return;
   const t = invTotals(), r3 = n => Math.round(n * 1000) / 1000;
