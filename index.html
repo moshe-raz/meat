@@ -820,7 +820,7 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
   <label class="br-row">שם מנהל המחלקה<input type="text" id="brManager" autocomplete="off"></label>
   <label class="br-row">שם מנהל האזור<input type="text" id="brArea" autocomplete="off"></label>
   <label class="br-row">השם שלך<input type="text" id="brWorker" autocomplete="off" placeholder="מי רושם בטלפון הזה"></label>
-  <div id="brJoined" class="join-ok" hidden>✓ מחובר לגיליון בקישור של הסניף<button type="button" class="join-add" onclick="branchJoinLink()">📱 הוספת טלפון לסניף</button></div>
+  <div id="brJoined" class="join-ok" hidden><span id="brJoinedTxt">✓ מחובר לגיליון בקישור של הסניף</span><button type="button" class="join-add" onclick="branchJoinLink()">📱 הוספת טלפון לסניף</button></div>
   <div id="brConnRows">
   <div style="font-size:13px;color:#555;margin-top:12px">חיבור לגיליון של החברה (מקבלים קישור ממנהל המחלקה או מנהל האזור · אפשר להשאיר ריק)</div>
   <label class="br-row">קישור חיבור<input type="url" id="brJoin" autocomplete="off" dir="ltr" placeholder="מדביקים כאן את הקישור שקיבלתם"></label>
@@ -2138,7 +2138,8 @@ function openBranch(first, focusWorker) {
   document.getElementById('brUrl').value = branch.url || '';
   document.getElementById('brKey').value = branch.key || '';
   document.getElementById('brJoin').value = '';
-  document.getElementById('brJoined').hidden = !(branch.url && branch.bkey);
+  document.getElementById('brJoined').hidden = !(branch.url && (branch.bkey || branch.key)); // a connected phone can add the branch's other phones
+  document.getElementById('brJoinedTxt').textContent = branch.bkey ? '✓ מחובר לגיליון בקישור של הסניף' : '✓ מחובר לגיליון של החברה';
   document.getElementById('brConnRows').hidden = !!(branch.url && branch.bkey);
   document.getElementById('brName').readOnly = !!branch.bkey; // the link decides the branch
   document.getElementById('brWorker').value = worker;
