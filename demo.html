@@ -2290,7 +2290,7 @@ function micShow() {
   if (live.length) { s.inp.value = micJoin(s.before, live); s.inp.dispatchEvent(new Event('input', { bubbles: true })); }
   micSay(text
     ? `🎤 ${live.length ? `<b>${esc(live.join(' '))}</b> ק״ג` : ''}<small>${esc(text)} · לחיצה על 🎤 מסיימת</small>`
-    : '🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש" · עוד מגש? לוחצים שוב על 🎤 והוא יתווסף</small>');
+    : '🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש" · עוד משקל? לוחצים שוב על 🎤 והוא יתווסף</small>');
 }
 function micListen() {
   const s = micS; if (!s || s.done) return;
@@ -2330,7 +2330,7 @@ function micFinish() {
   inp.value = micJoin(s.before, nums);
   inp.dispatchEvent(new Event('input', { bubbles: true })); // the tray count and its note follow, as when typing
   inp.classList.remove('mic-flash'); void inp.offsetWidth; inp.classList.add('mic-flash');
-  micSay(`<b>${esc(inp.value)}</b> ק״ג<small>שמעתי: "${esc(heard)}" · עוד מגש? 🎤 שוב · אחרת בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 8000);
+  micSay(`<b>${esc(inp.value)}</b> ק״ג<small>שמעתי: "${esc(heard)}" · עוד משקל? 🎤 שוב · אחרת בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 8000);
 }
 // Typing list: the final totals in a fixed order, so the dept manager can type them into the company site and tick each one
 let typed = {};
