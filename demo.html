@@ -2259,7 +2259,7 @@ function heNums(text) {
 }
 
 // voice: the phone hears the weight and writes it in the box; nothing is saved until "הוסף" is pressed
-let micRec = null, micTimer = null;
+let micTimer = null;
 function micSay(html, ms) {
   let el = document.getElementById('micBubble');
   if (!el) { el = document.createElement('div'); el.id = 'micBubble'; el.setAttribute('role', 'status'); el.onclick = () => { el.hidden = true; }; document.body.appendChild(el); }
@@ -2274,48 +2274,74 @@ function micTrays(inputId, n) {
   if (!(trayW > 0)) return ` · ${n} מגשים<small>⚠ בחרו משקל מגש (0.026 או 0.012) כדי להוריד אותם</small>`;
   return ` · מורידים ${n} מגשים (${f2(n * trayW)} ק״ג)`;
 }
+// One tap starts, and the phone keeps listening across short pauses: each phrase is heard on its own
+// (so Android can't repeat earlier ones) and they are joined. It ends 4 seconds after the last word, or on a second tap.
+const MIC_PAUSE = 4000;
+let micS = null;
 function micStart(inputId, btn) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { micSay('בטלפון או בדפדפן הזה אין זיהוי קולי.<small>אפשר להקליד כרגיל. באנדרואיד זה עובד בכרום.</small>', 5000); return; }
-  if (micRec) { try { micRec.stop(); } catch (e) {} return; }
-  const r = new SR(); micRec = r;
-  // one phrase at a time: in continuous mode Android phones repeat earlier words ("12 12 12")
-  r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 4; r.continuous = false;
-  let alts = [], heard = '', err = '', quiet = null;
-  const inp = document.getElementById(inputId), before = inp.value;
-  // the phone ends the phrase by itself; these only make sure it never stays on (7 seconds with no words)
-  const wait = ms => { clearTimeout(quiet); quiet = setTimeout(() => { try { r.stop(); } catch (e) {} }, ms); };
-  const cap = setTimeout(() => { try { r.stop(); } catch (e) {} }, 20000);
+  if (micS) { micFinish(); return; } // second tap: done
+  const inp = document.getElementById(inputId);
+  micS = { SR, inputId, btn, inp, before: inp.value, phrases: [], cur: '', alts: [], err: '', rec: null, quiet: null, cap: null, done: false };
   btn.classList.add('on');
-  micSay('🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש" · לחיצה נוספת מסיימת</small>');
-  wait(7000);
+  micS.cap = setTimeout(micFinish, 30000);
+  micQuiet(7000); // time to start talking
+  micShow();
+  micListen();
+}
+function micQuiet(ms) { clearTimeout(micS.quiet); micS.quiet = setTimeout(micFinish, ms); }
+function micText() { return micS.phrases.concat(micS.cur ? [micS.cur] : []).join(' ועוד '); }
+function micShow() {
+  const s = micS, text = micText(), live = heNums(text);
+  if (live.length) { s.inp.value = live.map(n => String(n)).join(' '); s.inp.dispatchEvent(new Event('input', { bubbles: true })); }
+  if (live.trays) micTrays(s.inputId, live.trays);
+  micSay(text
+    ? `🎤 ${live.length ? `<b>${esc(live.join(' '))}</b> ק״ג` : ''}${live.trays ? ` · ${live.trays} מגשים` : ''}<small>${esc(text)} · ממשיך להקשיב, אפשר להמשיך · לחיצה על 🎤 מסיימת</small>`
+    : '🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש" · אפשר כמה משקלים, עם הפסקות · לחיצה על 🎤 מסיימת</small>');
+}
+function micListen() {
+  const s = micS; if (!s || s.done) return;
+  const r = new s.SR(); s.rec = r;
+  r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 4; r.continuous = false;
+  let got = '';
   r.onresult = e => {
-    // one phrase per tap: only the latest result counts (Android may send earlier ones again, even from the last tap)
-    heard = (e.results[e.results.length - 1][0].transcript || '').trim();
-    const last = e.results[e.results.length - 1];
-    if (last.isFinal) alts = [...last].map(a => a.transcript);
-    const live = heNums(heard);
-    if (live.length) { inp.value = live.map(n => String(n)).join(' '); inp.dispatchEvent(new Event('input', { bubbles: true })); }
-    if (live.trays) micTrays(inputId, live.trays);
-    micSay(`🎤 ${live.length ? `<b>${esc(live.join(' '))}</b> ק״ג` : ''}${live.trays ? ` · ${live.trays} מגשים` : ''}<small>${esc(heard)} · ממשיך להקשיב…</small>`);
-    wait(2000);
+    const last = e.results[e.results.length - 1]; // only the latest: Android may send earlier pieces again
+    got = (last[0].transcript || '').trim();
+    if (last.isFinal) s.alts = [...last].map(a => a.transcript);
+    s.cur = got; micShow(); micQuiet(MIC_PAUSE);
   };
-  r.onerror = e => { err = e.error; };
+  r.onerror = e => { if (e.error !== 'no-speech' && e.error !== 'aborted') s.err = e.error; };
   r.onend = () => {
-    btn.classList.remove('on'); micRec = null; clearTimeout(quiet); clearTimeout(cap);
-    if (err === 'not-allowed' || err === 'service-not-allowed') { micSay('צריך לאשר גישה למיקרופון<small>בהגדרות הדפדפן של האתר הזה</small>', 6000); return; }
-    if (err === 'network') { micSay('אין אינטרנט<small>הזיהוי הקולי צריך חיבור. אפשר להקליד כרגיל.</small>', 6000); return; }
-    if (!heard && !alts.length) { micSay('לא שמעתי כלום. נסו שוב, קרוב לטלפון.', 4000); return; }
-    let nums = heNums(heard); // everything that was said
-    if (!nums.length) for (const t of alts) { nums = heNums(t); if (nums.length) { heard = t; break; } }
-    if (!nums.length) { inp.value = before; micSay(`שמעתי: "${esc(heard)}"<small>לא מצאתי בזה מספר. נסו שוב או הקלידו.</small>`, 6000); return; }
-    const trayMsg = nums.trays ? micTrays(inputId, nums.trays) : '';
-    inp.value = nums.map(n => String(n)).join(' ');
-    inp.dispatchEvent(new Event('input', { bubbles: true })); // the tray count and its note follow, as when typing
-    inp.classList.remove('mic-flash'); void inp.offsetWidth; inp.classList.add('mic-flash');
-    micSay(`<b>${esc(inp.value)}</b> ק״ג${trayMsg}<small>שמעתי: "${esc(heard)}" · בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 8000);
+    if (micS !== s) return;
+    if (got) { s.phrases.push(got); s.cur = ''; }
+    if (s.done) return;
+    if (s.err) { micFinish(); return; }
+    setTimeout(micListen, 50); // the phrase ended on a pause: listen for the next one
   };
-  try { r.start(); } catch (e) { btn.classList.remove('on'); micRec = null; micSay('לא הצלחתי להפעיל את המיקרופון. נסו שוב.', 4000); }
+  try { r.start(); } catch (e) { s.err = 'start'; micFinish(); }
+}
+function micFinish() {
+  const s = micS; if (!s) return;
+  s.done = true; micS = null;
+  clearTimeout(s.quiet); clearTimeout(s.cap);
+  try { s.rec && s.rec.abort(); } catch (e) {}
+  if (s.cur) s.phrases.push(s.cur);
+  s.btn.classList.remove('on');
+  const inp = s.inp, inputId = s.inputId;
+  if (s.err === 'not-allowed' || s.err === 'service-not-allowed') { micSay('צריך לאשר גישה למיקרופון<small>בהגדרות הדפדפן של האתר הזה</small>', 6000); return; }
+  if (s.err === 'network') { micSay('אין אינטרנט<small>הזיהוי הקולי צריך חיבור. אפשר להקליד כרגיל.</small>', 6000); return; }
+  if (s.err === 'start') { micSay('לא הצלחתי להפעיל את המיקרופון. נסו שוב.', 4000); return; }
+  let heard = s.phrases.join(' ועוד ');
+  if (!heard) { micSay('לא שמעתי כלום. נסו שוב, קרוב לטלפון.', 4000); return; }
+  let nums = heNums(heard);
+  if (!nums.length) for (const a of s.alts) { nums = heNums(a); if (nums.length) { heard = a; break; } }
+  if (!nums.length) { inp.value = s.before; inp.dispatchEvent(new Event('input', { bubbles: true })); micSay(`שמעתי: "${esc(heard)}"<small>לא מצאתי בזה מספר. נסו שוב או הקלידו.</small>`, 6000); return; }
+  const trayMsg = nums.trays ? micTrays(inputId, nums.trays) : '';
+  inp.value = nums.map(n => String(n)).join(' ');
+  inp.dispatchEvent(new Event('input', { bubbles: true })); // the tray count and its note follow, as when typing
+  inp.classList.remove('mic-flash'); void inp.offsetWidth; inp.classList.add('mic-flash');
+  micSay(`<b>${esc(inp.value)}</b> ק״ג${trayMsg}<small>שמעתי: "${esc(heard)}" · בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 8000);
 }
 // Typing list: the final totals in a fixed order, so the dept manager can type them into the company site and tick each one
 let typed = {};
