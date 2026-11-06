@@ -2290,14 +2290,8 @@ function micStart(inputId, btn) {
   micSay('🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש" · לחיצה נוספת מסיימת</small>');
   wait(7000);
   r.onresult = e => {
-    // some phones send each piece again inside the next one: keep only what is new
-    const parts = [];
-    [...e.results].map(x => x[0].transcript.trim()).filter(Boolean).forEach(s => {
-      const prev = parts[parts.length - 1];
-      if (prev && s.startsWith(prev)) parts[parts.length - 1] = s;
-      else if (!prev || !prev.startsWith(s)) parts.push(s);
-    });
-    heard = parts.join(' ');
+    // one phrase per tap: only the latest result counts (Android may send earlier ones again, even from the last tap)
+    heard = (e.results[e.results.length - 1][0].transcript || '').trim();
     const last = e.results[e.results.length - 1];
     if (last.isFinal) alts = [...last].map(a => a.transcript);
     const live = heNums(heard);
