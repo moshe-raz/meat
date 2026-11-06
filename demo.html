@@ -2277,6 +2277,7 @@ function micStart(inputId, btn) {
     if (!nums.length) { micSay(`שמעתי: "${esc(heard)}"<small>לא מצאתי בזה מספר. נסו שוב או הקלידו.</small>`, 6000); return; }
     const inp = document.getElementById(inputId);
     inp.value = nums.map(n => String(n)).join(' ');
+    inp.dispatchEvent(new Event('input', { bubbles: true })); // the tray count and its note follow, as when typing
     inp.classList.remove('mic-flash'); void inp.offsetWidth; inp.classList.add('mic-flash');
     micSay(`<b>${esc(inp.value)}</b> ק״ג<small>שמעתי: "${esc(heard)}" · בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 7000);
   };
