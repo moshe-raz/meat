@@ -2279,17 +2279,25 @@ function micStart(inputId, btn) {
   if (!SR) { micSay('בטלפון או בדפדפן הזה אין זיהוי קולי.<small>אפשר להקליד כרגיל. באנדרואיד זה עובד בכרום.</small>', 5000); return; }
   if (micRec) { try { micRec.stop(); } catch (e) {} return; }
   const r = new SR(); micRec = r;
-  r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 4; r.continuous = true;
+  // one phrase at a time: in continuous mode Android phones repeat earlier words ("12 12 12")
+  r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 4; r.continuous = false;
   let alts = [], heard = '', err = '', quiet = null;
   const inp = document.getElementById(inputId), before = inp.value;
-  // keeps listening while talking; stops 2 seconds after the last word (or 7 seconds if nothing was said)
+  // the phone ends the phrase by itself; these only make sure it never stays on (7 seconds with no words)
   const wait = ms => { clearTimeout(quiet); quiet = setTimeout(() => { try { r.stop(); } catch (e) {} }, ms); };
   const cap = setTimeout(() => { try { r.stop(); } catch (e) {} }, 20000);
   btn.classList.add('on');
   micSay('🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש" · לחיצה נוספת מסיימת</small>');
   wait(7000);
   r.onresult = e => {
-    heard = [...e.results].map(x => x[0].transcript).join(' ');
+    // some phones send each piece again inside the next one: keep only what is new
+    const parts = [];
+    [...e.results].map(x => x[0].transcript.trim()).filter(Boolean).forEach(s => {
+      const prev = parts[parts.length - 1];
+      if (prev && s.startsWith(prev)) parts[parts.length - 1] = s;
+      else if (!prev || !prev.startsWith(s)) parts.push(s);
+    });
+    heard = parts.join(' ');
     const last = e.results[e.results.length - 1];
     if (last.isFinal) alts = [...last].map(a => a.transcript);
     const live = heNums(heard);
