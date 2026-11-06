@@ -438,6 +438,18 @@ select:focus, input:focus { outline: 2px solid var(--pri); outline-offset: 0; bo
 #page-weigh .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
 #page-weigh .controls > * { margin: 0; }
 #dateInput, #meatSelect, #typeSelect, #weightInput { width: calc(50% - 4px); }
+.mic-wrap { display: inline-block; position: relative; vertical-align: middle; }
+#weightWrap { width: calc(50% - 4px); }
+.mic-wrap > input { width: 100% !important; padding-inline-end: 46px !important; box-sizing: border-box; margin: 0; }
+.mic-btn { position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; border: 0; background: #f3ebe4; font-size: 18px; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.mic-btn.on { background: #c62828; animation: micPulse 1s infinite; }
+@keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(198,40,40,.5); } 50% { box-shadow: 0 0 0 8px rgba(198,40,40,0); } }
+.mic-flash { animation: micFlash 1.2s; }
+@keyframes micFlash { 0% { background: #d8f3df; } 100% { background: inherit; } }
+#micBubble { position: fixed; left: 12px; right: 12px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 90; max-width: 520px; margin: 0 auto; background: #2f2622; color: #fff; border-radius: 16px; padding: 12px 14px; font-size: 15px; line-height: 1.5; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+#micBubble[hidden] { display: none; }
+#micBubble b { font-size: 20px; direction: ltr; unicode-bidi: isolate; }
+#micBubble small { display: block; opacity: .8; font-size: 13px; }
 #soldNote, #workerLine, #page-weigh .controls > div { width: 100%; text-align: center; }
 button.btn { border-radius: 12px; font-weight: 700; padding: 12px 16px; background: var(--pri); font-family: inherit; box-shadow: none; }
 button[onclick="addWeight()"] { width: 100%; font-size: 18px; padding: 14px; }
@@ -929,7 +941,7 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
       <option value="אחר">המרה למוצר אחר…</option>
     </select>
     <input type="text" id="convOther" class="entry-only" hidden maxlength="30" placeholder="לאיזה מוצר? למשל אונטריב" enterkeyhint="next" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('weightInput').focus()}">
-    <input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
+    <span class="mic-wrap entry-only" id="weightWrap"><input type="text" id="weightInput" class="entry-only" placeholder="משקל" inputmode="decimal" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}"><button type="button" class="mic-btn" aria-label="הקלדה בקול" onclick="micStart('weightInput', this)">🎤</button></span>
     <input type="text" id="boxInput" class="entry-only" hidden placeholder="כמה ארגזים הגיעו" inputmode="numeric" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();addWeight()}">
     <div class="entry-only" style="font-size:12px;color:#888;margin-top:-2px">כמה מגשים? כותבים עם רווח: 5.2 4.8 6.1 והם יחוברו</div>
     <div id="trayRow" class="entry-only tray-row" hidden>
@@ -1057,7 +1069,7 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
       <div style="font-weight:bold; margin-bottom:6px" id="calcProductName"></div>
       <div style="font-size:24px; font-weight:bold; margin-bottom:4px" id="calcCurrent">0.00</div>
       <div id="calcSteps" dir="ltr"></div>
-      <input type="text" id="calcInput" class="entry-only" placeholder="משקל" style="width:170px; font-size:18px; text-align:center" inputmode="decimal" enterkeyhint="done">
+      <span class="mic-wrap entry-only" style="width:190px"><input type="text" id="calcInput" class="entry-only" placeholder="משקל" style="width:170px; font-size:18px; text-align:center" inputmode="decimal" enterkeyhint="done"><button type="button" class="mic-btn" aria-label="הקלדה בקול" onclick="micStart('calcInput', this)">🎤</button></span>
       <button class="btn entry-only" onclick="calcAdd()">הוסף לסכום</button>
       <button class="btn entry-only" style="background:#ff9800" onclick="calcUndo()">בטל אחרון</button>
       <button class="btn entry-only" style="background:#6c757d" onclick="calcClear()">נקה</button>
@@ -2080,6 +2092,169 @@ function openFinish() {
   document.getElementById('finishSheet').hidden = false;
 }
 function closeFinish() { document.getElementById('finishSheet').hidden = true; }
+// turns what was heard ("שלושים ושתיים נקודה חמש", "32 וחצי", "12 ועוד 8.4") into weights
+function heNums(text) {
+  const U = { 'אפס':0,'אחד':1,'אחת':1,'שתיים':2,'שתים':2,'שניים':2,'שנים':2,'שתי':2,'שני':2,'שלוש':3,'שלושה':3,'שלש':3,'שלשה':3,'ארבע':4,'ארבעה':4,'חמש':5,'חמישה':5,'חמשה':5,'שש':6,'שישה':6,'ששה':6,'שבע':7,'שבעה':7,'שמונה':8,'תשע':9,'תשעה':9 };
+  const T = { 'עשרים':20,'שלושים':30,'שלשים':30,'ארבעים':40,'חמישים':50,'שישים':60,'ששים':60,'שבעים':70,'שמונים':80,'תשעים':90 };
+  const H = { 'מאה':100,'מאתיים':200 };
+  const SEP = ['ועוד','עוד','פלוס','וגם','גם','+','אחר','כך','ואז','עם','ועם'];
+  let trays = 0, trayOne = false;
+  const IGN = ['ו','קילו','קילוגרם','ק"ג','קג','ק״ג','בערך','משקל'];
+  const words = String(text || '').replace(/(\d),(\d)/g, '$1.$2').replace(/[+,]/g, ' + ').replace(/(\d)\s*\.\s*(\d)/g, '$1.$2').split(/\s+/).filter(Boolean);
+  const out = [];
+  let acc = null, kind = null, dec = null, zeros = 0, inDec = false, decAcc = null, decKind = null;
+  const flush = () => {
+    if (acc === null && decAcc === null && !zeros) return;
+    let v = acc || 0;
+    if (inDec && (decAcc !== null || zeros)) v = parseFloat(v + '.' + '0'.repeat(zeros) + (decAcc === null ? '' : decAcc));
+    out.push(v);
+    acc = null; kind = null; inDec = false; decAcc = null; decKind = null; zeros = 0;
+  };
+  // adds a number word to the integer (or the decimal part); false when it can't belong to it
+  const join = (a, k, val, vk) => {
+    if (a === null) return [val, vk];
+    if (vk === 'u' && (k === 't' || k === 'h') && a % 10 === 0) return [a + val, 'u'];
+    if (vk === 't' && k === 'h' && a % 100 === 0) return [a + val, 't'];
+    if (vk === 'ten' && k === 'u' && a < 10) return [a + 10, 'teen'];
+    if (vk === 'u' && k === 'h' && a % 100 === 0) return [a + val, 'u'];
+    if (vk === 'ten' && k === 'h' && a % 100 === 0) return [a + 10, 'teen'];
+    return null;
+  };
+  const word = (val, vk) => {
+    if (inDec) {
+      if (val === 0 && vk === 'u' && decAcc === null) { zeros++; return; }
+      const r = join(decAcc, decKind, val, vk);
+      if (r) { [decAcc, decKind] = r; return; }
+      flush();
+    } else {
+      const r = join(acc, kind, val, vk);
+      if (r) { [acc, kind] = r; return; }
+      flush();
+    }
+    acc = val; kind = vk;
+  };
+  for (let w of words) {
+    w = w.replace(/^["'״׳(]+|["'״׳).!?]+$/g, '').replace(/^ו-?(?=\d)/, '');
+    if (!w) continue;
+    if (/^\d+(\.\d+)?$/.test(w)) {
+      if (inDec && decAcc === null && !zeros && !w.includes('.')) { decAcc = w; decKind = 'num'; continue; }
+      flush(); acc = parseFloat(w); kind = 'num';
+      if (w.includes('.')) flush();
+      continue;
+    }
+    if (w === 'נקודה' || w === '.' || w === 'פסיק') { if (acc === null) acc = 0; inDec = true; continue; }
+    if (w === 'גרם' && out.length && acc !== null && !inDec && acc < 1000 && out[out.length - 1] === Math.floor(out[out.length - 1])) { out[out.length - 1] += acc / 1000; acc = null; kind = null; continue; }
+    if (w === 'וחצי' || w === 'חצי' || w === 'ורבע' || w === 'רבע') {
+      const f = w.includes('חצי') ? 0.5 : 0.25;
+      if (acc !== null && !inDec) { acc += f; kind = 'frac'; flush(); } else { flush(); out.push(f); }
+      continue;
+    }
+    if (w === 'מאות' && inDec && decAcc !== null && decAcc < 10 && decKind === 'u') { decAcc *= 100; decKind = 'h'; continue; }
+    if (w === 'מאות' && !inDec && acc !== null && acc < 10 && kind === 'u') { acc *= 100; kind = 'h'; continue; }
+    if (w === 'קילו' || w === 'קילוגרם') { flush(); continue; }
+    if (SEP.includes(w)) { flush(); continue; }
+    // "עשרה מגשים" / "10 מגשים": a count of trays to take off, not a weight
+    if (/^ו?(מגשים|מגשי|מגש)$/.test(w)) {
+      // "נקודה חמש עשרה מגשים": the ten belongs to the trays, the five to the weight
+      if (inDec && decKind === 'teen' && w.includes('מגשים')) { decAcc -= 10; decKind = 'u'; flush(); trays += 10; continue; }
+      flush();
+      const n = out.length ? out[out.length - 1] : null;
+      if (w.includes('מגשים') && n !== null && n === Math.floor(n) && n > 0 && n < 100) { trays += out.pop(); }
+      else if (/מגש$/.test(w)) trayOne = true; // "מגש אחד"
+      continue;
+    }
+    if (trayOne && (w === 'אחד' || w === 'אחת')) { trays += 1; trayOne = false; continue; }
+    trayOne = false;
+    if (IGN.includes(w)) continue;
+    let base = w;
+    const look = x => U[x] !== undefined ? [U[x], 'u'] : T[x] !== undefined ? [T[x], 't'] : H[x] !== undefined ? [H[x], 'h'] : (x === 'עשר' || x === 'עשרה') ? [10, acc !== null && kind === 'u' && acc < 10 && !inDec || inDec && decKind === 'u' && decAcc < 10 ? 'ten' : 'tenw'] : null;
+    let hit = look(base);
+    if (!hit && base[0] === 'ו') hit = look(base.slice(1));
+    if (!hit) continue; // a word we don't know: skip it
+    let [val, vk] = hit;
+    if (vk === 'tenw') vk = 't'; // "עשר" alone is ten
+    word(val, vk);
+  }
+  flush();
+  const res = out.filter(v => isFinite(v) && v >= 0).map(v => Math.round(v * 1000) / 1000);
+  res.trays = trays;
+  return res;
+}
+
+// voice: the phone hears the weight and writes it in the box; nothing is saved until "הוסף" is pressed
+let micTimer = null;
+function micSay(html, ms) {
+  let el = document.getElementById('micBubble');
+  if (!el) { el = document.createElement('div'); el.id = 'micBubble'; el.setAttribute('role', 'status'); el.onclick = () => { el.hidden = true; }; document.body.appendChild(el); }
+  el.innerHTML = html; el.hidden = false;
+  clearTimeout(micTimer); if (ms) micTimer = setTimeout(() => { el.hidden = true; }, ms);
+}
+// Voice is only for the weights: one tap = one phrase ("חמש נקודה שתיים ועוד ארבע נקודה שמונה").
+// It ends when the phone hears a pause, or on a second tap. The tray count is typed by hand.
+let micS = null;
+function micStart(inputId, btn) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { micSay('בטלפון או בדפדפן הזה אין זיהוי קולי.<small>אפשר להקליד כרגיל. באנדרואיד זה עובד בכרום.</small>', 5000); return; }
+  if (micS) { micFinish(); return; } // second tap: done
+  const inp = document.getElementById(inputId);
+  micS = { SR, inputId, btn, inp, before: inp.value, phrases: [], cur: '', alts: [], err: '', rec: null, quiet: null, cap: null, done: false };
+  btn.classList.add('on');
+  micS.cap = setTimeout(micFinish, 30000);
+  micQuiet(7000); // time to start talking
+  micShow();
+  micListen();
+}
+function micQuiet(ms) { clearTimeout(micS.quiet); micS.quiet = setTimeout(micFinish, ms); }
+// a new tap adds to what is already in the box ("20.5", tap, "12.3" → 20.5 12.3); "הוסף" empties it
+function micJoin(before, nums) { return [String(before || '').trim(), nums.map(n => String(n)).join(' ')].filter(Boolean).join(' '); }
+function micText() { return micS.phrases.concat(micS.cur ? [micS.cur] : []).join(' ועוד '); }
+function micShow() {
+  const s = micS, text = micText(), live = heNums(text);
+  if (live.length) { s.inp.value = micJoin(s.before, live); s.inp.dispatchEvent(new Event('input', { bubbles: true })); }
+  micSay(text
+    ? `🎤 ${live.length ? `<b>${esc(live.join(' '))}</b> ק״ג` : ''}<small>${esc(text)} · לחיצה על 🎤 מסיימת</small>`
+    : '🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש" · עוד משקל? לוחצים שוב על 🎤 והוא יתווסף</small>');
+}
+function micListen() {
+  const s = micS; if (!s || s.done) return;
+  const r = new s.SR(); s.rec = r;
+  r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 4; r.continuous = false;
+  let got = '';
+  r.onresult = e => {
+    const last = e.results[e.results.length - 1]; // only the latest: Android may send earlier pieces again
+    got = (last[0].transcript || '').trim();
+    if (last.isFinal) s.alts = [...last].map(a => a.transcript);
+    s.cur = got; micShow();
+  };
+  r.onerror = e => { if (e.error !== 'no-speech' && e.error !== 'aborted') s.err = e.error; };
+  r.onend = () => {
+    if (micS !== s) return;
+    if (got) { s.phrases.push(got); s.cur = ''; }
+    if (!s.done) micFinish(); // one phrase per tap: no listening again (that beeps on Android)
+  };
+  try { r.start(); } catch (e) { s.err = 'start'; micFinish(); }
+}
+function micFinish() {
+  const s = micS; if (!s) return;
+  s.done = true; micS = null;
+  clearTimeout(s.quiet); clearTimeout(s.cap);
+  try { s.rec && s.rec.abort(); } catch (e) {}
+  if (s.cur) s.phrases.push(s.cur);
+  s.btn.classList.remove('on');
+  const inp = s.inp, inputId = s.inputId;
+  if (s.err === 'not-allowed' || s.err === 'service-not-allowed') { micSay('צריך לאשר גישה למיקרופון<small>בהגדרות הדפדפן של האתר הזה</small>', 6000); return; }
+  if (s.err === 'network') { micSay('אין אינטרנט<small>הזיהוי הקולי צריך חיבור. אפשר להקליד כרגיל.</small>', 6000); return; }
+  if (s.err === 'start') { micSay('לא הצלחתי להפעיל את המיקרופון. נסו שוב.', 4000); return; }
+  let heard = s.phrases.join(' ועוד ');
+  if (!heard) { micSay('לא שמעתי כלום. נסו שוב, קרוב לטלפון.', 4000); return; }
+  let nums = heNums(heard);
+  if (!nums.length) for (const a of s.alts) { nums = heNums(a); if (nums.length) { heard = a; break; } }
+  if (!nums.length) { inp.value = s.before; inp.dispatchEvent(new Event('input', { bubbles: true })); micSay(`שמעתי: "${esc(heard)}"<small>לא מצאתי בזה מספר. נסו שוב או הקלידו.</small>`, 6000); return; }
+  inp.value = micJoin(s.before, nums);
+  inp.dispatchEvent(new Event('input', { bubbles: true })); // the tray count and its note follow, as when typing
+  inp.classList.remove('mic-flash'); void inp.offsetWidth; inp.classList.add('mic-flash');
+  micSay(`<b>${esc(inp.value)}</b> ק״ג<small>שמעתי: "${esc(heard)}" · עוד משקל? 🎤 שוב · אחרת בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 8000);
+}
 // Typing list: the final totals in a fixed order, so the dept manager can type them into the company site and tick each one
 let typed = {};
 try { typed = JSON.parse(localStorage.getItem('typedChecks') || '{}') || {}; } catch (e) { typed = {}; }
