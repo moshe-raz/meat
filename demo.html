@@ -2174,7 +2174,8 @@ function heNums(text) {
   const U = { 'אפס':0,'אחד':1,'אחת':1,'שתיים':2,'שתים':2,'שניים':2,'שנים':2,'שתי':2,'שני':2,'שלוש':3,'שלושה':3,'שלש':3,'שלשה':3,'ארבע':4,'ארבעה':4,'חמש':5,'חמישה':5,'חמשה':5,'שש':6,'שישה':6,'ששה':6,'שבע':7,'שבעה':7,'שמונה':8,'תשע':9,'תשעה':9 };
   const T = { 'עשרים':20,'שלושים':30,'שלשים':30,'ארבעים':40,'חמישים':50,'שישים':60,'ששים':60,'שבעים':70,'שמונים':80,'תשעים':90 };
   const H = { 'מאה':100,'מאתיים':200 };
-  const SEP = ['ועוד','עוד','פלוס','וגם','גם','+','אחר','כך','ואז','מגש','ומגש'];
+  const SEP = ['ועוד','עוד','פלוס','וגם','גם','+','אחר','כך','ואז','עם','ועם'];
+  let trays = 0, trayOne = false;
   const IGN = ['ו','קילו','קילוגרם','ק"ג','קג','ק״ג','בערך','משקל'];
   const words = String(text || '').replace(/(\d),(\d)/g, '$1.$2').replace(/[+,]/g, ' + ').replace(/(\d)\s*\.\s*(\d)/g, '$1.$2').split(/\s+/).filter(Boolean);
   const out = [];
@@ -2210,7 +2211,7 @@ function heNums(text) {
     acc = val; kind = vk;
   };
   for (let w of words) {
-    w = w.replace(/^["'״׳(]+|["'״׳).!?]+$/g, '');
+    w = w.replace(/^["'״׳(]+|["'״׳).!?]+$/g, '').replace(/^ו-?(?=\d)/, '');
     if (!w) continue;
     if (/^\d+(\.\d+)?$/.test(w)) {
       if (inDec && decAcc === null && !zeros && !w.includes('.')) { decAcc = w; decKind = 'num'; continue; }
@@ -2229,6 +2230,18 @@ function heNums(text) {
     if (w === 'מאות' && !inDec && acc !== null && acc < 10 && kind === 'u') { acc *= 100; kind = 'h'; continue; }
     if (w === 'קילו' || w === 'קילוגרם') { flush(); continue; }
     if (SEP.includes(w)) { flush(); continue; }
+    // "עשרה מגשים" / "10 מגשים": a count of trays to take off, not a weight
+    if (/^ו?(מגשים|מגשי|מגש)$/.test(w)) {
+      // "נקודה חמש עשרה מגשים": the ten belongs to the trays, the five to the weight
+      if (inDec && decKind === 'teen' && w.includes('מגשים')) { decAcc -= 10; decKind = 'u'; flush(); trays += 10; continue; }
+      flush();
+      const n = out.length ? out[out.length - 1] : null;
+      if (w.includes('מגשים') && n !== null && n === Math.floor(n) && n > 0 && n < 100) { trays += out.pop(); }
+      else if (/מגש$/.test(w)) trayOne = true; // "מגש אחד"
+      continue;
+    }
+    if (trayOne && (w === 'אחד' || w === 'אחת')) { trays += 1; trayOne = false; continue; }
+    trayOne = false;
     if (IGN.includes(w)) continue;
     let base = w;
     const look = x => U[x] !== undefined ? [U[x], 'u'] : T[x] !== undefined ? [T[x], 't'] : H[x] !== undefined ? [H[x], 'h'] : (x === 'עשר' || x === 'עשרה') ? [10, acc !== null && kind === 'u' && acc < 10 && !inDec || inDec && decKind === 'u' && decAcc < 10 ? 'ten' : 'tenw'] : null;
@@ -2240,7 +2253,9 @@ function heNums(text) {
     word(val, vk);
   }
   flush();
-  return out.filter(v => isFinite(v) && v >= 0).map(v => Math.round(v * 1000) / 1000);
+  const res = out.filter(v => isFinite(v) && v >= 0).map(v => Math.round(v * 1000) / 1000);
+  res.trays = trays;
+  return res;
 }
 
 // voice: the phone hears the weight and writes it in the box; nothing is saved until "הוסף" is pressed
@@ -2250,6 +2265,14 @@ function micSay(html, ms) {
   if (!el) { el = document.createElement('div'); el.id = 'micBubble'; el.setAttribute('role', 'status'); el.onclick = () => { el.hidden = true; }; document.body.appendChild(el); }
   el.innerHTML = html; el.hidden = false;
   clearTimeout(micTimer); if (ms) micTimer = setTimeout(() => { el.hidden = true; }, ms);
+}
+// "10 מגשים": fills the tray count (the tray weight is the one picked: 0.026 / 0.012)
+function micTrays(inputId, n) {
+  const row = document.getElementById('trayRow');
+  if (inputId !== 'weightInput' || !row || row.hidden) return ` · <small>מגשים מורידים רק בהכנות ובסגירה</small>`;
+  const c = document.getElementById('trayCount'); c.value = String(n); c.dispatchEvent(new Event('input', { bubbles: true }));
+  if (!(trayW > 0)) return ` · ${n} מגשים<small>⚠ בחרו משקל מגש (0.026 או 0.012) כדי להוריד אותם</small>`;
+  return ` · מורידים ${n} מגשים (${f2(n * trayW)} ק״ג)`;
 }
 function micStart(inputId, btn) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2271,7 +2294,8 @@ function micStart(inputId, btn) {
     if (last.isFinal) alts = [...last].map(a => a.transcript);
     const live = heNums(heard);
     if (live.length) { inp.value = live.map(n => String(n)).join(' '); inp.dispatchEvent(new Event('input', { bubbles: true })); }
-    micSay(`🎤 ${live.length ? `<b>${esc(live.join(' '))}</b> ק״ג` : ''}<small>${esc(heard)} · ממשיך להקשיב…</small>`);
+    if (live.trays) micTrays(inputId, live.trays);
+    micSay(`🎤 ${live.length ? `<b>${esc(live.join(' '))}</b> ק״ג` : ''}${live.trays ? ` · ${live.trays} מגשים` : ''}<small>${esc(heard)} · ממשיך להקשיב…</small>`);
     wait(2000);
   };
   r.onerror = e => { err = e.error; };
@@ -2283,10 +2307,11 @@ function micStart(inputId, btn) {
     let nums = heNums(heard); // everything that was said
     if (!nums.length) for (const t of alts) { nums = heNums(t); if (nums.length) { heard = t; break; } }
     if (!nums.length) { inp.value = before; micSay(`שמעתי: "${esc(heard)}"<small>לא מצאתי בזה מספר. נסו שוב או הקלידו.</small>`, 6000); return; }
+    const trayMsg = nums.trays ? micTrays(inputId, nums.trays) : '';
     inp.value = nums.map(n => String(n)).join(' ');
     inp.dispatchEvent(new Event('input', { bubbles: true })); // the tray count and its note follow, as when typing
     inp.classList.remove('mic-flash'); void inp.offsetWidth; inp.classList.add('mic-flash');
-    micSay(`<b>${esc(inp.value)}</b> ק״ג<small>שמעתי: "${esc(heard)}" · בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 7000);
+    micSay(`<b>${esc(inp.value)}</b> ק״ג${trayMsg}<small>שמעתי: "${esc(heard)}" · בדקו ולחצו ${inputId === 'calcInput' ? '"הוסף לסכום"' : '"הוסף"'}</small>`, 8000);
   };
   try { r.start(); } catch (e) { btn.classList.remove('on'); micRec = null; micSay('לא הצלחתי להפעיל את המיקרופון. נסו שוב.', 4000); }
 }
