@@ -608,6 +608,30 @@ button.btn.danger { background: #fff !important; color: #c62828; border: 1px sol
 #invFinishNote { text-align: center; margin: 6px 0 10px; font-size: 13px; }
 .br-inv { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
 .br-inv b { color: #1b6b34; } .br-inv .no { color: var(--pri); font-weight: 700; }
+.bl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 16px 4px 8px; }
+.bl-head h3 { margin: 0; font-size: 18px; }
+.bl-head small { color: var(--muted); font-size: 12.5px; }
+.bl-filter { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+.bl-filter button { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.bl-filter button b { font-weight: 800; }
+.bl-filter button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.bl-list { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 14px; }
+.bl-item + .bl-item { border-top: 1px solid var(--line); }
+.bl-row { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; border-inline-start: 6px solid #cbbfb3; padding: 12px 12px; text-align: right; font: inherit; color: inherit; cursor: pointer; }
+.st-bad .bl-row { border-inline-start-color: #c62828; } .st-warn .bl-row { border-inline-start-color: #e8a317; } .st-ok .bl-row { border-inline-start-color: #2e9d5b; }
+.bl-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.bl-main b { font-size: 16.5px; overflow-wrap: anywhere; }
+.bl-main small { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-bad .bl-main small { color: #b3261e; font-weight: 600; } .st-warn .bl-main small { color: #7a5a00; font-weight: 600; } .st-ok .bl-main small { color: #1b6b34; }
+.bl-side { text-align: left; font-weight: 800; font-size: 14.5px; white-space: nowrap; direction: ltr; }
+.bl-side small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; direction: rtl; }
+.bl-car { color: var(--muted); font-size: 14px; transition: transform .2s; }
+.bl-item.open .bl-car { transform: rotate(180deg); }
+.bl-item.open .bl-row { background: #fcf7f4; }
+.bl-det { display: none; border-top: 1px dashed var(--line); background: #fdfbf9; }
+.bl-item.open .bl-det { display: block; }
+.bl-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px 12px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+.bl-go { border: 0; background: var(--pri); color: #fff; border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 #okToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 h1 { position: relative; }
 /* area-manager bar sits in the burgundy band like the branch line */
@@ -2598,17 +2622,63 @@ function renderMgr() {
   const money = hasPr ? `<div class="mgr-money"><span>💰 פחת בכל הסניפים שלך</span><span>השבוע <b>${nis(all.reduce((s, x) => s + x.nisW, 0))}</b></span><span>החודש <b>${nis(all.reduce((s, x) => s + x.nisM, 0))}</b></span></div>`
     : mgr.canEdit !== false ? '<div class="mgr-money none">💰 כדי לראות את הפחת בשקלים, ממלאים מחיר לק״ג במסך "פחת ושקילות" (💰 מחיר לק״ג), או בלשונית "הגדרות" בגיליון (שורות 10–12, 16).</div>' : '';
   document.getElementById('mgrAlerts').innerHTML = money + kabatCfgHtml() + kabatHtml(kabat, pname) + alertsHtml(alerts, pname);
-  // one card per branch: this week and this month for the three products
-  document.getElementById('mgrList').innerHTML = all.map(({ b, segs }, i) => {
-    const cell = (k, inP) => { const a = aggregate(segs[k].filter(inP)); if (!a.n) return '<span class="pill none">אין נתונים</span>'; const j = judgeIn(b, a); return `<span class="pill ${j.cls}">${j.text}</span>`; };
+  // one short row per branch, the worst first; a tap opens its week/month table
+  const rank = { bad: 3, warn: 2, neg: 1, ok: 0, none: -1 };
+  const rows = all.map(({ b, segs }, i) => {
+    const cells = {}; let worst = null, issues = 0;
+    PK.forEach(k => [['w', inWeek], ['m', inMonth]].forEach(([p, inP]) => {
+      const a = aggregate(segs[k].filter(inP));
+      if (!a.n) return;
+      const j = judgeIn(b, a); cells[k + p] = j;
+      if (j.cls === 'bad' || j.cls === 'warn') issues++;
+      if (!worst || rank[j.cls] > rank[worst.j.cls] || (j.cls === worst.j.cls && p === 'w' && worst.p === 'm')) worst = { j, k, p };
+    }));
+    const st = !worst ? 'none' : worst.j.cls === 'bad' || worst.j.cls === 'warn' ? worst.j.cls : 'ok';
+    return { b, segs, i, cells, worst, st, issues, nisM: all[i].nisM, nisW: all[i].nisW };
+  });
+  const order = { bad: 0, warn: 1, ok: 2, none: 3 };
+  const miss = r => r.worst && r.worst.j.gap != null ? r.worst.j.gap - r.worst.j.exp : 0; // kg missing beyond the allowed loss
+  rows.sort((x, y) => order[x.st] - order[y.st] || (x.st === 'ok' ? 0 : miss(y) - miss(x)) || y.nisM - x.nisM || x.b.name.localeCompare(y.b.name, 'he'));
+  const cnt = { all: rows.length, bad: 0, warn: 0, ok: 0, none: 0 }; rows.forEach(r => cnt[r.st]++);
+  if (mgrFilter !== 'all' && !cnt[mgrFilter]) mgrFilter = 'all';
+  const per = { w: 'השבוע', m: 'החודש' };
+  const rowHtml = r => {
+    const { b, segs, i, cells, worst, st } = r;
+    const sum = st === 'none' ? 'אין נתונים בשבוע ובחודש האחרונים'
+      : st === 'ok' ? '✓ הכול תקין'
+      : `${pname[worst.k]} · ${worst.j.text} ${per[worst.p]}${r.issues > 1 ? ` · ועוד ${r.issues - 1}` : ''}`;
+    const cell = (k, p) => { const j = cells[k + p]; return j ? `<span class="pill ${j.cls}">${j.text}</span>` : '<span class="pill none">אין נתונים</span>'; };
     const end = PK.map(k => lastEnd(segs[k], inWeek)).filter(Boolean).sort().pop();
-    return `<div class="br-card" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">
-      <div class="br-card-head"><b>${esc(b.name)}</b><span>${b.manager ? 'מנהל מחלקה: ' + esc(b.manager) + ' · ' : ''}פתח ←</span></div>
-      <div class="br-grid"><span></span><span class="h">שבוע ${lastWeek ? weekLabel(lastWeek) : ''}</span><span class="h">חודש ${lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''}</span>
-      ${PK.map(k => `<span>${pname[k]}</span>${cell(k, inWeek)}${cell(k, inMonth)}`).join('')}</div>${hasPr ? `<div class="br-money">💰 פחת: השבוע <b>${nis(all[i].nisW)}</b> · החודש <b>${nis(all[i].nisM)}</b></div>` : ''}${invLine(b)}</div>`;
-  }).join('') || '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
+    const open = mgrOpenBr === b.name;
+    return `<div class="bl-item st-${st}${open ? ' open' : ''}" data-br="${esc(b.name)}">
+      <button type="button" class="bl-row" onclick="mgrToggleBr(this)" aria-expanded="${open}">
+        <span class="bl-main"><b>${esc(b.name)}</b><small>${esc(sum)}</small></span>
+        ${hasPr ? `<span class="bl-side">${nis(r.nisM)}<small>פחת החודש</small></span>` : ''}
+        <span class="bl-car" aria-hidden="true">▾</span>
+      </button>
+      <div class="bl-det">
+        <div class="br-grid"><span></span><span class="h">שבוע ${lastWeek ? weekLabel(lastWeek) : ''}</span><span class="h">חודש ${lastMonth ? +lastMonth.slice(5) + '/' + lastMonth.slice(0, 4) : ''}</span>
+        ${PK.map(k => `<span>${pname[k]}</span>${cell(k, 'w')}${cell(k, 'm')}`).join('')}</div>
+        ${hasPr ? `<div class="br-money">💰 פחת: השבוע <b>${nis(r.nisW)}</b> · החודש <b>${nis(r.nisM)}</b></div>` : ''}${invLine(b)}
+        <div class="bl-foot">${b.manager ? `<span>מנהל מחלקה: ${esc(b.manager)}</span>` : '<span></span>'}<button type="button" class="bl-go" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">לכל הפרטים ←</button></div>
+      </div></div>`;
+  };
+  const chip = (f, label) => (f === 'all' || cnt[f]) ? `<button type="button" class="${mgrFilter === f ? 'on' : ''}" onclick="mgrFilter='${f}';renderMgr()">${label} <b>${cnt[f]}</b></button>` : '';
+  const shown = rows.filter(r => mgrFilter === 'all' || r.st === mgrFilter);
+  document.getElementById('mgrList').innerHTML = rows.length
+    ? `<div class="bl-head"><h3>הסניפים שלך</h3><small>הכי חמור למעלה · לחיצה פותחת</small></div>
+      <div class="bl-filter">${chip('all', 'הכול')}${chip('bad', '🔴 חשד')}${chip('warn', '🟡 לבדוק')}${chip('ok', '✓ תקין')}${chip('none', 'אין נתונים')}</div>
+      <div class="bl-list">${shown.map(rowHtml).join('')}</div>`
+    : '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
   // judging every branch left the last one's loss % in force: back to the branch that is open
   const ob = mgr.branches.find(x => x.name === mgrBranch); if (ob) useSettings(ob.settings || mgr.settings);
+}
+let mgrFilter = 'all', mgrOpenBr = '';
+function mgrToggleBr(btn) {
+  const item = btn.closest('.bl-item'), name = item.dataset.br, open = !item.classList.contains('open');
+  document.querySelectorAll('#mgrList .bl-item.open').forEach(x => { x.classList.remove('open'); x.querySelector('.bl-row').setAttribute('aria-expanded', 'false'); });
+  if (open) { item.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+  mgrOpenBr = open ? name : '';
 }
 // ---------- suspicion alerts: one row per branch, one chip per product (its worst week/month), the worst branches first ----------
 let alertsAll = false;
