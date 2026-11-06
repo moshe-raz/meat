@@ -345,6 +345,7 @@
 .hero-st.warn { background: linear-gradient(135deg, #9a6400, #7a4f00); box-shadow: 0 4px 14px rgba(122,79,0,.25); }
 .hero-st .hs-note { margin-top: 8px; font-size: 13px; background: rgba(0,0,0,.18); border-radius: 10px; padding: 5px 9px; }
 .hero-st.none .hs-note { background: #fff3cd; color: #6d4c00; }
+.hero-st .hs-how { margin-top: 8px; font-size: 13px; color: var(--muted); background: #faf7f3; border-radius: 10px; padding: 6px 9px; } .hero-st .hs-how b { color: var(--ink); }
 .hero-st.bad { background: linear-gradient(135deg, #c62828, #8e1b1b); box-shadow: 0 4px 14px rgba(142,27,27,.25); }
 .hero-st.neg { background: linear-gradient(135deg, #2f6fc0, #1e4fa8); }
 .hero-st.none { background: #fff; color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); }
@@ -1581,7 +1582,8 @@ function updateAnalysis(days) {
       html += row(label + `<small>${a.n === 1 ? 'יום אחד' : a.n + ' ימים'}</small>`, j.cls, j.text, j.nums + (note ? `<div class="an-note">${note}</div>` : '') + outNote(a));
     });
     if (k === 'shoulder') html += '<div style="font-size:12px;color:#666">נמכר כולל איירון סטייק · פחת מותר: ' + BOX_KG_SH + ' ק״ג לכל ' + BOX_W_SH + ' ק״ג (כולל הניקוי לאיירון)</div>';
-    document.getElementById(k + '-analysis').innerHTML = statusHero(k, res, sel) + `<details class="an-more"${anOpen ? ' open' : ''} ontoggle="anOpen=this.open"><summary>פירוט מלא</summary><div class="an-rows">${html}</div></details>`;
+    const anyCalc = ['day', 'week', 'month'].some(p => res[p] && res[p].cls !== 'none'); // nothing computed yet: the card alone explains, no empty detail rows
+    document.getElementById(k + '-analysis').innerHTML = statusHero(k, res, sel) + (anyCalc ? `<details class="an-more"${anOpen ? ' open' : ''} ontoggle="anOpen=this.open"><summary>פירוט מלא</summary><div class="an-rows">${html}</div></details>` : '');
     // the worst status of day / week / month shows as a dot on the product switcher
     const rank = { none: 0, ok: 1, neg: 2, warn: 3, bad: 4 };
     prodStatus[k] = (html.match(/pill (\w+)/g) || []).map(x => x.slice(5)).reduce((w, c) => (rank[c] || 0) > (rank[w] || 0) ? c : w, 'none');
@@ -1608,7 +1610,7 @@ function statusHero(k, res, sel) {
   let hero;
   if (!pick) {
     const why = (res.week && res.week.why) || (res.day && res.day.why) || 'צריך לפחות שתי סגירות';
-    hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">${word.none}</div><div class="hs-sub">${esc(why)}</div></div>`;
+    hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">${word.none}</div><div class="hs-sub">${esc(why)}</div><div class="hs-how">החישוב מתחיל אחרי <b>שתי סגירות</b> (בוקר אחרי בוקר) <b>ונמכר</b> של היום שביניהן</div></div>`;
   } else {
     const r = res[pick], gap = Math.max(0, r.gap || 0), exp = r.exp || 0;
     const sub = r.cls === 'neg' ? (r.went < 0 ? `הסגירה גדולה מהמלאי ב־${f2(-r.went)} ק״ג · חסרה סחורה או העברה?` : `נמכר ${f2(-r.gap)} ק״ג יותר ממה שיצא · כדאי לבדוק את השקילות`)
