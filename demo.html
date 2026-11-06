@@ -2256,26 +2256,33 @@ function micStart(inputId, btn) {
   if (!SR) { micSay('בטלפון או בדפדפן הזה אין זיהוי קולי.<small>אפשר להקליד כרגיל. באנדרואיד זה עובד בכרום.</small>', 5000); return; }
   if (micRec) { try { micRec.stop(); } catch (e) {} return; }
   const r = new SR(); micRec = r;
-  r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 4; r.continuous = false;
-  let alts = [], heard = '', err = '';
+  r.lang = 'he-IL'; r.interimResults = true; r.maxAlternatives = 4; r.continuous = true;
+  let alts = [], heard = '', err = '', quiet = null;
+  const inp = document.getElementById(inputId), before = inp.value;
+  // keeps listening while talking; stops 2 seconds after the last word (or 7 seconds if nothing was said)
+  const wait = ms => { clearTimeout(quiet); quiet = setTimeout(() => { try { r.stop(); } catch (e) {} }, ms); };
+  const cap = setTimeout(() => { try { r.stop(); } catch (e) {} }, 20000);
   btn.classList.add('on');
-  micSay('🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש"</small>');
+  micSay('🎤 מקשיב… אמרו את המשקל<small>למשל: "שלושים ושתיים נקודה חמש" · לחיצה נוספת מסיימת</small>');
+  wait(7000);
   r.onresult = e => {
     heard = [...e.results].map(x => x[0].transcript).join(' ');
     const last = e.results[e.results.length - 1];
     if (last.isFinal) alts = [...last].map(a => a.transcript);
-    micSay('🎤 ' + esc(heard));
+    const live = heNums(heard);
+    if (live.length) { inp.value = live.map(n => String(n)).join(' '); inp.dispatchEvent(new Event('input', { bubbles: true })); }
+    micSay(`🎤 ${live.length ? `<b>${esc(live.join(' '))}</b> ק״ג` : ''}<small>${esc(heard)} · ממשיך להקשיב…</small>`);
+    wait(2000);
   };
   r.onerror = e => { err = e.error; };
   r.onend = () => {
-    btn.classList.remove('on'); micRec = null;
+    btn.classList.remove('on'); micRec = null; clearTimeout(quiet); clearTimeout(cap);
     if (err === 'not-allowed' || err === 'service-not-allowed') { micSay('צריך לאשר גישה למיקרופון<small>בהגדרות הדפדפן של האתר הזה</small>', 6000); return; }
     if (err === 'network') { micSay('אין אינטרנט<small>הזיהוי הקולי צריך חיבור. אפשר להקליד כרגיל.</small>', 6000); return; }
     if (!heard && !alts.length) { micSay('לא שמעתי כלום. נסו שוב, קרוב לטלפון.', 4000); return; }
-    let nums = [];
-    for (const t of (alts.length ? alts : [heard])) { nums = heNums(t); if (nums.length) { heard = t; break; } }
-    if (!nums.length) { micSay(`שמעתי: "${esc(heard)}"<small>לא מצאתי בזה מספר. נסו שוב או הקלידו.</small>`, 6000); return; }
-    const inp = document.getElementById(inputId);
+    let nums = heNums(heard); // everything that was said
+    if (!nums.length) for (const t of alts) { nums = heNums(t); if (nums.length) { heard = t; break; } }
+    if (!nums.length) { inp.value = before; micSay(`שמעתי: "${esc(heard)}"<small>לא מצאתי בזה מספר. נסו שוב או הקלידו.</small>`, 6000); return; }
     inp.value = nums.map(n => String(n)).join(' ');
     inp.dispatchEvent(new Event('input', { bubbles: true })); // the tray count and its note follow, as when typing
     inp.classList.remove('mic-flash'); void inp.offsetWidth; inp.classList.add('mic-flash');
