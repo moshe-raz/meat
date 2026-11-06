@@ -2367,16 +2367,26 @@ async function mgrLogin() {
   mgrStore(d);
   enterMgr(d);
 }
-function mgrStore(d) { // the manager's copy for opening offline; if the phone has no room it just isn't kept (nothing of his is lost)
-  d.at = Date.now();
-  try { localStorage.setItem('mgrCache', JSON.stringify(d)); }
-  catch (e) { try { localStorage.removeItem('mgrCache'); localStorage.setItem('mgrCache', JSON.stringify(d)); } catch (e2) { try { localStorage.removeItem('mgrCache'); } catch (e3) {} console.warn('manager copy not kept', e2); } }
+// the manager's copy is kept in IndexedDB: room for many MB (localStorage has ~5MB, and iPhones run out sooner)
+const kvDb = {
+  open() { return this.p || (this.p = new Promise((res, rej) => { try { const r = indexedDB.open('meatApp', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } })); },
+  async run(mode, fn) { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('kv', mode), q = fn(t.objectStore('kv')); t.oncomplete = () => res(q && q.result); t.onerror = t.onabort = () => rej(t.error); }); },
+  get(k) { return this.run('readonly', s => s.get(k)); },
+  set(k, v) { return this.run('readwrite', s => s.put(v, k)); },
+  del(k) { return this.run('readwrite', s => s.delete(k)); }
+};
+function mgrSaveCopy(d) { // nothing of his is lost if it can't be kept: the next opening just waits for the sheet
+  const v = JSON.stringify(d);
+  kvDb.set('mgrCache', v).then(() => { try { localStorage.removeItem('mgrCache'); } catch (e) {} })
+    .catch(() => { try { localStorage.setItem('mgrCache', v); } catch (e) { try { localStorage.removeItem('mgrCache'); } catch (e2) {} } });
 }
-function startMgr() {
+function mgrStore(d) { d.at = Date.now(); mgrSaveCopy(d); }
+async function startMgr() {
   if (!mgrMode) return;
   let d = null;
-  try { d = JSON.parse(localStorage.getItem('mgrCache') || 'null'); } catch(e) {}
-  if (d) enterMgr(d);
+  try { d = JSON.parse((await kvDb.get('mgrCache')) || 'null'); } catch(e) {}
+  if (!d) try { d = JSON.parse(localStorage.getItem('mgrCache') || 'null'); } catch(e) {}
+  if (d && mgrMode) enterMgr(d);
   mgrRefresh();
 }
 async function mgrRefresh() {
@@ -2400,7 +2410,7 @@ async function mgrNoData(why) {
 async function mgrExit(silent) {
   if (!silent && !await ask({ title: 'לצאת ממצב מנהל אזור?', ok: 'יציאה', cancel: 'ביטול' })) return;
   try {
-    localStorage.removeItem('appMode'); localStorage.removeItem('mgrCache');
+    localStorage.removeItem('appMode'); localStorage.removeItem('mgrCache'); kvDb.del('mgrCache').catch(() => {});
     const info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); localStorage.setItem('mgrInfo', JSON.stringify({ url: info.url || '' }));
   } catch(e) {}
   location.reload();
@@ -2588,7 +2598,7 @@ async function kabatSet(n, status) {
       body: JSON.stringify({ mode: 'mgrAlert', mcode: info.code, id: c.id, status, branch: c.b.name, product: names[c.k], period: c.label, gap: c.gap, pct: c.pct }) });
     const d = JSON.parse(await res.text());
     if (!d.ok) throw new Error(d.error);
-    try { localStorage.setItem('mgrCache', JSON.stringify(mgr)); } catch (e) {}
+    mgrSaveCopy(mgr);
     showOk({ progress: '🟡 סומן בטיפול', done: '✓ סומן שטופל', ignore: 'ההתראה הוסתרה', open: 'ההתראה נפתחה מחדש' }[status]);
   } catch (e) {
     mgr.alerts = Object.assign({}, mgr.alerts); if (prev) mgr.alerts[c.id] = prev; else delete mgr.alerts[c.id];
