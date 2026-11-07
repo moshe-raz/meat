@@ -684,6 +684,18 @@ button.btn.danger { background: #fff !important; color: #c62828; border: 1px sol
 .bl-det { display: none; border-top: 1px dashed var(--line); background: #fdfbf9; }
 .bl-item.open .bl-det { display: block; }
 .bl-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px 12px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+.pause-bar { background: #eceff1; color: #37474f; border: 1px solid #cfd8dc; border-radius: 14px; padding: 12px 14px; margin: 0 0 14px; display: grid; gap: 8px; font-size: 14.5px; line-height: 1.45; }
+.pause-bar[hidden] { display: none; }
+.pause-bar b.pz-t { font-size: 16px; }
+.pause-bar.restart { background: #fff8e1; color: #5d4037; border-color: #ffe082; }
+.pause-btn { font: 700 15px inherit; font-family: inherit; border: 0; border-radius: 999px; padding: 11px 18px; cursor: pointer; background: #455a64; color: #fff; justify-self: start; }
+.pause-btn.go { background: #2e7d32; }
+.pause-box { margin-top: 12px; background: #f5f7f8; border: 1px solid #cfd8dc; border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; font-size: 13.5px; color: #455a64; }
+.pause-box[hidden] { display: none; }
+.st-paused .bl-row { border-inline-start-color: #90a4ae; background: #f6f7f8; }
+.st-paused .bl-main small { color: #546e7a; font-weight: 600; }
+.bl-pz { border: 1px solid #b0bec5; background: #fff; color: #37474f; border-radius: 999px; padding: 10px 14px; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.bl-pz.go { border-color: #81c784; color: #1b5e20; }
 .bl-go { border: 0; background: var(--pri); color: #fff; border-radius: 999px; padding: 11px 18px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 #okToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 h1 { position: relative; }
@@ -914,6 +926,7 @@ var demoLS = (function () {
 <div id="okToast" role="status"></div>
 <div id="syncStatus" style="text-align:center;font-size:13px;margin:-6px 0 10px" hidden></div>
 <div class="mgr-bar mgr-only"><span id="mgrText"></span><button type="button" class="link-btn" onclick="mgrRefresh()">רענון</button><button type="button" class="link-btn" onclick="mgrExit()">יציאה</button></div>
+<div id="pauseBar" class="pause-bar" hidden></div>
 <div id="mgrLogin" class="controls" hidden>
   <h3 style="margin-top:0">כניסה למנהל אזור</h3>
   <div style="font-size:14px;color:#555">את הכתובת ואת הקוד האישי שלך מקבלים מהחברה. רואים את כל הסניפים שלך, רק לצפייה.</div>
@@ -939,6 +952,7 @@ var demoLS = (function () {
   <label class="br-row">קוד חברה<input type="text" id="brKey" autocomplete="off" dir="ltr"></label>
   </details>
   </div>
+  <div id="brPause" class="pause-box" hidden></div>
   <div id="branchMsg" style="color:#c62828;font-size:13px;min-height:16px"></div>
   <button class="btn" id="branchSave" onclick="saveBranch()">שמור</button>
   <button class="btn" id="branchCancel" style="background:#6c757d" onclick="skipBranch()">ביטול</button>
@@ -954,7 +968,7 @@ var demoLS = (function () {
   <button id="btnSp" onclick="showPage(mgrMode ? 'mgrsp' : 'sp')">מיוחדים</button>
 </div>
 
-<div id="mgrBranchPick" class="mgr-pick mgr-only" hidden>סניף: <select id="mgrBranchSel" onchange="mgrOpen(this.value)"></select> <span id="mgrBranchMgr" style="font-size:13px;color:#555"></span></div>
+<div id="mgrBranchPick" class="mgr-pick mgr-only" hidden>סניף: <select id="mgrBranchSel" onchange="mgrOpen(this.value)"></select> <span id="mgrBranchMgr" style="font-size:13px;color:#555"></span> <button type="button" id="mgrPauseBtn" class="bl-pz" onclick="togglePause(mgrBranch)" hidden>⏸ השהיה</button></div>
 
 <!-- AREA MANAGER: all his branches -->
 <div id="page-mgr" class="page"><div id="mgrAlerts"></div><div id="mgrList"></div></div>
@@ -1216,13 +1230,28 @@ window.fetch = function(url, opt) {
       return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify({ ok: true })) });
     }
     if (body.mode === 'manager') {
-      const r = body.mcode === 'dani-4821' ? DEMO_MGR : { ok: false, error: 'bad manager code' };
+      const r = body.mcode === 'dani-4821' ? (demoPausesIn(), DEMO_MGR) : { ok: false, error: 'bad manager code' };
       return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(r)) });
     }
   } catch (e) {}
   if (opt && opt.method === 'POST') return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify({ ok: false, error: 'זו הדמיה · אין חיבור לגיליון' })) });
   return realFetch(url, opt);
 };
+// demo: Yavne is paused (renovation) since 19.10; pauses the user sets are kept in this browser
+(function () {
+  const y = DEMO_MGR.branches.find(b => b.name === 'יבנה');
+  if (y) { y.entries = y.entries.filter(e => e.date < '2026-10-19'); y.pauses = [{ from: '2026-10-19', to: '', by: 'רפי' }]; }
+})();
+function demoPausesIn() {
+  try { const sv = JSON.parse(demoLS.getItem('demoPauses') || 'null'); if (sv) DEMO_MGR.branches.forEach(b => { if (sv[b.name]) b.pauses = sv[b.name]; }); } catch (e) {}
+  const own = DEMO_MGR.branches.find(b => b.name === 'רמת גן'); if (own) own.pauses = JSON.parse(JSON.stringify(myPauses));
+}
+function demoPauseSaved(bname, list) {
+  const name = bname || 'רמת גן';
+  try { const sv = JSON.parse(demoLS.getItem('demoPauses') || '{}') || {}; sv[name] = list; demoLS.setItem('demoPauses', JSON.stringify(sv)); } catch (e) {}
+  if (name === 'רמת גן') { myPauses = JSON.parse(JSON.stringify(list)); try { demoLS.setItem('pauses', JSON.stringify(myPauses)); } catch (e) {} }
+  const b = DEMO_MGR.branches.find(x => x.name === name); if (b) b.pauses = JSON.parse(JSON.stringify(list));
+}
 function demoMgr() {
   if (mgrMode) { window.scrollTo(0, 0); return; }
   openMgrLogin();
@@ -1230,7 +1259,7 @@ function demoMgr() {
   document.getElementById('mgCode').value = 'dani-4821';
   mgrLogin();
 }
-function resetDemo() { try { const ls = window['local' + 'Storage']; Object.keys(ls).filter(k => k.indexOf('demo:') === 0).forEach(k => ls.removeItem(k)); } catch (e) {} loadDemo(); try { demoLS.removeItem('appMode'); demoLS.removeItem('mgrCache'); indexedDB.deleteDatabase('meatAppDemo'); } catch (e) {} setTimeout(() => location.reload(), 200); }
+function resetDemo() { try { const ls = window['local' + 'Storage']; Object.keys(ls).filter(k => k.indexOf('demo:') === 0).forEach(k => ls.removeItem(k)); } catch (e) {} loadDemo(); try { demoLS.removeItem('appMode'); demoLS.removeItem('mgrCache'); demoLS.removeItem('demoPauses'); demoLS.removeItem('pauses'); indexedDB.deleteDatabase('meatAppDemo'); } catch (e) {} setTimeout(() => location.reload(), 200); }
 try { if (demoLS.getItem('demoLoaded') !== '10') loadDemo(); } catch (e) {}
 </script>
 <script>
@@ -1572,15 +1601,82 @@ function segmentsFor(dd, k) {
   const segs = [];
   for (let i = 1; i < closes.length; i++) {
     const c0 = closes[i-1], c1 = closes[i];
+    if (segCut(c0, c1)) continue;
     const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0, pending: !dd[c1].hasSold };
     s.xfer = 0; s.conv = 0; s.waste = 0; s.boxes = 0; s.boxless = 0;
     dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; s.conv += dd[d].conv; s.waste += dd[d].waste; s.boxes += dd[d].boxes || 0; s.boxless += dd[d].boxless || 0; } });
     s.stock = s.open + s.recv + s.xfer - s.conv - s.waste; // converted or destroyed meat left the stock with a known reason
     s.went = s.stock - s.close;
-    s.missing = workdaysBetween(c0, c1);
+    s.missing = workdaysBetween(c0, c1).filter(d => !inPause(d));
     segs.push(s);
   }
   return segs;
+}
+
+// ---------- pause: a branch that isn't weighing for a while (renovation, a closed period) ----------
+// A list of { from, to, by }: to is '' while still paused. Days in a pause aren't judged and aren't "missing a close";
+// a stretch that crosses the start of a pause isn't judged either, so after "המשך" the first close is a fresh start.
+let myPauses = [];
+try { myPauses = JSON.parse(demoLS.getItem('pauses') || '[]') || []; } catch (e) {}
+let segPauses = null; // while judging another branch (area manager)
+function pausesNow() {
+  if (segPauses) return segPauses;
+  if (mgrMode && mgrBranch && mgr) { const b = mgr.branches.find(x => x.name === mgrBranch); return (b && b.pauses) || []; }
+  return myPauses;
+}
+function activePause(list) { return (list || pausesNow()).find(p => !p.to) || null; }
+function inPause(d, list) { return (list || pausesNow()).some(p => d >= p.from && (!p.to || d < p.to)); }
+// the stretch between two closes can't be judged: it crosses the start of a pause, or ends inside one
+function segCut(c0, c1, list) { return (list || pausesNow()).some(p => p.from <= c1 && (c0 < p.from || !p.to || c1 < p.to)); }
+function canPause() { return mgrMode ? !!mgr && mgr.canEdit !== false : isDeptManager(); }
+function pauseList(bname) {
+  if (!bname) return myPauses;
+  const b = mgr.branches.find(x => x.name === bname); if (!b.pauses) b.pauses = []; return b.pauses;
+}
+async function togglePause(bname) {
+  const list = pauseList(bname), cur = activePause(list), today = ymd(new Date());
+  const who = mgrMode ? (mgr.name || 'מנהל אזור') : worker, where = bname ? 'את סניף ' + bname : 'את הסניף';
+  if (!cur) {
+    if (!await ask({ title: `להשהות ${where}?`, html: 'בזמן ההשהיה לא בודקים פחת, אין "חסרה סגירה" ואין התראות.<br>כשחוזרים לעבוד לוחצים <b>המשך</b> ושוקלים סגירה של כל המוצרים.', ok: '⏸ להשהות', cancel: 'ביטול', icon: 'warn' })) return;
+    list.push({ from: today, to: '', by: who });
+  } else {
+    if (!await ask({ title: `להמשיך ${where}?`, html: 'הדבר הראשון אחרי ההמשך: <b>לשקול סגירה של כל המוצרים</b>.<br>הסגירה הזו היא נקודת ההתחלה החדשה, והפחת יחושב ממנה.', ok: '▶ להמשיך', cancel: 'ביטול' })) return;
+    if (cur.from === today) list.splice(list.indexOf(cur), 1); // paused and resumed the same day: as if it never happened
+    else { cur.to = today; cur.toBy = who; }
+  }
+  if (bname) { try { mgrSaveCopy(mgr); } catch (e) {} } else { try { demoLS.setItem('pauses', JSON.stringify(myPauses)); } catch (e) {} }
+  if (typeof demoPauseSaved === 'function') demoPauseSaved(bname, list);
+  if (mgrMode) renderMgr();
+  updateDisplay(); renderPause(); try { renderWorker(); } catch (e) {}
+  showOk(cur ? '▶ הסניף חזר לעבוד' : '⏸ הסניף מושהה');
+}
+// the grey bar on top while paused, and a reminder after "המשך" until every product has its fresh close
+function renderPause() {
+  const bar = document.getElementById('pauseBar'), box = document.getElementById('brPause');
+  const list = pausesNow(), cur = activePause(list), can = canPause();
+  const bname = mgrMode ? mgrBranch : '';
+  const btn = (go) => can ? `<button type="button" class="pause-btn${go ? ' go' : ''}" onclick="togglePause(${bname ? 'mgrBranch' : ''})">${go ? '▶ המשך' : '⏸ השהיית הסניף'}</button>` : '';
+  if (cur) {
+    bar.className = 'pause-bar';
+    bar.innerHTML = `<b class="pz-t">⏸ הסניף מושהה מ־${dm(cur.from)}</b><span>לא בודקים פחת ואין התראות${cur.by ? ` · הושהה ע״י ${esc(cur.by)}` : ''}</span>${can ? btn(true) : '<span>כשחוזרים לעבוד, מנהל המחלקה לוחץ "המשך"</span>'}`;
+    bar.hidden = false;
+  } else {
+    // just resumed: which products still need the first close
+    const last = list.filter(p => p.to).sort((a, b) => a.to < b.to ? -1 : 1).pop();
+    const need = last ? PK.filter(k => !history.some(h => h.meat === names[k] && h.type === 'סגירה' && h.date >= last.from)) : [];
+    if (last && need.length) {
+      bar.className = 'pause-bar restart';
+      bar.innerHTML = `<b class="pz-t">▶ הסניף חזר לעבוד ב־${dm(last.to)}</b><span>שוקלים סגירה, היא נקודת ההתחלה החדשה. חסרה עדיין סגירה ל: <b>${need.map(k => names[k]).join(', ')}</b></span>`;
+      bar.hidden = false;
+    } else bar.hidden = true;
+  }
+  const mb = document.getElementById('mgrPauseBtn');
+  if (mb) { mb.hidden = !mgrMode || !mgrBranch || !can || !!cur; }
+  if (box) {
+    box.hidden = mgrMode || !isDeptManager();
+    if (!box.hidden) box.innerHTML = cur ? `<span>⏸ הסניף מושהה מ־${dm(cur.from)}</span>${btn(true)}`
+      : `<span>סניף בשיפוץ או לא שוקלים תקופה? השהיה עוצרת את הבדיקות וההתראות עד שלוחצים "המשך".</span>${btn(false)}`;
+  }
 }
 
 function stockFor(dd, date) {
@@ -1591,6 +1687,7 @@ function stockFor(dd, date) {
 }
 
 function updateDisplay() {
+  try { renderPause(); } catch (e) {}
   const sel = document.getElementById('dateInput').value;
   if (!sel) return;
   const days = buildDays();
@@ -1800,17 +1897,24 @@ function updateAnalysis(days) {
       const j = judge(seg); keep('day', j, null, seg);
       const span = (seg.missing.length ? `<div class="an-note">מחושב יחד מ־${dm(seg.start)} · חסרה סגירה: ${seg.missing.map(dm).join(', ')}</div>` : '') + outNote(seg);
       html += row('יום', j.cls, j.text, j.nums + span);
+    } else if (inPause(sel)) {
+      html += row('יום', 'none', 'מושהה', 'הסניף מושהה ביום הזה · לא בודקים'); keep('day', null, 'הסניף מושהה');
+    } else if (dd[sel] && dd[sel].hasClose && (() => { const p = Object.keys(dd).filter(d => d < sel && dd[d].hasClose).sort().pop(); return p && segCut(p, sel); })()) {
+      html += row('יום', 'none', 'התחלה חדשה', 'הסגירה הראשונה אחרי השהיה · החישוב מתחיל ממנה'); keep('day', null, 'התחלה חדשה אחרי השהיה · החישוב מתחיל מהסגירה הבאה');
     } else if (dd[sel] && dd[sel].hasClose) {
       html += row('יום', 'none', 'אין סגירה קודמת', 'צריך סגירה של יום עבודה קודם כדי לחשב'); keep('day', null, 'צריך סגירה של יום עבודה קודם');
     } else {
       const st = stockFor(dd, sel);
-      if (Object.keys(dd).some(d => d > sel && dd[d].hasClose)) { html += row('יום', 'none', 'חסרה סגירה', `לא נשקלה סגירה ליום הזה · מלאי ${f2(st.stock)} ק״ג`); keep('day', null, 'חסרה סגירה ליום הזה'); }
+      if (st.prev && segCut(st.prev, sel)) { html += row('יום', 'none', 'צריך סגירה', 'אחרי ההשהיה: שוקלים סגירה · היא נקודת ההתחלה החדשה'); keep('day', null, 'אחרי ההשהיה שוקלים סגירה חדשה'); }
+      else if (Object.keys(dd).some(d => d > sel && dd[d].hasClose)) { html += row('יום', 'none', 'חסרה סגירה', `לא נשקלה סגירה ליום הזה · מלאי ${f2(st.stock)} ק״ג`); keep('day', null, 'חסרה סגירה ליום הזה'); }
       else { html += row('יום', 'none', 'ממתין לסגירה', `מלאי ${f2(st.stock)} ק״ג<br>הסגירה נשקלת בבוקר שאחרי`); keep('day', null, 'ממתין לסגירה של מחר בבוקר'); }
     }
     // Week / month
     [['שבוע', s => s.end >= ws && s.end <= we], ['חודש', s => s.end.slice(0, 7) === mo]].forEach(([label, inP]) => {
       const a = aggregate(segs.filter(inP));
       const pk = label === 'שבוע' ? 'week' : 'month';
+      const pzP = label === 'שבוע' ? pausesNow().some(p => p.from <= we && (!p.to || p.to > ws)) : pausesNow().some(p => p.from.slice(0, 7) <= mo && (!p.to || p.to.slice(0, 7) >= mo));
+      if (!a.n && pzP && !a.waiting) { html += row(label, 'none', 'מושהה', 'הסניף היה מושהה'); keep(pk, null, 'הסניף מושהה'); return; }
       if (!a.n) { html += row(label, 'none', a.waiting ? 'ממתין לנמכר' : 'אין נתונים', a.waiting ? '' : 'צריך לפחות שתי סגירות'); keep(pk, null, a.waiting ? 'ממתין לנמכר' : 'צריך לפחות שתי סגירות'); return; }
       const j = judge(a); keep(pk, j, null, a);
       const note = (a.waiting ? 'יום אחרון ממתין לנמכר' : '') + (a.missing.length ? (a.waiting ? ' · ' : '') + missingText(a.missing).replace(/^ · /, '') : '');
@@ -1840,12 +1944,15 @@ function statusHero(k, res, sel) {
   const pick = ['week', 'month', 'day'].filter(p => res[p] && res[p].cls !== 'none').reduce((w, p) => !w || rk[res[p].cls] > rk[res[w].cls] ? p : w, null);
   const word = { ok: '✓ תקין', warn: '⚠ לבדוק', bad: '🚨 חשד לחוסר', neg: 'נמכר יותר ממה שיצא', none: 'אין עדיין חישוב' };
   const short = { ok: 'תקין', warn: 'לבדוק', bad: 'חשד', neg: 'בדוק', none: 'ממתין' };
-  const noneShort = r => !r || !r.why || /שתי סגירות/.test(r.why) ? 'אין נתונים' : /חסרה סגירה/.test(r.why) ? 'חסרה סגירה' : 'ממתין';
+  const noneShort = r => !r || !r.why || /שתי סגירות/.test(r.why) ? 'אין נתונים' : /חסרה סגירה/.test(r.why) ? 'חסרה סגירה' : /מושהה/.test(r.why) ? 'מושהה' : /השהיה/.test(r.why) ? 'התחלה חדשה' : 'ממתין';
   const name = names[k] || '';
   let hero;
   if (!pick) {
     const why = (res.week && res.week.why) || (res.day && res.day.why) || 'צריך לפחות שתי סגירות';
-    hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">${word.none}</div><div class="hs-sub">${esc(why)}</div><div class="hs-how">החישוב מתחיל אחרי <b>שתי סגירות</b> (בוקר אחרי בוקר) <b>ונמכר</b> של היום שביניהן</div></div>`;
+    const pzNow = activePause(), pzDay = /מושהה/.test((res.day && res.day.why) || '');
+    if (pzNow || pzDay) hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">⏸ מושהה</div><div class="hs-sub">${pzNow ? 'הסניף מושהה מ־' + dm(pzNow.from) : 'הסניף היה מושהה ביום הזה'}</div><div class="hs-how">בזמן השהיה לא בודקים פחת. אחרי <b>המשך</b> שוקלים סגירה, והחישוב מתחיל ממנה</div></div>`;
+    else if (/השהיה/.test((res.day && res.day.why) || '')) hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">התחלה חדשה</div><div class="hs-sub">${esc(res.day.why)}</div><div class="hs-how">החישוב מתחיל אחרי <b>שתי סגירות</b> מאז ההשהיה <b>ונמכר</b> של היום שביניהן</div></div>`;
+    else hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">${word.none}</div><div class="hs-sub">${esc(why)}</div><div class="hs-how">החישוב מתחיל אחרי <b>שתי סגירות</b> (בוקר אחרי בוקר) <b>ונמכר</b> של היום שביניהן</div></div>`;
   } else {
     const r = res[pick], gap = Math.max(0, r.gap || 0), exp = r.exp || 0;
     const sub = r.cls === 'neg' ? (r.went < 0 ? `הסגירה גדולה מהמלאי ב־${f2(-r.went)} ק״ג · חסרה סחורה או העברה?` : `נמכר ${f2(-r.gap)} ק״ג יותר ממה שיצא · כדאי לבדוק את השקילות`)
@@ -1890,7 +1997,7 @@ function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':
 function renderWorker() {
   const el = document.getElementById('workerLine');
   el.innerHTML = worker
-    ? `רושם: <b>${esc(worker)}</b> · <button type="button" class="link-btn" onclick="openBranch(false, true)">החלף</button>`
+    ? `רושם: <b>${esc(worker)}</b> · <button type="button" class="link-btn" onclick="openBranch(false, true)">החלף</button>${!mgrMode && isDeptManager() && !activePause() ? ' · <button type="button" class="link-btn" onclick="togglePause()">⏸ השהיית הסניף</button>' : ''}`
     : `<button type="button" class="link-btn" onclick="openBranch(false, true)">הוסף את השם שלך</button> כדי שיראו מי רשם`;
 }
 
@@ -2673,6 +2780,7 @@ function renderBranch() {
 }
 let returnPage = 'weigh';
 function openBranch(first, focusWorker) {
+  setTimeout(() => { try { renderPause(); } catch (e) {} }, 0);
   const cur = document.querySelector('.page.active'); returnPage = cur && cur.id !== 'page-mgr' ? cur.id.replace('page-', '') : 'weigh';
   document.getElementById('brName').value = branch.name;
   document.getElementById('brManager').value = branch.manager;
@@ -3005,7 +3113,8 @@ function enterMgr(d) {
 function mgrSegs(b) {
   const saved = history; history = b.entries;
   const days = buildDays(); history = saved;
-  const out = {}; PK.forEach(k => out[k] = segmentsFor(days[k], k));
+  const out = {}; segPauses = b.pauses || [];
+  try { PK.forEach(k => out[k] = segmentsFor(days[k], k)); } finally { segPauses = null; }
   return out;
 }
 function weekStartOf(ds) { const d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() - d.getDay()); return ymd(d); }
@@ -3070,17 +3179,19 @@ function renderMgr() {
     }));
     let st = !worst ? 'none' : worst.j.cls === 'bad' ? 'bad' : worst.j.cls === 'warn' || worst.j.cls === 'neg' ? 'warn' : 'ok';
     if (st === 'ok' && !weekData) st = 'none'; // fine last month, but nothing weighed in the latest week
-    return { b, segs, i, cells, worst, st, issues, extra, weekData, nisM: all[i].nisM, nisW: all[i].nisW };
+    const pz = activePause(b.pauses || []);
+    if (pz) st = 'paused'; // paused: grey, at the bottom, no "nothing weighed"
+    return { b, segs, i, cells, worst, st, issues, extra, weekData, pz, nisM: all[i].nisM, nisW: all[i].nisW };
   });
-  const order = { bad: 0, warn: 1, ok: 2, none: 3 };
+  const order = { bad: 0, warn: 1, ok: 2, none: 3, paused: 4 };
   const miss = r => r.worst && r.worst.j.gap != null ? r.worst.j.gap - r.worst.j.exp : 0;
   rows.sort((x, y) => order[x.st] - order[y.st] || (x.st === 'ok' ? 0 : miss(y) - miss(x)) || y.nisM - x.nisM || x.b.name.localeCompare(y.b.name, 'he'));
-  const cnt = { all: rows.length, bad: 0, warn: 0, ok: 0, none: 0 }; rows.forEach(r => cnt[r.st]++);
+  const cnt = { all: rows.length, bad: 0, warn: 0, ok: 0, none: 0, paused: 0 }; rows.forEach(r => cnt[r.st]++);
   if (mgrFilter !== 'all' && !cnt[mgrFilter]) mgrFilter = 'all';
   const per = { w: 'השבוע', m: 'החודש', pw: 'בשבוע שעבר', pm: 'בחודש הקודם' };
   const rowHtml = r => {
     const { b, segs, i, cells, worst, st } = r;
-    const sum = st === 'none' ? (worst ? 'אין שקילות בשבוע האחרון' : 'אין נתונים בשבוע ובחודש האחרונים')
+    const sum = st === 'paused' ? `⏸ מושהה מ־${dm(r.pz.from)}${r.pz.by ? ' · ' + r.pz.by : ''}` : st === 'none' ? (worst ? 'אין שקילות בשבוע האחרון' : 'אין נתונים בשבוע ובחודש האחרונים')
       : st === 'ok' ? '✓ הכול תקין'
       : `${pname[worst.k]} · ${worst.j.text} ${per[worst.p]}${r.issues > 1 ? ` · ועוד ${r.issues - 1}` : ''}`;
     const cell = (k, p) => { const j = cells[k + p]; return j ? `<span class="pill ${j.cls}">${j.text}</span>` : '<span class="pill none">אין נתונים</span>'; };
@@ -3097,14 +3208,14 @@ function renderMgr() {
         ${PK.map(k => `<span>${pname[k]}</span>${cell(k, 'w')}${cell(k, 'm')}`).join('')}</div>
         ${r.extra.length ? `<div class="bl-extra">${r.extra.map(x => `${esc(per[x.p])}: ${pname[x.k]} <span class="pill ${x.j.cls}">${x.j.text}</span>`).join('<br>')}</div>` : ''}
         ${hasPr ? `<div class="br-money">💰 פחת: השבוע <b>${nis(r.nisW)}</b> · החודש <b>${nis(r.nisM)}</b></div>` : ''}${invLine(b)}
-        <div class="bl-foot">${b.manager ? `<span>מנהל מחלקה: ${esc(b.manager)}</span>` : '<span></span>'}<button type="button" class="bl-go" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">לכל הפרטים ←</button></div>
+        <div class="bl-foot">${b.manager ? `<span>מנהל מחלקה: ${esc(b.manager)}</span>` : '<span></span>'}<span style="display:flex;gap:6px;flex-wrap:wrap">${mgr.canEdit !== false ? `<button type="button" class="bl-pz${r.pz ? ' go' : ''}" onclick="togglePause(mgr.branches[${i}].name)">${r.pz ? '▶ המשך' : '⏸ השהיה'}</button>` : ''}<button type="button" class="bl-go" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">לכל הפרטים ←</button></span></div>
       </div></div>`;
   };
   const chip = (f, label) => (f === 'all' || cnt[f]) ? `<button type="button" class="${mgrFilter === f ? 'on' : ''}" onclick="mgrFilter='${f}';renderMgr()">${label} <b>${cnt[f]}</b></button>` : '';
   const shown = rows.filter(r => mgrFilter === 'all' || r.st === mgrFilter);
   document.getElementById('mgrList').innerHTML = rows.length
     ? `<div class="bl-head"><h3>הסניפים שלך</h3><small>הכי חמור למעלה · לחיצה פותחת</small></div>
-      <div class="bl-filter"${rows.length < 4 ? ' hidden' : ''}>${chip('all', 'הכול')}${chip('bad', '🔴 חשד')}${chip('warn', '🟡 לבדוק')}${chip('ok', '✓ תקין')}${chip('none', 'אין נתונים')}</div>
+      <div class="bl-filter"${rows.length < 4 ? ' hidden' : ''}>${chip('all', 'הכול')}${chip('bad', '🔴 חשד')}${chip('warn', '🟡 לבדוק')}${chip('ok', '✓ תקין')}${chip('none', 'אין נתונים')}${chip('paused', '⏸ מושהה')}</div>
       <div class="bl-list">${shown.map(rowHtml).join('')}</div>`
     : '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
   // judging every branch left the last one's loss % in force: back to the branch that is open
