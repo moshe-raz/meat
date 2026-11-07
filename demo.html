@@ -1223,6 +1223,11 @@ window.fetch = function(url, opt) {
   if (opt && opt.method === 'POST') return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify({ ok: false, error: 'זו הדמיה · אין חיבור לגיליון' })) });
   return realFetch(url, opt);
 };
+// demo: Yavne was closed for renovation 6.10–15.10 (no weighing), then weighed again on 16.10
+(function () {
+  const y = DEMO_MGR.branches.find(b => b.name === 'יבנה');
+  if (y) y.entries = y.entries.filter(e => e.date < '2026-10-06' || e.date > '2026-10-15');
+})();
 function demoMgr() {
   if (mgrMode) { window.scrollTo(0, 0); return; }
   openMgrLogin();
@@ -1565,6 +1570,10 @@ function workdaysBetween(a, b) { // exclusive, skips Saturday
   return out;
 }
 
+// Two closes more than this many days apart are not compared (renovation, a closed period, a long break):
+// the gap would show as a huge false loss. The new close is simply a fresh start.
+const MAX_GAP_DAYS = 7;
+function daysApart(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5); }
 // One segment per pair of consecutive closes; days without a close are folded into the next one
 function segmentsFor(dd, k) {
   const dates = Object.keys(dd).sort();
@@ -1572,6 +1581,7 @@ function segmentsFor(dd, k) {
   const segs = [];
   for (let i = 1; i < closes.length; i++) {
     const c0 = closes[i-1], c1 = closes[i];
+    if (daysApart(c0, c1) > MAX_GAP_DAYS) continue; // a long break: c1 starts over
     const s = { k, start:c0, end:c1, open:dd[c0].close, close:dd[c1].close, recv:0, sold:0, iron:0, prep:0, pending: !dd[c1].hasSold };
     s.xfer = 0; s.conv = 0; s.waste = 0; s.boxes = 0; s.boxless = 0;
     dates.forEach(d => { if (d > c0 && d <= c1) { s.recv += dd[d].recv; s.sold += dd[d].sold; s.iron += dd[d].iron; s.prep += dd[d].prep; s.xfer += dd[d].xfer; s.conv += dd[d].conv; s.waste += dd[d].waste; s.boxes += dd[d].boxes || 0; s.boxless += dd[d].boxless || 0; } });
@@ -1800,11 +1810,16 @@ function updateAnalysis(days) {
       const j = judge(seg); keep('day', j, null, seg);
       const span = (seg.missing.length ? `<div class="an-note">מחושב יחד מ־${dm(seg.start)} · חסרה סגירה: ${seg.missing.map(dm).join(', ')}</div>` : '') + outNote(seg);
       html += row('יום', j.cls, j.text, j.nums + span);
+    } else if (dd[sel] && dd[sel].hasClose && (() => { const p = Object.keys(dd).filter(d => d < sel && dd[d].hasClose).sort().pop(); return p && daysApart(p, sel) > MAX_GAP_DAYS; })()) {
+      const p = Object.keys(dd).filter(d => d < sel && dd[d].hasClose).sort().pop(), n = daysApart(p, sel);
+      html += row('יום', 'none', 'התחלה חדשה', `הסגירה הקודמת הייתה לפני ${n} ימים (${dm(p)}) · לא מחשבים את הפער, ומכאן מתחילים מחדש`);
+      keep('day', null, `התחלה חדשה · הסגירה הקודמת לפני ${n} ימים`);
     } else if (dd[sel] && dd[sel].hasClose) {
       html += row('יום', 'none', 'אין סגירה קודמת', 'צריך סגירה של יום עבודה קודם כדי לחשב'); keep('day', null, 'צריך סגירה של יום עבודה קודם');
     } else {
       const st = stockFor(dd, sel);
-      if (Object.keys(dd).some(d => d > sel && dd[d].hasClose)) { html += row('יום', 'none', 'חסרה סגירה', `לא נשקלה סגירה ליום הזה · מלאי ${f2(st.stock)} ק״ג`); keep('day', null, 'חסרה סגירה ליום הזה'); }
+      if (st.prev && daysApart(st.prev, sel) > MAX_GAP_DAYS) { html += row('יום', 'none', 'צריך סגירה', `הסגירה האחרונה לפני ${daysApart(st.prev, sel)} ימים (${dm(st.prev)}) · הסגירה הבאה תהיה נקודת התחלה חדשה`); keep('day', null, `התחלה חדשה · הסגירה האחרונה לפני ${daysApart(st.prev, sel)} ימים`); }
+      else if (Object.keys(dd).some(d => d > sel && dd[d].hasClose)) { html += row('יום', 'none', 'חסרה סגירה', `לא נשקלה סגירה ליום הזה · מלאי ${f2(st.stock)} ק״ג`); keep('day', null, 'חסרה סגירה ליום הזה'); }
       else { html += row('יום', 'none', 'ממתין לסגירה', `מלאי ${f2(st.stock)} ק״ג<br>הסגירה נשקלת בבוקר שאחרי`); keep('day', null, 'ממתין לסגירה של מחר בבוקר'); }
     }
     // Week / month
@@ -1840,12 +1855,13 @@ function statusHero(k, res, sel) {
   const pick = ['week', 'month', 'day'].filter(p => res[p] && res[p].cls !== 'none').reduce((w, p) => !w || rk[res[p].cls] > rk[res[w].cls] ? p : w, null);
   const word = { ok: '✓ תקין', warn: '⚠ לבדוק', bad: '🚨 חשד לחוסר', neg: 'נמכר יותר ממה שיצא', none: 'אין עדיין חישוב' };
   const short = { ok: 'תקין', warn: 'לבדוק', bad: 'חשד', neg: 'בדוק', none: 'ממתין' };
-  const noneShort = r => !r || !r.why || /שתי סגירות/.test(r.why) ? 'אין נתונים' : /חסרה סגירה/.test(r.why) ? 'חסרה סגירה' : 'ממתין';
+  const noneShort = r => !r || !r.why || /שתי סגירות/.test(r.why) ? 'אין נתונים' : /חסרה סגירה/.test(r.why) ? 'חסרה סגירה' : /התחלה חדשה/.test(r.why) ? 'התחלה חדשה' : 'ממתין';
   const name = names[k] || '';
   let hero;
   if (!pick) {
     const why = (res.week && res.week.why) || (res.day && res.day.why) || 'צריך לפחות שתי סגירות';
-    hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">${word.none}</div><div class="hs-sub">${esc(why)}</div><div class="hs-how">החישוב מתחיל אחרי <b>שתי סגירות</b> (בוקר אחרי בוקר) <b>ונמכר</b> של היום שביניהן</div></div>`;
+    if (/התחלה חדשה/.test((res.day && res.day.why) || '')) hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">התחלה חדשה</div><div class="hs-sub">${esc(res.day.why.replace(/^התחלה חדשה · /, ''))}</div><div class="hs-how">אחרי הפסקה של יותר מ־${MAX_GAP_DAYS} ימים לא משווים לסגירה הישנה. החישוב מתחיל מחדש מהסגירה הזו</div></div>`;
+    else hero = `<div class="hero-st none"><div class="hs-l">${name}</div><div class="hs-big">${word.none}</div><div class="hs-sub">${esc(why)}</div><div class="hs-how">החישוב מתחיל אחרי <b>שתי סגירות</b> (בוקר אחרי בוקר) <b>ונמכר</b> של היום שביניהן</div></div>`;
   } else {
     const r = res[pick], gap = Math.max(0, r.gap || 0), exp = r.exp || 0;
     const sub = r.cls === 'neg' ? (r.went < 0 ? `הסגירה גדולה מהמלאי ב־${f2(-r.went)} ק״ג · חסרה סחורה או העברה?` : `נמכר ${f2(-r.gap)} ק״ג יותר ממה שיצא · כדאי לבדוק את השקילות`)
