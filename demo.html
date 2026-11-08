@@ -3805,9 +3805,11 @@ function slConvOpen() {
   document.getElementById('cvPlus').onclick = addPart;
   kgIn.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addPart(); } };
   document.getElementById('cvSave').onclick = () => {
-    if (!addPart()) return; // a number still in the field counts too
+    // a number still in the field counts too, but joins the list only if the conversion is saved
+    const extra = nums(kgIn.value);
+    if (extra.some(v => !(v > 0) || v > 1000)) { document.getElementById('cvErr').textContent = 'משקל לא תקין'; return; }
     const from = document.getElementById('cvFrom').value.replace(/\s+/g, ' ').trim(), to = document.getElementById('cvTo').value.replace(/\s+/g, ' ').trim();
-    const kg = Math.round(parts.reduce((a, v) => a + v, 0) * 100) / 100, d = document.getElementById('cvDate').value, err = document.getElementById('cvErr');
+    const kg = Math.round(parts.concat(extra).reduce((a, v) => a + v, 0) * 100) / 100, d = document.getElementById('cvDate').value, err = document.getElementById('cvErr');
     if (!from || !to) { err.textContent = 'צריך לכתוב את שני המוצרים'; return; }
     if (from === to) { err.textContent = 'שני המוצרים זהים'; return; }
     if (!names.includes(to)) { err.textContent = `"${to}" לא מופיע בדוחות המכר. בוחרים את השם מהרשימה`; return; }
