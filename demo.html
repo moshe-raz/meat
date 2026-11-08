@@ -158,6 +158,8 @@
 .cv-parts { font-size: 14px; color: #37474f; min-height: 20px; line-height: 1.5; }
 .cv-parts b { font-size: 16px; }
 .cv-parts button { border: 0; background: none; color: #1565c0; text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; padding: 0 4px; }
+.cv-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.cv-pick button { border: 1px solid #b0bec5; background: #fff; border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 14px; cursor: pointer; color: #263238; }
 .sl-cvnote { background: #eceff1; color: #37474f; border-radius: 12px; padding: 9px 12px; margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; }
 .sl-upl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .sl-imp { margin-top: 12px; background: var(--field); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
@@ -3804,7 +3806,19 @@ function slConvOpen() {
     parts.push(...n); kgIn.value = ''; document.getElementById('cvErr').textContent = ''; drawParts(); kgIn.focus(); return true; };
   document.getElementById('cvPlus').onclick = addPart;
   kgIn.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addPart(); } };
+  // "שוקיים" finds "שוקיים עוף טרי": every word typed is in the name. One match is taken; a few are offered to pick from
+  const words = v => v.split(' ').filter(Boolean);
+  const matches = v => names.includes(v) ? [v] : names.filter(n => words(v).every(w => n.includes(w)));
+  const offer = (id, list, label) => { const err = document.getElementById('cvErr');
+    err.innerHTML = `${label}:<div class="cv-pick">${list.slice(0, 8).map((n, i) => `<button type="button" data-i="${i}">${esc(n)}</button>`).join('')}</div>`;
+    err.querySelectorAll('.cv-pick button').forEach(b => { b.onclick = () => { document.getElementById(id).value = list[+b.dataset.i]; err.textContent = ''; }; }); };
   document.getElementById('cvSave').onclick = () => {
+    const fIn = document.getElementById('cvFrom'), tIn = document.getElementById('cvTo');
+    const tm = matches(tIn.value.replace(/\s+/g, ' ').trim()), fm = matches(fIn.value.replace(/\s+/g, ' ').trim());
+    if (tIn.value.trim() && tm.length > 1) { offer('cvTo', tm, 'איך זה נרשם בקופה? יש כמה מוצרים כאלה בדוח, בוחרים אחד'); return; }
+    if (tm.length === 1) tIn.value = tm[0];
+    if (fIn.value.trim() && fm.length > 1) { offer('cvFrom', fm, 'מה נמכר בפועל? יש כמה מוצרים כאלה בדוח, בוחרים אחד'); return; }
+    if (fm.length === 1) fIn.value = fm[0]; // not in any report: kept as typed
     // a number still in the field counts too, but joins the list only if the conversion is saved
     const extra = nums(kgIn.value);
     if (extra.some(v => !(v > 0) || v > 1000)) { document.getElementById('cvErr').textContent = 'משקל לא תקין'; return; }
