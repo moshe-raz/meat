@@ -139,6 +139,24 @@
 .sl-wkctrl select { font: 600 13px var(--font); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; background: #fff; }
 .sl-wkctrl button { font: 600 12px var(--font); border: 1px solid #e57373; background: #fff; color: #c62828; border-radius: 8px; padding: 4px 8px; cursor: pointer; }
 .sl-upl { font: 700 14px var(--font); color: var(--pri); background: var(--pri-soft); border: 1px solid #ecd2cc; border-radius: 12px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+.sl-conv { font: 700 14px var(--font); color: #37474f; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 12px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+.cv-form { display: grid; gap: 10px; margin: 10px 0; }
+.cv-form label { display: grid; gap: 4px; font-size: 13.5px; color: #546e7a; }
+.cv-form input { font: inherit; font-size: 16px; padding: 10px; border: 1px solid #cfd8dc; border-radius: 10px; min-width: 0; color: #222; }
+.cv-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cv-list { display: grid; gap: 6px; margin: 6px 0 4px; max-height: 38vh; overflow: auto; }
+.cv-item { display: flex; align-items: center; gap: 8px; justify-content: space-between; background: #f5f7f8; border-radius: 10px; padding: 8px 10px; font-size: 14px; line-height: 1.4; }
+.cv-item small { color: #78909c; display: block; }
+.cv-item.wait { background: #fff8e1; }
+.cv-item button { border: 0; background: none; color: #90a4ae; font-size: 18px; cursor: pointer; }
+.cv-add { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.cv-add button { border: 0; border-radius: 10px; background: #455a64; color: #fff; font: inherit; font-weight: 700; padding: 0 14px; cursor: pointer; }
+.cv-parts { font-size: 14px; color: #37474f; min-height: 20px; line-height: 1.5; }
+.cv-parts b { font-size: 16px; }
+.cv-parts button { border: 0; background: none; color: #1565c0; text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; padding: 0 4px; }
+.cv-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.cv-pick button { border: 1px solid #b0bec5; background: #fff; border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 14px; cursor: pointer; color: #263238; }
+.sl-cvnote { background: #eceff1; color: #37474f; border-radius: 12px; padding: 9px 12px; margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; }
 .sl-upl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .sl-imp { margin-top: 12px; background: var(--field); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
 .sl-imp-sum { color: var(--muted); font-size: 13.5px; }
@@ -679,6 +697,7 @@ button.btn.danger { background: #fff !important; color: #c62828; border: 1px sol
 .bl-det { display: none; border-top: 1px dashed var(--line); background: #fdfbf9; }
 .bl-item.open .bl-det { display: block; }
 .bl-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px 12px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+.ab-err { color: #c62828; font-size: 13.5px; min-height: 18px; }
 .bl-go { border: 0; background: var(--pri); color: #fff; border-radius: 999px; padding: 11px 18px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 #okToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 h1 { position: relative; }
@@ -1073,6 +1092,7 @@ body.setup-mode h1 { border-radius: 0 0 22px 22px; margin-bottom: 16px; }
       <svg viewBox="0 0 34 34" aria-hidden="true" width="34" height="34"><rect x="4" y="2" width="24" height="30" rx="4" fill="#e3f4e8"/><path d="M10 11h12M10 16h12M10 21h8" stroke="#1b6b34" stroke-width="2.2" stroke-linecap="round"/></svg>
       <div class="t"><b id="slRepName"></b><span id="slRepMeta"></span></div>
       <label class="sl-upl entry-only">העלאת דוח<input type="file" id="slFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+      <button type="button" class="sl-conv entry-only" onclick="slConvOpen()">🔄 המרות</button>
     </div>
     <div class="sl-wkctrl" id="slWkCtrl"></div>
     <div id="slImport" hidden></div>
@@ -2172,14 +2192,14 @@ function mcPrune() {
   Object.keys(myChecks).forEach(p => { Object.keys(myChecks[p]).forEach(d => { if (d < c) delete myChecks[p][d]; }); if (!Object.keys(myChecks[p]).length) delete myChecks[p]; });
 }
 function mcStore() { mcPrune(); try { localStorage.setItem('myChecks', JSON.stringify(myChecks)); localStorage.setItem('myCheckProd', mcProdNow); } catch (e) { if (typeof storageWarn === 'function') storageWarn(e); } }
-function mcReportItems() { const s = new Set(); Object.values(typeof slWeeks === 'object' ? slWeeks : {}).forEach(w => (w.items || []).forEach(it => it.n && s.add(it.n))); return [...s].sort((a, b) => a.localeCompare(b, 'he')); }
+function mcReportItems() { const s = new Set(); Object.keys(typeof slWeeks === 'object' ? slWeeks : {}).forEach(w => slIt(w).forEach(it => it.n && s.add(it.n))); return [...s].sort((a, b) => a.localeCompare(b, 'he')); }
 // sold on a day: a number, null = that day's report hasn't arrived, undefined = the product isn't in any report
 function mcSold(p, d) {
   const items = mcReportItems(); if (!items.includes(p)) return undefined;
   const k = new Date(d + 'T12:00:00').getDay(); if (k > 5) return 'sat'; // the report has no Saturday
   const w = (typeof slWeeks === 'object' && slWeeks[weekStartOf(d)]) || null;
   if (!w || !(w.items || []).some(it => it.d && it.d[k] != null)) return null;
-  const it = w.items.find(x => x.n === p);
+  const it = slIt(weekStartOf(d)).find(x => x.n === p);
   return it && it.d[k] != null ? Number(it.d[k]) || 0 : 0;
 }
 function setWeighMode(mine) {
@@ -2698,6 +2718,13 @@ async function showJoin(j, canRotate) {
   };
   try { const qrcode = await loadQrLib(); const q = qrcode(0, 'M'); q.addData(url); q.make(); document.getElementById('jdQr').innerHTML = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); }
   catch (e) { document.getElementById('jdQr').textContent = 'אין חיבור לאינטרנט להצגת הקוד · אפשר לשלוח את הקישור'; }
+}
+function mgrDlg(html) {
+  let box = document.getElementById('joinDlg');
+  if (!box) { box = document.createElement('div'); box.id = 'joinDlg'; box.className = 'join-dlg'; document.body.appendChild(box); }
+  box.innerHTML = `<div class="jd-card" role="dialog" aria-modal="true">${html}</div>`;
+  box.hidden = false; box.onclick = e => { if (e.target === box) box.hidden = true; };
+  return box;
 }
 async function mgrJoinLink(rotate) {
   if (mgr && mgr.canEdit === false) { alert('לעוזר יש הרשאת צפייה בלבד'); return; }
@@ -3485,6 +3512,8 @@ function slProductOf(it) {
   if (pg === 'עוף' && /פרגיות/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' };
   // כנפית / שוקית are sometimes cut from the wings → ordered as wings
   if (pg === 'עוף' && /כנפית|שוקית/.test(it.n)) return { p: 'כנפיים עוף טרי', g: 'עוף' };
+  // red (ground) turkey is made from female turkey: the boneless leg, ordered as שוק מפורק טרי
+  if (pg === 'הודו' && /אדום/.test(it.n)) return { p: 'שוק מפורק טרי', g: 'הודו' };
   // ground turkey is made from turkey breast / turkey pieces
   if (pg === 'הודו' && /חזה|טחון/.test(it.n)) return { p: 'חזה הודו', g: 'הודו' };
   // specific turkey items that don't contain the word הודו
@@ -3504,13 +3533,128 @@ const slCatOf = it => slIsLamb(it) ? 'כבש' : slPoultry(it) || 'בקר';
 // for each category: in which weeks each weekday was reported
 function slRepDays(weeks) {
   const out = {};
-  weeks.forEach(w => (slWeeks[w].items || []).forEach(it => { const c = slCatOf(it), r = out[c] = out[c] || SL_L.map(() => new Set());
+  weeks.forEach(w => slIt(w).forEach(it => { const c = slCatOf(it), r = out[c] = out[c] || SL_L.map(() => new Set());
     it.d.forEach((v, k) => { if (v != null) r[k].add(w); }); }));
   return out;
 }
+// ---------- conversions: sold as one item in the register, really another (e.g. cocktail at the drumsticks price) ----------
+// { d: date, from: what was really sold, to: how it shows in the report, kg, by }. The report is never changed:
+// slIt(w) gives a week's items with its conversions applied, and everything that counts sales reads it.
+const slConvs = () => Object.keys(slPrefs).filter(k => k.startsWith('cv:') && slPrefs[k].v && slPrefs[k].v.kg > 0)
+  .map(k => Object.assign({ id: k }, slPrefs[k].v)).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0);
+const slConvDay = d => new Date(d + 'T12:00:00').getDay();
+// a conversion counts once its day is in the report and the report has the item it was rung up as
+function slConvState(c) {
+  const w = slWeeks[weekStartOf(c.d)], k = slConvDay(c.d);
+  const to = w && (w.items || []).find(x => x.n === c.to);
+  return !w || !(w.items || []).some(it => it.d && it.d[k] != null) ? 'wait' : !to || !(to.d[k] > 0) ? 'missing' : 'ok';
+}
+function slIt(w) {
+  const wk = slWeeks[w]; if (!wk) return [];
+  const cs = slConvs().filter(c => weekStartOf(c.d) === w);
+  if (!cs.length) return wk.items || [];
+  const items = (wk.items || []).map(it => Object.assign({}, it, { d: it.d.slice() }));
+  cs.forEach(c => {
+    const k = slConvDay(c.d), to = items.find(x => x.n === c.to);
+    if (!to || !(to.d[k] > 0)) return;
+    const kg = Math.min(Number(c.kg) || 0, to.d[k]);
+    let from = items.find(x => x.n === c.from);
+    if (!from) { // not in this week's report: added, with the department of the item it was rung up as
+      from = { n: c.from, dept: to.dept, d: to.d.map(v => v == null ? null : 0), conv: true };
+      items.push(from);
+    }
+    to.d[k] = Math.round((to.d[k] - kg) * 100) / 100;
+    from.d[k] = Math.round(((from.d[k] || 0) + kg) * 100) / 100;
+  });
+  return items;
+}
+function slConvOpen() {
+  const names = mcReportItems(), today = ymd(new Date());
+  // only the last 7 days: a conversion is written while it is fresh, and older sales stay as they were
+  const minDay = (() => { const x = new Date(); x.setDate(x.getDate() - 7); return ymd(x); })();
+  const list = slConvs().filter(c => c.d >= slAddDays(slSun(new Date()), -56));
+  const stTxt = { ok: '', wait: 'ממתין לדוח של היום הזה', missing: 'בדוח של היום הזה אין מכר של המוצר שנרשם בקופה' };
+  const box = mgrDlg(`<h3>🔄 המרות</h3>
+    <p>מוצר שנמכר בקופה בתור מוצר אחר (למשל קוקטייל במחיר של שוקיים). ההמרה מעבירה את הק״ג בדוח המכר למוצר שבאמת נמכר, ככה ההמלצה להזמנה נכונה.</p>
+    <div class="cv-form">
+      <label>מה נמכר בפועל<input type="text" id="cvFrom" placeholder="למשל קוקטייל" autocomplete="off"></label><div class="cv-pick" id="cvFromSug"></div>
+      <label>איך זה נרשם בקופה<input type="text" id="cvTo" placeholder="למשל שוקיים" autocomplete="off"></label><div class="cv-pick" id="cvToSug"></div>
+      <label>באיזה יום (עד 7 ימים אחורה)<input type="date" id="cvDate" value="${today}" min="${minDay}" max="${today}"></label>
+      <label>משקל (ק״ג) · כל משקל מתווסף, עד "סיימתי"<span class="cv-add"><input type="text" id="cvKg" inputmode="decimal" placeholder="למשל 12.5" enterkeyhint="done"><button type="button" id="cvPlus">➕ הוסף</button></span></label>
+      <div class="cv-parts" id="cvParts"></div>
+    </div>
+    <div class="ab-err" id="cvErr"></div>
+    <div class="jd-btns"><button type="button" class="btn" id="cvSave" style="background:#2e7d32">✓ סיימתי</button><button type="button" class="btn jd-close" id="cvClose">סגירה</button></div>
+    ${list.length ? `<h4 style="margin:14px 0 4px">המרות אחרונות</h4><div class="cv-list">${list.map(c => { const st = slConvState(c);
+      return `<div class="cv-item${st !== 'ok' ? ' wait' : ''}"><span><b>${r1(c.kg)} ק״ג ${esc(c.from)}</b> בתור ${esc(c.to)}<small>${SL_DN[slConvDay(c.d)] ? 'יום ' + SL_DN[slConvDay(c.d)] + ' ' : ''}${dm(c.d)}${c.by ? ' · ' + esc(c.by) : ''}${stTxt[st] ? ' · ' + stTxt[st] : ''}</small></span>${c.d >= minDay ? `<button type="button" aria-label="מחיקה" onclick="slConvDel('${c.id}')">✕</button>` : ''}</div>`; }).join('')}</div>` : ''}`);
+  document.getElementById('cvClose').onclick = () => { box.hidden = true; };
+  // the weights add up, like in the weighing: a number (or a few with spaces), ➕ / Enter, and again
+  const parts = [], kgIn = document.getElementById('cvKg');
+  const nums = v => String(v || '').replace(/,/g, '.').split(/[\s+]+/).filter(Boolean).map(Number);
+  const drawParts = () => { const t = Math.round(parts.reduce((a, v) => a + v, 0) * 100) / 100;
+    document.getElementById('cvParts').innerHTML = parts.length ? `${parts.map(r1).join(' + ')}${parts.length > 1 ? ` = <b>${r1(t)} ק״ג</b>` : ' ק״ג'} <button type="button" id="cvUndo">בטל אחרון</button>` : '';
+    const u = document.getElementById('cvUndo'); if (u) u.onclick = () => { parts.pop(); drawParts(); }; };
+  const addPart = () => { const n = nums(kgIn.value); if (!n.length) return true;
+    if (n.some(v => !(v > 0) || v > 1000)) { document.getElementById('cvErr').textContent = 'משקל לא תקין'; return false; }
+    parts.push(...n); kgIn.value = ''; document.getElementById('cvErr').textContent = ''; drawParts(); kgIn.focus(); return true; };
+  document.getElementById('cvPlus').onclick = addPart;
+  kgIn.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addPart(); } };
+  // "שוקיים" finds "שוקיים עוף טרי": every word typed is in the name. One match is taken; a few are offered to pick from
+  const words = v => v.split(' ').filter(Boolean);
+  const matches = v => names.includes(v) ? [v] : names.filter(n => words(v).every(w => n.includes(w)));
+  const offer = (id, list, label) => { const err = document.getElementById('cvErr');
+    err.innerHTML = `${label}:<div class="cv-pick">${list.slice(0, 8).map((n, i) => `<button type="button" data-i="${i}">${esc(n)}</button>`).join('')}</div>`;
+    err.querySelectorAll('.cv-pick button').forEach(b => { b.onclick = () => { document.getElementById(id).value = list[+b.dataset.i]; err.textContent = ''; }; }); };
+  // while typing: the report's items that have every word typed, as buttons (the phone's own list doesn't open on every phone)
+  const suggest = (inId, boxId) => { const inp = document.getElementById(inId), box = document.getElementById(boxId);
+    const draw = () => { const v = inp.value.replace(/\s+/g, ' ').trim(), m = v ? matches(v) : [];
+      box.innerHTML = m.length && !(m.length === 1 && m[0] === v) ? m.slice(0, 8).map((n, i) => `<button type="button" data-i="${i}">${esc(n)}</button>`).join('') + (m.length > 8 ? `<span style="font-size:13px;color:#78909c;align-self:center">ועוד ${m.length - 8}…</span>` : '') : '';
+      box.querySelectorAll('button').forEach(b => { b.onclick = () => { inp.value = m[+b.dataset.i]; box.innerHTML = ''; document.getElementById('cvErr').textContent = ''; }; }); };
+    inp.oninput = draw; };
+  suggest('cvFrom', 'cvFromSug'); suggest('cvTo', 'cvToSug');
+  document.getElementById('cvSave').onclick = () => {
+    const fIn = document.getElementById('cvFrom'), tIn = document.getElementById('cvTo');
+    const tm = matches(tIn.value.replace(/\s+/g, ' ').trim()), fm = matches(fIn.value.replace(/\s+/g, ' ').trim());
+    if (tIn.value.trim() && tm.length > 1) { offer('cvTo', tm, 'איך זה נרשם בקופה? יש כמה מוצרים כאלה בדוח, בוחרים אחד'); return; }
+    if (tm.length === 1) tIn.value = tm[0];
+    if (fIn.value.trim() && fm.length > 1) { offer('cvFrom', fm, 'מה נמכר בפועל? יש כמה מוצרים כאלה בדוח, בוחרים אחד'); return; }
+    if (fm.length === 1) fIn.value = fm[0]; // not in any report: kept as typed
+    // a number still in the field counts too, but joins the list only if the conversion is saved
+    const extra = nums(kgIn.value);
+    if (extra.some(v => !(v > 0) || v > 1000)) { document.getElementById('cvErr').textContent = 'משקל לא תקין'; return; }
+    const from = document.getElementById('cvFrom').value.replace(/\s+/g, ' ').trim(), to = document.getElementById('cvTo').value.replace(/\s+/g, ' ').trim();
+    const kg = Math.round(parts.concat(extra).reduce((a, v) => a + v, 0) * 100) / 100, d = document.getElementById('cvDate').value, err = document.getElementById('cvErr');
+    if (!from || !to) { err.textContent = 'צריך לכתוב את שני המוצרים'; return; }
+    if (from === to) { err.textContent = 'שני המוצרים זהים'; return; }
+    if (!names.includes(to)) { err.textContent = `"${to}" לא מופיע בדוחות המכר. בוחרים את השם מהרשימה`; return; }
+    if (!(kg > 0)) { err.textContent = 'צריך להוסיף משקל'; return; }
+    if (kg > 3000) { err.textContent = 'יותר מ־3,000 ק״ג? בדקו את המשקלים'; return; }
+    if (!d || d > today) { err.textContent = 'צריך לבחור יום, לא בעתיד'; return; }
+    if (d < minDay) { err.textContent = 'אפשר להמיר רק עד 7 ימים אחורה'; return; }
+    if (slConvDay(d) === 6) { err.textContent = 'בשבת אין דוח מכר'; return; }
+    // the day is already in the report: no more than what was rung up as that item (less what other conversions took)
+    const wk = slWeeks[weekStartOf(d)], k = slConvDay(d), rawTo = wk && (wk.items || []).find(x => x.n === to);
+    if (wk && (wk.items || []).some(it => it.d && it.d[k] != null)) {
+      const used = slConvs().filter(c => c.to === to && c.d === d).reduce((a, c) => a + (Number(c.kg) || 0), 0);
+      const left = Math.max(0, Math.round(((rawTo && rawTo.d[k]) || 0) * 100 - used * 100) / 100);
+      if (kg > left + 0.001) { err.textContent = `ביום ${SL_DN[k]} ${dm(d)} נרשמו בדוח ${left ? 'רק ' + r1(left) + ' ק״ג' : '0 ק״ג'} ${to}${used ? ' (אחרי ההמרות שכבר נרשמו)' : ''}`; return; }
+    }
+    if ([from, to].some(v => v.length > 60 || /https?:|\/\/|[<>=]/.test(v))) { err.textContent = 'שם לא תקין'; return; }
+    slSetPref('cv:' + newId(), { d, from, to, kg: Math.round(kg * 100) / 100, by: worker || '' });
+    showOk(`✓ ${r1(kg)} ק״ג ${from} בתור ${to}`); slConvOpen(); slRerender();
+  };
+}
+function slConvDel(id) {
+  const c = slPrefs[id] && slPrefs[id].v; if (!c) return;
+  ask({ title: 'למחוק את ההמרה?', html: `${r1(c.kg)} ק״ג ${esc(c.from)} בתור ${esc(c.to)} · ${dm(c.d)}`, ok: 'מחיקה', cancel: 'ביטול', icon: 'warn' })
+    .then(y => { if (!y) return; slSetPref(id, null); slConvOpen(); slRerender(); });
+}
+
+// "מוזל" is what was left at the end of the day and sold cheap so it isn't thrown away: a sign of too much, not of demand
+const slDiscounted = it => /מוזל/.test(it.n);
 function slByProduct(weeks) {
   const out = {};
-  weeks.forEach(w => (slWeeks[w].items || []).forEach(it => { const m = slProductOf(it); if (!m) return;
+  weeks.forEach(w => slIt(w).forEach(it => { const m = slProductOf(it); if (!m || slDiscounted(it)) return; // not ordered by it
     const pg = SL_BEEF.find(x => x[1].includes(m.p));
     const o = out[m.p] = out[m.p] || { g: pg ? pg[0] : m.g, d: {} }; o.d[w] = o.d[w] || [0, 0, 0, 0, 0, 0];
     it.d.forEach((v, k) => { if (v != null) o.d[w][k] += v; }); }));
@@ -3534,7 +3678,7 @@ function slBreastSubs() {
   const buckets = { schnitzel: Array(6).fill(0), strips: Array(6).fill(0), ground: Array(6).fill(0), half: Array(6).fill(0) };
   const counts = { schnitzel: Array(6).fill(0), strips: Array(6).fill(0), ground: Array(6).fill(0), half: Array(6).fill(0) };
   weeks.forEach(w => {
-    (slWeeks[w].items || []).forEach(it => {
+    slIt(w).forEach(it => {
       if (slPoultry(it) !== 'עוף') return;
       const n = it.n || '';
       let key = null;
@@ -3858,19 +4002,19 @@ function isSimilarReport(old, neu) {
 // ---- sales: day / week / week so far
 function slRenderSales() {
   const keys = slWeekKeys(), W0 = (slViewWeek && slWeeks[slViewWeek]) ? slViewWeek : keys[keys.length - 1], W1 = keys[keys.indexOf(W0) - 1];
-  const wk0 = slWeeks[W0], rep = SL_L.map((_, k) => wk0.items.some(it => it.d[k] != null));
+  const wk0 = { items: slIt(W0) }, rep = SL_L.map((_, k) => wk0.items.some(it => it.d[k] != null));
   const lastDay = rep.lastIndexOf(true);
   if (slSday == null || !rep[slSday]) slSday = lastDay;
   document.querySelectorAll('#slSmode button').forEach(b => b.classList.toggle('on', b.dataset.m === slSview));
   const sd = document.getElementById('slSdays'); sd.hidden = slSview === 'week';
   sd.innerHTML = SL_WD.map((w, k) => `<button type="button" data-d="${k}" ${rep[k] ? '' : 'disabled'} class="${k === slSday ? 'on' : slSview === 'cum' && k < slSday ? 'in' : ''}">${w}<small>${dm(slAddDays(W0, k))}</small></button>`).join('');
   const A = slAverages();
-  const rows = wk0.items.map(it => { const m = slProductOf(it); return { it, g: m ? m.g : (slIsLamb(it) ? 'כבש' : slPoultry(it) || 'אחר'), prev: W1 && slWeeks[W1].items.find(x => x.n === it.n && x.dept === it.dept) }; });
+  const rows = wk0.items.map(it => { const m = slProductOf(it); return { it, g: m ? m.g : (slIsLamb(it) ? 'כבש' : slPoultry(it) || 'אחר'), prev: W1 && slIt(W1).find(x => x.n === it.n && x.dept === it.dept) }; });
   const val = (d, days) => days.reduce((s, k) => s + (d && d[k] != null ? d[k] : 0), 0);
   const daysOf = slSview === 'day' ? [slSday] : slSview === 'week' ? SL_L.map((_, k) => k).filter(k => rep[k]) : SL_L.map((_, k) => k).filter(k => k <= slSday && rep[k]);
   // the "normal" for a day: the same weekday in earlier normal weeks
-  const dayAvg = (n, k) => { const ws = A.weeks.filter(w => w !== W0 && slWeeks[w].items.some(x => x.d[k] != null)); if (!ws.length) return null;
-    return ws.reduce((s, w) => { const x = slWeeks[w].items.find(y => y.n === n); return s + (x && x.d[k] ? x.d[k] : 0); }, 0) / ws.length; };
+  const dayAvg = (n, k) => { const ws = A.weeks.filter(w => w !== W0 && slIt(w).some(x => x.d[k] != null)); if (!ws.length) return null;
+    return ws.reduce((s, w) => { const x = slIt(w).find(y => y.n === n); return s + (x && x.d[k] ? x.d[k] : 0); }, 0) / ws.length; };
   const tops = ['בקר', 'כבש', 'עוף', 'הודו', 'אחר'];
   const inTop = (r, t) => SL_TOP(r.g) === t || (t === 'אחר' && !['בקר', 'כבש', 'עוף', 'הודו'].includes(SL_TOP(r.g)));
   const tot = t => rows.filter(r => inTop(r, t)).reduce((s, r) => s + val(r.it.d, daysOf), 0);
@@ -3899,9 +4043,13 @@ function slRenderSales() {
     T += now; TP += prev || 0; const [c, t] = chg(now, prev);
     return { now, h: `<div class="srow"><div class="n">${esc(r.it.n)}<small>${sub}</small></div><span class="chg ${c}">${t}</span><div class="kg">${r1(now)}<small> ק״ג</small></div></div>` }; };
   const built = mine.map(r => Object.assign(html(r), { g: r.g })).sort((a, b) => b.now - a.now);
-  document.getElementById('slSitems').innerHTML = slCat === 'בקר'
+  const cheap = mine.filter(r => slDiscounted(r.it)).map(r => ({ n: r.it.n, kg: val(r.it.d, daysOf) })).filter(x => x.kg > 0);
+  const cheapNote = cheap.length ? `<div class="sl-warn">⚠️ ${slSview === 'day' ? 'ביום ' + SL_DN[slSday] : slSview === 'week' ? 'השבוע' : 'עד יום ' + SL_DN[slSday]} נמכרו ${cheap.map(x => `<b>${r1(x.kg)} ק״ג ${esc(x.n)}</b>`).join(', ')}. כנראה הוכן יותר מדי. המוזל לא נספר בהמלצת ההזמנה.</div>` : '';
+  const cvIn = slConvs().filter(c => weekStartOf(c.d) === W0 && daysOf.includes(slConvDay(c.d)) && slConvState(c) === 'ok' && mine.some(r => r.it.n === c.from || r.it.n === c.to));
+  const cvNote = cvIn.length ? `<div class="sl-cvnote">🔄 כולל המרות: ${cvIn.map(c => `${r1(c.kg)} ק״ג <b>${esc(c.from)}</b> שנרשמו כ${esc(c.to)}`).join(' · ')}</div>` : '';
+  document.getElementById('slSitems').innerHTML = cheapNote + cvNote + (slCat === 'בקר'
     ? SL_SUBS.concat(['אחר']).map(sb => { const r = built.filter(x => sb === 'אחר' ? !SL_SUBS.includes(x.g) : x.g === sb); return r.length ? `<div class="shead">${sb} · ${Math.round(r.reduce((a, x) => a + x.now, 0))} ק״ג</div>` + r.map(x => x.h).join('') : ''; }).join('')
-    : built.map(x => x.h).join('');
+    : built.map(x => x.h).join(''));
   const [c, t] = chg(T, TP);
   document.getElementById('slStotal').innerHTML = `${Math.round(T)} <small>ק״ג ${slCat}</small>`;
   document.getElementById('slSmeta').innerHTML = TP ? `<span class="chg ${c}">${t}</span><br>${slSview === 'day' ? 'לעומת יום ' + SL_DN[slSday] + ' רגיל' : slSview === 'week' ? 'לעומת השבוע הקודם' : 'לעומת השבוע הקודם באותה נקודה'}` : '';
@@ -4047,7 +4195,7 @@ function slRow(x, c, val, M, poultry) {
 function slRenderMap() {
   const el = document.getElementById('slMap'); if (!el) return;
   const keys = slWeekKeys().slice(-4), seen = {};
-  keys.forEach(w => slWeeks[w].items.forEach(it => { seen[it.n] = it; }));
+  keys.forEach(w => slIt(w).forEach(it => { seen[it.n] = it; }));
   const items = Object.values(seen).sort((a, b) => a.n.localeCompare(b.n, 'he'));
   document.getElementById('slMapBtn').hidden = !items.length;
   el.hidden = !slMapOpen || !items.length; if (el.hidden) return;
