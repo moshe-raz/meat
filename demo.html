@@ -143,6 +143,17 @@
 .sl-wkctrl select { font: 600 13px var(--font); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; background: #fff; }
 .sl-wkctrl button { font: 600 12px var(--font); border: 1px solid #e57373; background: #fff; color: #c62828; border-radius: 8px; padding: 4px 8px; cursor: pointer; }
 .sl-upl { font: 700 14px var(--font); color: var(--pri); background: var(--pri-soft); border: 1px solid #ecd2cc; border-radius: 12px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+.sl-conv { font: 700 14px var(--font); color: #37474f; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 12px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+.cv-form { display: grid; gap: 10px; margin: 10px 0; }
+.cv-form label { display: grid; gap: 4px; font-size: 13.5px; color: #546e7a; }
+.cv-form input { font: inherit; font-size: 16px; padding: 10px; border: 1px solid #cfd8dc; border-radius: 10px; min-width: 0; color: #222; }
+.cv-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cv-list { display: grid; gap: 6px; margin: 6px 0 4px; max-height: 38vh; overflow: auto; }
+.cv-item { display: flex; align-items: center; gap: 8px; justify-content: space-between; background: #f5f7f8; border-radius: 10px; padding: 8px 10px; font-size: 14px; line-height: 1.4; }
+.cv-item small { color: #78909c; display: block; }
+.cv-item.wait { background: #fff8e1; }
+.cv-item button { border: 0; background: none; color: #90a4ae; font-size: 18px; cursor: pointer; }
+.sl-cvnote { background: #eceff1; color: #37474f; border-radius: 12px; padding: 9px 12px; margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; }
 .sl-upl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .sl-imp { margin-top: 12px; background: var(--field); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
 .sl-imp-sum { color: var(--muted); font-size: 13.5px; }
@@ -1100,6 +1111,7 @@ var demoLS = (function () {
       <svg viewBox="0 0 34 34" aria-hidden="true" width="34" height="34"><rect x="4" y="2" width="24" height="30" rx="4" fill="#e3f4e8"/><path d="M10 11h12M10 16h12M10 21h8" stroke="#1b6b34" stroke-width="2.2" stroke-linecap="round"/></svg>
       <div class="t"><b id="slRepName"></b><span id="slRepMeta"></span></div>
       <label class="sl-upl entry-only">העלאת דוח<input type="file" id="slFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+      <button type="button" class="sl-conv entry-only" onclick="slConvOpen()">🔄 המרות</button>
     </div>
     <div class="sl-wkctrl" id="slWkCtrl"></div>
     <div id="slImport" hidden></div>
@@ -2288,14 +2300,14 @@ function mcPrune() {
   Object.keys(myChecks).forEach(p => { Object.keys(myChecks[p]).forEach(d => { if (d < c) delete myChecks[p][d]; }); if (!Object.keys(myChecks[p]).length) delete myChecks[p]; });
 }
 function mcStore() { mcPrune(); try { demoLS.setItem('myChecks', JSON.stringify(myChecks)); demoLS.setItem('myCheckProd', mcProdNow); } catch (e) { if (typeof storageWarn === 'function') storageWarn(e); } }
-function mcReportItems() { const s = new Set(); Object.values(typeof slWeeks === 'object' ? slWeeks : {}).forEach(w => (w.items || []).forEach(it => it.n && s.add(it.n))); return [...s].sort((a, b) => a.localeCompare(b, 'he')); }
+function mcReportItems() { const s = new Set(); Object.keys(typeof slWeeks === 'object' ? slWeeks : {}).forEach(w => slIt(w).forEach(it => it.n && s.add(it.n))); return [...s].sort((a, b) => a.localeCompare(b, 'he')); }
 // sold on a day: a number, null = that day's report hasn't arrived, undefined = the product isn't in any report
 function mcSold(p, d) {
   const items = mcReportItems(); if (!items.includes(p)) return undefined;
   const k = new Date(d + 'T12:00:00').getDay(); if (k > 5) return 'sat'; // the report has no Saturday
   const w = (typeof slWeeks === 'object' && slWeeks[weekStartOf(d)]) || null;
   if (!w || !(w.items || []).some(it => it.d && it.d[k] != null)) return null;
-  const it = w.items.find(x => x.n === p);
+  const it = slIt(weekStartOf(d)).find(x => x.n === p);
   return it && it.d[k] != null ? Number(it.d[k]) || 0 : 0;
 }
 function setWeighMode(mine) {
@@ -3722,15 +3734,90 @@ const slCatOf = it => slIsLamb(it) ? 'כבש' : slPoultry(it) || 'בקר';
 // for each category: in which weeks each weekday was reported
 function slRepDays(weeks) {
   const out = {};
-  weeks.forEach(w => (slWeeks[w].items || []).forEach(it => { const c = slCatOf(it), r = out[c] = out[c] || SL_L.map(() => new Set());
+  weeks.forEach(w => slIt(w).forEach(it => { const c = slCatOf(it), r = out[c] = out[c] || SL_L.map(() => new Set());
     it.d.forEach((v, k) => { if (v != null) r[k].add(w); }); }));
   return out;
 }
+// ---------- conversions: sold as one item in the register, really another (e.g. cocktail at the drumsticks price) ----------
+// { d: date, from: what was really sold, to: how it shows in the report, kg, by }. The report is never changed:
+// slIt(w) gives a week's items with its conversions applied, and everything that counts sales reads it.
+const slConvs = () => Object.keys(slPrefs).filter(k => k.startsWith('cv:') && slPrefs[k].v && slPrefs[k].v.kg > 0)
+  .map(k => Object.assign({ id: k }, slPrefs[k].v)).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0);
+const slConvDay = d => new Date(d + 'T12:00:00').getDay();
+// a conversion counts once its day is in the report and the report has the item it was rung up as
+function slConvState(c) {
+  const w = slWeeks[weekStartOf(c.d)], k = slConvDay(c.d);
+  const to = w && (w.items || []).find(x => x.n === c.to);
+  return !w || !(w.items || []).some(it => it.d && it.d[k] != null) ? 'wait' : !to || !(to.d[k] > 0) ? 'missing' : 'ok';
+}
+function slIt(w) {
+  const wk = slWeeks[w]; if (!wk) return [];
+  const cs = slConvs().filter(c => weekStartOf(c.d) === w);
+  if (!cs.length) return wk.items || [];
+  const items = (wk.items || []).map(it => Object.assign({}, it, { d: it.d.slice() }));
+  cs.forEach(c => {
+    const k = slConvDay(c.d), to = items.find(x => x.n === c.to);
+    if (!to || !(to.d[k] > 0)) return;
+    const kg = Math.min(Number(c.kg) || 0, to.d[k]);
+    let from = items.find(x => x.n === c.from);
+    if (!from) { // not in this week's report: added, with the department of the item it was rung up as
+      from = { n: c.from, dept: to.dept, d: to.d.map(v => v == null ? null : 0), conv: true };
+      items.push(from);
+    }
+    to.d[k] = Math.round((to.d[k] - kg) * 100) / 100;
+    from.d[k] = Math.round(((from.d[k] || 0) + kg) * 100) / 100;
+  });
+  return items;
+}
+function slConvOpen() {
+  const names = mcReportItems(), today = ymd(new Date());
+  const list = slConvs().filter(c => c.d >= slAddDays(slSun(new Date()), -56));
+  const stTxt = { ok: '', wait: 'ממתין לדוח של היום הזה', missing: 'בדוח של היום הזה אין מכר של המוצר שנרשם בקופה' };
+  const box = mgrDlg(`<h3>🔄 המרות</h3>
+    <p>מוצר שנמכר בקופה בתור מוצר אחר (למשל קוקטייל במחיר של שוקיים). ההמרה מעבירה את הק״ג בדוח המכר למוצר שבאמת נמכר, ככה ההמלצה להזמנה נכונה.</p>
+    <div class="cv-form">
+      <label>מה נמכר בפועל<input type="text" id="cvFrom" list="cvNames" placeholder="למשל קוקטייל" autocomplete="off"></label>
+      <label>איך זה נרשם בקופה<input type="text" id="cvTo" list="cvNames" placeholder="למשל שוקיים" autocomplete="off"></label>
+      <div class="cv-two"><label>כמה ק״ג<input type="text" id="cvKg" inputmode="decimal" placeholder="100"></label><label>באיזה יום<input type="date" id="cvDate" value="${today}" max="${today}"></label></div>
+      <datalist id="cvNames">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+    </div>
+    <div class="ab-err" id="cvErr"></div>
+    <div class="jd-btns"><button type="button" class="btn" id="cvSave" style="background:#2e7d32">הוספה</button><button type="button" class="btn jd-close" id="cvClose">סגירה</button></div>
+    ${list.length ? `<h4 style="margin:14px 0 4px">המרות אחרונות</h4><div class="cv-list">${list.map(c => { const st = slConvState(c);
+      return `<div class="cv-item${st !== 'ok' ? ' wait' : ''}"><span><b>${r1(c.kg)} ק״ג ${esc(c.from)}</b> בתור ${esc(c.to)}<small>${SL_DN[slConvDay(c.d)] ? 'יום ' + SL_DN[slConvDay(c.d)] + ' ' : ''}${dm(c.d)}${c.by ? ' · ' + esc(c.by) : ''}${stTxt[st] ? ' · ' + stTxt[st] : ''}</small></span><button type="button" aria-label="מחיקה" onclick="slConvDel('${c.id}')">✕</button></div>`; }).join('')}</div>` : ''}`);
+  document.getElementById('cvClose').onclick = () => { box.hidden = true; };
+  document.getElementById('cvSave').onclick = () => {
+    const from = document.getElementById('cvFrom').value.replace(/\s+/g, ' ').trim(), to = document.getElementById('cvTo').value.replace(/\s+/g, ' ').trim();
+    const kg = parseFloat(String(document.getElementById('cvKg').value).replace(',', '.')), d = document.getElementById('cvDate').value, err = document.getElementById('cvErr');
+    if (!from || !to) { err.textContent = 'צריך לכתוב את שני המוצרים'; return; }
+    if (from === to) { err.textContent = 'שני המוצרים זהים'; return; }
+    if (!names.includes(to)) { err.textContent = `"${to}" לא מופיע בדוחות המכר. בוחרים את השם מהרשימה`; return; }
+    if (!(kg > 0) || kg > 3000) { err.textContent = 'צריך לכתוב כמה ק״ג (מספר)'; return; }
+    if (!d || d > today) { err.textContent = 'צריך לבחור יום, לא בעתיד'; return; }
+    if (slConvDay(d) === 6) { err.textContent = 'בשבת אין דוח מכר'; return; }
+    // the day is already in the report: no more than what was rung up as that item (less what other conversions took)
+    const wk = slWeeks[weekStartOf(d)], k = slConvDay(d), rawTo = wk && (wk.items || []).find(x => x.n === to);
+    if (wk && (wk.items || []).some(it => it.d && it.d[k] != null)) {
+      const used = slConvs().filter(c => c.to === to && c.d === d).reduce((a, c) => a + (Number(c.kg) || 0), 0);
+      const left = Math.max(0, Math.round(((rawTo && rawTo.d[k]) || 0) * 100 - used * 100) / 100);
+      if (kg > left + 0.001) { err.textContent = `ביום ${SL_DN[k]} ${dm(d)} נרשמו בדוח ${left ? 'רק ' + r1(left) + ' ק״ג' : '0 ק״ג'} ${to}${used ? ' (אחרי ההמרות שכבר נרשמו)' : ''}`; return; }
+    }
+    if ([from, to].some(v => v.length > 60 || /https?:|\/\/|[<>=]/.test(v))) { err.textContent = 'שם לא תקין'; return; }
+    slSetPref('cv:' + newId(), { d, from, to, kg: Math.round(kg * 100) / 100, by: worker || '' });
+    showOk(`✓ ${r1(kg)} ק״ג ${from} בתור ${to}`); slConvOpen(); slRerender();
+  };
+}
+function slConvDel(id) {
+  const c = slPrefs[id] && slPrefs[id].v; if (!c) return;
+  ask({ title: 'למחוק את ההמרה?', html: `${r1(c.kg)} ק״ג ${esc(c.from)} בתור ${esc(c.to)} · ${dm(c.d)}`, ok: 'מחיקה', cancel: 'ביטול', icon: 'warn' })
+    .then(y => { if (!y) return; slSetPref(id, null); slConvOpen(); slRerender(); });
+}
+
 // "מוזל" is what was left at the end of the day and sold cheap so it isn't thrown away: a sign of too much, not of demand
 const slDiscounted = it => /מוזל/.test(it.n);
 function slByProduct(weeks) {
   const out = {};
-  weeks.forEach(w => (slWeeks[w].items || []).forEach(it => { const m = slProductOf(it); if (!m || slDiscounted(it)) return; // not ordered by it
+  weeks.forEach(w => slIt(w).forEach(it => { const m = slProductOf(it); if (!m || slDiscounted(it)) return; // not ordered by it
     const pg = SL_BEEF.find(x => x[1].includes(m.p));
     const o = out[m.p] = out[m.p] || { g: pg ? pg[0] : m.g, d: {} }; o.d[w] = o.d[w] || [0, 0, 0, 0, 0, 0];
     it.d.forEach((v, k) => { if (v != null) o.d[w][k] += v; }); }));
@@ -3754,7 +3841,7 @@ function slBreastSubs() {
   const buckets = { schnitzel: Array(6).fill(0), strips: Array(6).fill(0), ground: Array(6).fill(0), half: Array(6).fill(0) };
   const counts = { schnitzel: Array(6).fill(0), strips: Array(6).fill(0), ground: Array(6).fill(0), half: Array(6).fill(0) };
   weeks.forEach(w => {
-    (slWeeks[w].items || []).forEach(it => {
+    slIt(w).forEach(it => {
       if (slPoultry(it) !== 'עוף') return;
       const n = it.n || '';
       let key = null;
@@ -4078,19 +4165,19 @@ function isSimilarReport(old, neu) {
 // ---- sales: day / week / week so far
 function slRenderSales() {
   const keys = slWeekKeys(), W0 = (slViewWeek && slWeeks[slViewWeek]) ? slViewWeek : keys[keys.length - 1], W1 = keys[keys.indexOf(W0) - 1];
-  const wk0 = slWeeks[W0], rep = SL_L.map((_, k) => wk0.items.some(it => it.d[k] != null));
+  const wk0 = { items: slIt(W0) }, rep = SL_L.map((_, k) => wk0.items.some(it => it.d[k] != null));
   const lastDay = rep.lastIndexOf(true);
   if (slSday == null || !rep[slSday]) slSday = lastDay;
   document.querySelectorAll('#slSmode button').forEach(b => b.classList.toggle('on', b.dataset.m === slSview));
   const sd = document.getElementById('slSdays'); sd.hidden = slSview === 'week';
   sd.innerHTML = SL_WD.map((w, k) => `<button type="button" data-d="${k}" ${rep[k] ? '' : 'disabled'} class="${k === slSday ? 'on' : slSview === 'cum' && k < slSday ? 'in' : ''}">${w}<small>${dm(slAddDays(W0, k))}</small></button>`).join('');
   const A = slAverages();
-  const rows = wk0.items.map(it => { const m = slProductOf(it); return { it, g: m ? m.g : (slIsLamb(it) ? 'כבש' : slPoultry(it) || 'אחר'), prev: W1 && slWeeks[W1].items.find(x => x.n === it.n && x.dept === it.dept) }; });
+  const rows = wk0.items.map(it => { const m = slProductOf(it); return { it, g: m ? m.g : (slIsLamb(it) ? 'כבש' : slPoultry(it) || 'אחר'), prev: W1 && slIt(W1).find(x => x.n === it.n && x.dept === it.dept) }; });
   const val = (d, days) => days.reduce((s, k) => s + (d && d[k] != null ? d[k] : 0), 0);
   const daysOf = slSview === 'day' ? [slSday] : slSview === 'week' ? SL_L.map((_, k) => k).filter(k => rep[k]) : SL_L.map((_, k) => k).filter(k => k <= slSday && rep[k]);
   // the "normal" for a day: the same weekday in earlier normal weeks
-  const dayAvg = (n, k) => { const ws = A.weeks.filter(w => w !== W0 && slWeeks[w].items.some(x => x.d[k] != null)); if (!ws.length) return null;
-    return ws.reduce((s, w) => { const x = slWeeks[w].items.find(y => y.n === n); return s + (x && x.d[k] ? x.d[k] : 0); }, 0) / ws.length; };
+  const dayAvg = (n, k) => { const ws = A.weeks.filter(w => w !== W0 && slIt(w).some(x => x.d[k] != null)); if (!ws.length) return null;
+    return ws.reduce((s, w) => { const x = slIt(w).find(y => y.n === n); return s + (x && x.d[k] ? x.d[k] : 0); }, 0) / ws.length; };
   const tops = ['בקר', 'כבש', 'עוף', 'הודו', 'אחר'];
   const inTop = (r, t) => SL_TOP(r.g) === t || (t === 'אחר' && !['בקר', 'כבש', 'עוף', 'הודו'].includes(SL_TOP(r.g)));
   const tot = t => rows.filter(r => inTop(r, t)).reduce((s, r) => s + val(r.it.d, daysOf), 0);
@@ -4121,7 +4208,9 @@ function slRenderSales() {
   const built = mine.map(r => Object.assign(html(r), { g: r.g })).sort((a, b) => b.now - a.now);
   const cheap = mine.filter(r => slDiscounted(r.it)).map(r => ({ n: r.it.n, kg: val(r.it.d, daysOf) })).filter(x => x.kg > 0);
   const cheapNote = cheap.length ? `<div class="sl-warn">⚠️ ${slSview === 'day' ? 'ביום ' + SL_DN[slSday] : slSview === 'week' ? 'השבוע' : 'עד יום ' + SL_DN[slSday]} נמכרו ${cheap.map(x => `<b>${r1(x.kg)} ק״ג ${esc(x.n)}</b>`).join(', ')}. כנראה הוכן יותר מדי. המוזל לא נספר בהמלצת ההזמנה.</div>` : '';
-  document.getElementById('slSitems').innerHTML = cheapNote + (slCat === 'בקר'
+  const cvIn = slConvs().filter(c => weekStartOf(c.d) === W0 && daysOf.includes(slConvDay(c.d)) && slConvState(c) === 'ok' && mine.some(r => r.it.n === c.from || r.it.n === c.to));
+  const cvNote = cvIn.length ? `<div class="sl-cvnote">🔄 כולל המרות: ${cvIn.map(c => `${r1(c.kg)} ק״ג <b>${esc(c.from)}</b> שנרשמו כ${esc(c.to)}`).join(' · ')}</div>` : '';
+  document.getElementById('slSitems').innerHTML = cheapNote + cvNote + (slCat === 'בקר'
     ? SL_SUBS.concat(['אחר']).map(sb => { const r = built.filter(x => sb === 'אחר' ? !SL_SUBS.includes(x.g) : x.g === sb); return r.length ? `<div class="shead">${sb} · ${Math.round(r.reduce((a, x) => a + x.now, 0))} ק״ג</div>` + r.map(x => x.h).join('') : ''; }).join('')
     : built.map(x => x.h).join(''));
   const [c, t] = chg(T, TP);
@@ -4269,7 +4358,7 @@ function slRow(x, c, val, M, poultry) {
 function slRenderMap() {
   const el = document.getElementById('slMap'); if (!el) return;
   const keys = slWeekKeys().slice(-4), seen = {};
-  keys.forEach(w => slWeeks[w].items.forEach(it => { seen[it.n] = it; }));
+  keys.forEach(w => slIt(w).forEach(it => { seen[it.n] = it; }));
   const items = Object.values(seen).sort((a, b) => a.n.localeCompare(b.n, 'he'));
   document.getElementById('slMapBtn').hidden = !items.length;
   el.hidden = !slMapOpen || !items.length; if (el.hidden) return;
