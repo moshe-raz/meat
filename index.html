@@ -697,7 +697,20 @@ button.btn.danger { background: #fff !important; color: #c62828; border: 1px sol
 .bl-det { display: none; border-top: 1px dashed var(--line); background: #fdfbf9; }
 .bl-item.open .bl-det { display: block; }
 .bl-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px 12px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+.mgr-add { border: 0; background: #2e7d32; color: #fff; border-radius: 999px; padding: 10px 16px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+.bl-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bl-head .mgr-add { margin-inline-start: auto; }
+.ab-rows { display: grid; gap: 8px; margin: 10px 0; }
+.ab-row { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 6px; align-items: center; }
+.ab-row input { font: inherit; font-size: 15px; padding: 10px; border: 1px solid #cfd8dc; border-radius: 10px; min-width: 0; }
+.ab-row .ab-x { border: 0; background: none; font-size: 20px; color: #90a4ae; cursor: pointer; }
+.ab-lbl { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 6px; font-size: 12.5px; color: #607d8b; }
+.ab-more { border: 1px dashed #b0bec5; background: #fff; border-radius: 10px; padding: 9px; font: inherit; font-size: 14px; cursor: pointer; color: #37474f; }
 .ab-err { color: #c62828; font-size: 13.5px; min-height: 18px; }
+.ab-done { display: grid; gap: 8px; margin: 10px 0; }
+.ab-done div { display: flex; align-items: center; gap: 8px; justify-content: space-between; background: #f1f8e9; border-radius: 10px; padding: 8px 10px; font-size: 14.5px; }
+.ab-done div.skip { background: #fff3e0; }
+.dept-edit { border: 0; background: none; cursor: pointer; font-size: 14px; padding: 2px 6px; color: #1565c0; font-family: inherit; text-decoration: underline; }
 .bl-go { border: 0; background: var(--pri); color: #fff; border-radius: 999px; padding: 11px 18px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 #okToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 h1 { position: relative; }
@@ -2150,6 +2163,13 @@ let invDone = {}; // month -> { by, at, total, missing, url, updated, pending }
 try { invDone = JSON.parse(localStorage.getItem('invDone') || '{}') || {}; } catch (e) {}
 function persistDone() { if (mgrMode) return; try { localStorage.setItem('invDone', JSON.stringify(invDone)); } catch (e) { storageWarn(e); } }
 const nameKey = s => cleanKey(s).replace(/\s+/g, ' ');
+// the department manager's name set by the area manager (tab "סניפים" in the sheet) replaces the one on the phone
+function applyDeptManager(n) {
+  n = String(n || '').replace(/\s+/g, ' ').trim(); if (!n) return;
+  const was = branch.fixedMgr;
+  branch.fixedMgr = true;
+  if (n !== branch.manager || !was) { branch.manager = n; try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch (e) {} try { renderBranch(); renderWorker(); renderInvDone(); } catch (e) {} }
+}
 function isDeptManager() { const m = nameKey(branch.manager); return !!m && nameKey(worker) === m; }
 function doneWhen(at) { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); }
 function monthLabel(m) { return ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][+m.slice(5) - 1] + ' ' + m.slice(0, 4); }
@@ -2630,6 +2650,8 @@ function openBranch(first, focusWorker) {
   const cur = document.querySelector('.page.active'); returnPage = cur && cur.id !== 'page-mgr' ? cur.id.replace('page-', '') : 'weigh';
   document.getElementById('brName').value = branch.name;
   document.getElementById('brManager').value = branch.manager;
+  document.getElementById('brManager').readOnly = !!branch.fixedMgr;
+  document.getElementById('brManager').title = branch.fixedMgr ? 'מנהל האזור קובע את השם' : '';
   document.getElementById('brArea').value = branch.area;
   document.getElementById('brUrl').value = branch.url || '';
   document.getElementById('brKey').value = branch.key || '';
@@ -2719,6 +2741,7 @@ async function showJoin(j, canRotate) {
   try { const qrcode = await loadQrLib(); const q = qrcode(0, 'M'); q.addData(url); q.make(); document.getElementById('jdQr').innerHTML = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); }
   catch (e) { document.getElementById('jdQr').textContent = 'אין חיבור לאינטרנט להצגת הקוד · אפשר לשלוח את הקישור'; }
 }
+// ---------- adding branches / the department manager's name (area manager) ----------
 function mgrDlg(html) {
   let box = document.getElementById('joinDlg');
   if (!box) { box = document.createElement('div'); box.id = 'joinDlg'; box.className = 'join-dlg'; document.body.appendChild(box); }
@@ -2726,6 +2749,76 @@ function mgrDlg(html) {
   box.hidden = false; box.onclick = e => { if (e.target === box) box.hidden = true; };
   return box;
 }
+async function mgrPost(body) {
+  let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch (e) {}
+  const r = await fetch(info.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ mcode: info.code }, body)) });
+  return Object.assign(JSON.parse(await r.text()), { url: info.url });
+}
+const MGR_ERR = { 'read only': 'לעוזר יש הרשאת צפייה בלבד', 'no branch': 'הסניף הזה לא ברשימת הסניפים שלך', 'busy': 'הגיליון עסוק · נסו שוב בעוד רגע', 'bad name': 'שם לא תקין · בלי קישורים ובלי תווים מיוחדים, עד 40 תווים', 'empty': 'צריך לכתוב לפחות שם סניף אחד' };
+const badName = v => !!v && (v.length > 40 || /https?:|script\.google|\.com\b|\/\/|[<>=]/i.test(v));
+function mgrAddOpen() {
+  if (mgr && mgr.canEdit === false) { alert('לעוזר יש הרשאת צפייה בלבד'); return; }
+  const row = () => `<div class="ab-row"><input type="text" class="ab-n" placeholder="למשל אשקלון" autocomplete="off"><input type="text" class="ab-m" placeholder="אפשר גם אחר כך" autocomplete="off"><button type="button" class="ab-x" aria-label="הסרה" onclick="this.parentNode.remove()">✕</button></div>`;
+  const box = mgrDlg(`<h3>➕ סניפים חדשים</h3>
+    <p>אחרי השמירה כל סניף מקבל קישור / QR למנהל המחלקה, והוא מחבר את העובדים שלו.</p>
+    <div class="ab-lbl"><span>שם הסניף</span><span>שם מנהל המחלקה</span><span></span></div>
+    <div class="ab-rows" id="abRows">${row()}</div>
+    <button type="button" class="ab-more" id="abMore">+ עוד סניף</button>
+    <div class="ab-err" id="abErr"></div>
+    <div class="jd-btns"><button type="button" class="btn" id="abSave" style="background:#2e7d32">שמירה</button><button type="button" class="btn jd-close" id="abClose">ביטול</button></div>`);
+  document.getElementById('abMore').onclick = () => { document.getElementById('abRows').insertAdjacentHTML('beforeend', row()); const n = document.querySelectorAll('#abRows .ab-n'); n[n.length - 1].focus(); };
+  document.getElementById('abClose').onclick = () => { box.hidden = true; };
+  document.getElementById('abSave').onclick = mgrAddSave;
+  setTimeout(() => { const f = box.querySelector('.ab-n'); if (f) f.focus(); }, 50);
+}
+async function mgrAddSave() {
+  const err = document.getElementById('abErr'), btn = document.getElementById('abSave');
+  const list = [...document.querySelectorAll('#abRows .ab-row')].map(r => ({ name: r.querySelector('.ab-n').value.replace(/\s+/g, ' ').trim(), dept: r.querySelector('.ab-m').value.replace(/\s+/g, ' ').trim() })).filter(x => x.name);
+  if (!list.length) { err.textContent = MGR_ERR.empty; return; }
+  if (list.some(x => badName(x.name) || badName(x.dept))) { err.textContent = MGR_ERR['bad name']; return; }
+  const dup = list.find((x, i) => list.findIndex(y => y.name === x.name) !== i); if (dup) { err.textContent = `"${dup.name}" כתוב פעמיים`; return; }
+  const have = list.filter(x => mgr.branches.some(b => b.name === x.name));
+  if (have.length === list.length) { err.textContent = (have.length > 1 ? 'כל הסניפים האלה כבר' : `"${have[0].name}" כבר`) + ' ברשימה שלך'; return; }
+  btn.disabled = true; btn.textContent = 'שומר…'; err.textContent = '';
+  try {
+    const d = await mgrPost({ mode: 'mgrAddBranch', list });
+    if (!d.ok) throw new Error(d.error);
+    const added = d.added || [], skipped = d.skipped || [];
+    window.__abLinks = added.map(a => ({ url: d.url, key: a.key, name: a.name, manager: a.manager, area: a.area }));
+    mgrDlg(`<h3>✓ ${added.length === 1 ? 'הסניף נוסף' : 'נוספו ' + added.length + ' סניפים'}</h3>
+      <p>שולחים לכל מנהל מחלקה את הקישור / QR של הסניף שלו.</p>
+      <div class="ab-done">${added.map((a, i) => `<div><span><b>${esc(a.name)}</b>${a.manager ? ' · ' + esc(a.manager) : ''}</span><button type="button" class="btn" onclick="showJoin(__abLinks[${i}], true)">📱 קישור</button></div>`).join('')}
+      ${skipped.map(x => `<div class="skip"><span><b>${esc(x.name)}</b> לא נוסף: ${x.by ? 'הוא כבר אצל ' + esc(x.by) : 'כבר ברשימה שלך'}</span></div>`).join('')}</div>
+      <button type="button" class="btn jd-close" onclick="document.getElementById('joinDlg').hidden = true">סגירה</button>`);
+    mgrRefresh();
+  } catch (e) { btn.disabled = false; btn.textContent = 'שמירה'; err.textContent = MGR_ERR[e.message] || 'לא הצלחתי לשמור בגיליון. בדקו את החיבור לאינטרנט ונסו שוב.'; }
+}
+function mgrDeptOpen(name) {
+  if (mgr && mgr.canEdit === false) { alert('לעוזר יש הרשאת צפייה בלבד'); return; }
+  const b = mgr.branches.find(x => x.name === name) || {};
+  const box = mgrDlg(`<h3>מנהל המחלקה · ${esc(name)}</h3>
+    <p>הוא היחיד שיכול לסיים ספירת מלאי. השם מתעדכן לבד בכל הטלפונים של הסניף.<br>העובד צריך לרשום בטלפון בדיוק את אותו שם.</p>
+    <input type="text" id="dmName" value="${esc(b.manager || '')}" placeholder="שם מנהל המחלקה" autocomplete="off" style="font:inherit;font-size:16px;padding:11px;border:1px solid #cfd8dc;border-radius:10px;width:100%;box-sizing:border-box">
+    <div class="ab-err" id="dmErr"></div>
+    <div class="jd-btns"><button type="button" class="btn" id="dmSave" style="background:#2e7d32">שמירה</button><button type="button" class="btn jd-close" id="dmClose">ביטול</button></div>`);
+  document.getElementById('dmClose').onclick = () => { box.hidden = true; };
+  document.getElementById('dmSave').onclick = async () => {
+    const v = document.getElementById('dmName').value.replace(/\s+/g, ' ').trim(), err = document.getElementById('dmErr'), btn = document.getElementById('dmSave');
+    if (!v) { err.textContent = 'צריך לכתוב שם'; return; }
+    if (badName(v)) { err.textContent = MGR_ERR['bad name']; return; }
+    btn.disabled = true; btn.textContent = 'שומר…';
+    try {
+      const d = await mgrPost({ mode: 'mgrDept', branch: name, dept: v });
+      if (!d.ok) throw new Error(d.error);
+      b.manager = d.manager || v; try { mgrSaveCopy(mgr); } catch (e) {}
+      box.hidden = true; renderMgr(); if (mgrBranch === name) document.getElementById('mgrBranchMgr').innerHTML = 'מנהל מחלקה: ' + esc(b.manager) + ` <button type="button" class="dept-edit" onclick="mgrDeptOpen(mgrBranch)">✏️ שינוי</button>`;
+      if (mgrView && mgrView.name === name) mgrView.manager = b.manager;
+      showOk('✓ מנהל המחלקה של ' + name + ': ' + b.manager);
+    } catch (e) { btn.disabled = false; btn.textContent = 'שמירה'; err.textContent = MGR_ERR[e.message] || 'לא הצלחתי לשמור בגיליון. בדקו את החיבור לאינטרנט ונסו שוב.'; }
+  };
+  setTimeout(() => { const f = document.getElementById('dmName'); if (f) { f.focus(); f.select(); } }, 50);
+}
+
 async function mgrJoinLink(rotate) {
   if (mgr && mgr.canEdit === false) { alert('לעוזר יש הרשאת צפייה בלבד'); return; }
   let info = {}; try { info = JSON.parse(localStorage.getItem('mgrInfo') || '{}'); } catch (e) {}
@@ -2766,7 +2859,7 @@ function saveBranch() {
     worker = document.getElementById('brWorker').value.trim(); try { localStorage.setItem('workerName', worker); } catch (e) {}
     applyJoin(j); closeBranch(); return; }
   if (branch.bkey) { // joined by link: only the names change here
-    branch.manager = document.getElementById('brManager').value.trim(); branch.area = document.getElementById('brArea').value.trim();
+    if (!branch.fixedMgr) branch.manager = document.getElementById('brManager').value.trim(); branch.area = document.getElementById('brArea').value.trim();
     try { localStorage.setItem('branchInfo', JSON.stringify(branch)); } catch(e) { storageWarn(e); }
     worker = document.getElementById('brWorker').value.trim(); try { localStorage.setItem('workerName', worker); } catch(e) { storageWarn(e); }
     renderWorker(); renderHistory(); renderBranch(); closeBranch(); return;
@@ -3056,16 +3149,16 @@ function renderMgr() {
         ${PK.map(k => `<span>${pname[k]}</span>${cell(k, 'w')}${cell(k, 'm')}`).join('')}</div>
         ${r.extra.length ? `<div class="bl-extra">${r.extra.map(x => `${esc(per[x.p])}: ${pname[x.k]} <span class="pill ${x.j.cls}">${x.j.text}</span>`).join('<br>')}</div>` : ''}
         ${hasPr ? `<div class="br-money">💰 פחת: השבוע <b>${nis(r.nisW)}</b> · החודש <b>${nis(r.nisM)}</b></div>` : ''}${invLine(b)}
-        <div class="bl-foot">${b.manager ? `<span>מנהל מחלקה: ${esc(b.manager)}</span>` : '<span></span>'}<button type="button" class="bl-go" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">לכל הפרטים ←</button></div>
+        <div class="bl-foot">${b.manager ? `<span>מנהל מחלקה: ${esc(b.manager)}${mgr.canEdit !== false ? ` <button type="button" class="dept-edit" onclick="mgrDeptOpen(mgr.branches[${i}].name)">שינוי</button>` : ''}</span>` : (mgr.canEdit !== false ? `<span><button type="button" class="dept-edit" onclick="mgrDeptOpen(mgr.branches[${i}].name)">➕ שם מנהל מחלקה</button></span>` : '<span></span>')}<button type="button" class="bl-go" onclick="mgrOpenAt(${i}, ${end ? `'${end}'` : 'null'})">לכל הפרטים ←</button></div>
       </div></div>`;
   };
   const chip = (f, label) => (f === 'all' || cnt[f]) ? `<button type="button" class="${mgrFilter === f ? 'on' : ''}" onclick="mgrFilter='${f}';renderMgr()">${label} <b>${cnt[f]}</b></button>` : '';
   const shown = rows.filter(r => mgrFilter === 'all' || r.st === mgrFilter);
   document.getElementById('mgrList').innerHTML = rows.length
-    ? `<div class="bl-head"><h3>הסניפים שלך</h3><small>הכי חמור למעלה · לחיצה פותחת</small></div>
+    ? `<div class="bl-head"><h3>הסניפים שלך</h3><small>הכי חמור למעלה · לחיצה פותחת</small>${mgr.canEdit !== false ? '<button type="button" class="mgr-add" onclick="mgrAddOpen()">➕ סניף חדש</button>' : ''}</div>
       <div class="bl-filter"${rows.length < 4 ? ' hidden' : ''}>${chip('all', 'הכול')}${chip('bad', '🔴 חשד')}${chip('warn', '🟡 לבדוק')}${chip('ok', '✓ תקין')}${chip('none', 'אין נתונים')}</div>
       <div class="bl-list">${shown.map(rowHtml).join('')}</div>`
-    : '<div class="controls">אין סניפים משויכים אליך · בקש מהחברה להוסיף אותם בלשונית "מנהלי אזור"</div>';
+    : `<div class="controls">אין עדיין סניפים ברשימה שלך${mgr.canEdit !== false ? '<br><br><button type="button" class="mgr-add" onclick="mgrAddOpen()">➕ סניף חדש</button>' : ''}</div>`;
   // judging every branch left the last one's loss % in force: back to the branch that is open
   const ob = mgr.branches.find(x => x.name === mgrBranch); if (ob) useSettings(ob.settings || mgr.settings);
 }
@@ -3247,7 +3340,7 @@ function mgrOpen(name, date, stay) {
   invDone = {}; (b.done || []).forEach(s => { invDone[s.month] = { by: s.by, at: s.at, total: Number(s.total) || 0, missing: Number(s.missing) || 0, url: s.url || '', updated: s.updated || '' }; });
   mgrView = { name: b.name, manager: b.manager, area: mgr.name }; // for the Excel files (the phone's own branch details stay as they are)
   document.getElementById('mgrBranchSel').value = name;
-  document.getElementById('mgrBranchMgr').textContent = b.manager ? 'מנהל מחלקה: ' + b.manager : '';
+  document.getElementById('mgrBranchMgr').innerHTML = (b.manager ? 'מנהל מחלקה: ' + esc(b.manager) : '') + (mgr.canEdit !== false ? ` <button type="button" class="dept-edit" onclick="mgrDeptOpen(mgrBranch)">${b.manager ? '✏️ שינוי' : '➕ שם מנהל מחלקה'}</button>` : '');
   const lastClose = history.filter(h => h.type === 'סגירה').map(h => h.date).sort().pop();
   if (date || !stay) { document.getElementById('dateInput').value = date || lastClose || ymd(new Date()); autoDate = false; }
   selectedProduct = null;
@@ -3337,6 +3430,7 @@ async function syncNow() {
       syncQueue.splice(0, batch.length); saveQueue();
       if (mgrMode) break; // switched to area-manager screens while waiting: keep his screens clean
       if (data.settings) applySheetSettings(data.settings);
+      if (data.deptManager) applyDeptManager(data.deptManager);
       if (last && Array.isArray(data.entries)) { mergeRemote(data.entries, data.since); lastPull = new Date(); forcePull = false; }
       if (last && Array.isArray(data.inv)) mergeRemoteInv(data.inv, data.invSince);
       if (last && Array.isArray(data.done)) mergeDone(data.done);
