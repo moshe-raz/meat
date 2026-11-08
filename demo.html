@@ -3534,15 +3534,20 @@ function slGuessWeek(reported) {
 // ---------- products ----------
 // beef is ordered by these names; the report's items are matched to them by name (and can be fixed by hand)
 const SL_BEEF = [
-  ['סטייקים', ['אנטריקוט', 'סינטה', 'סטייק עין', 'דנוור', 'שפיץ צאך', 'שייטל', 'פילה בקר', 'צלעות פרמיום', 'איירון פלאט']],
-  ['קדירה', ['צלי כתף', 'פילה מדומה', 'כתף בקר', 'שריר', 'בשר ראש', 'אסאדו ע.ע', 'אוסובוקו ע.ע', 'שפונדרה', 'אצבעות אנטריקוט']],
-  ['טחינה', ['בשר לטחינה', 'מכסה הסטייק', 'צלעות לטחינה', 'חזה בקר', 'מכסה הצלע']]];
+  ['סטייקים', ['אנטריקוט', 'סינטה', 'סטייק עין', 'רוסטביף', 'דנוור', 'שפיץ צאך', 'שייטל', 'פילה בקר', 'צלעות פרמיום', 'איירון פלאט']],
+  ['קדירה', ['צלי כתף', 'פילה מדומה', 'כתף בקר', 'שריר', 'בשר ראש', 'אסאדו ע.ע', 'אוסובוקו ע.ע', 'שפונדרה', 'אצבעות אנטריקוט', 'חזה בקר']],
+  ['טחינה', ['בשר לטחינה', 'מכסה הסטייק', 'צלעות לטחינה', 'מכסה הצלע']]];
 const SL_SUBS = SL_BEEF.map(g => g[0]);
 const SL_CANON = { 'חזה עוף': 'עוף', 'חזה הודו': 'הודו' };   // products that collect several report items
-const SL_RULES = [[/אונטריב/, 'אונטריב'], [/רוסט?ביף/, 'סטייק עין'], // roast beef is ordered together with rib-eye steak
+const SL_RULES = [[/אונטריב/, 'אונטריב'], [/רוסט?ביף/, 'רוסטביף'], // roast beef is its own product (not ordered with rib-eye steak)
   [/סטייק\s*צלעות|חטיפי\s*אסאדו/, 'צלעות פרמיום'],
   [/דנוור/, 'דנוור'], [/מכסה\s*ה?סטייק/, 'מכסה הסטייק'],
   [/מכסה\s*ה?צלע/, 'מכסה הצלע'], [/צלעות\s*לטחינה/, 'צלעות לטחינה'], [/אצבעות/, 'אצבעות אנטריקוט'], [/שפונדרה/, 'שפונדרה'],
+  // a third value is the group the item shows under in the sales list, when it isn't its product's group.
+  // iron from a גוסא shoulder can't be ordered: it is cut from צלי כתף, so it is ordered as צלי כתף (sold with the steaks)
+  [/איירון.*גוסא|גוסא.*איירון/, 'צלי כתף', 'סטייקים'],
+  // "שניצל עגל מסינטה" is made from beef shoulder, whatever the name says (sold with the steaks)
+  [/שניצל.*(עגל|בקר)|(עגל|בקר).*שניצל/, 'כתף בקר', 'סטייקים'],
   [/איירון\s*פלאט|איירון\s*פידלוט/, 'איירון פלאט'],
   [/אנטריקוט.*גוסא|גוסא.*אנטריקוט/, 'אנטריקוט'], [/סינטה.*גוסא|גוסא.*סינטה/, 'סינטה'],
   [/אנטריקוט/, 'אנטריקוט'], [/סינטה/, 'סינטה'], [/סטייק\s*עין|^עין\b/, 'סטייק עין'],
@@ -3552,6 +3557,7 @@ const SL_RULES = [[/אונטריב/, 'אונטריב'], [/רוסט?ביף/, 'ס�
   [/טחון|לטחינה|המבורגר/, 'בשר לטחינה']];
 const slIsLamb = it => /כבש|טלה/.test(it.n) || it.dept === '5';
 const slPoultry = it => {
+  if (/עגל|בקר/.test(it.n)) return null; // veal or beef is never poultry, even a "שניצל"
   if (/הודו/.test(it.n)) return 'הודו';
   if (/שוק\s*מפורק\s*טרי|שווארמה\s*נקבה\s*טרי/.test(it.n)) return 'הודו';
   if (/עוף|פרגי|שניצל|כנפ|כרעיים|שוקיים|ירכי|קורקבן|חזה\s*ע|רצועות\s*חזה/.test(it.n)) return 'עוף';
@@ -3589,7 +3595,7 @@ function slProductOf(it) {
   // exclude turkey shawarma strips - only female shawarma is orderable
   if (pg === 'הודו' && /רצועות\s*(שווארמה|שווראמה)/.test(it.n)) return { p: 'שווארמה נקבה טרי', g: 'הודו' }; // made from female shawarma
   if (pg) return { p: it.n, g: pg };
-  for (const [re, p] of SL_RULES) if (re.test(it.n)) { if (!p) return null; const g = SL_BEEF.find(x => x[1].includes(p)); return { p, g: g ? g[0] : 'קדירה' }; }
+  for (const [re, p, shown] of SL_RULES) if (re.test(it.n)) { if (!p) return null; const g = SL_BEEF.find(x => x[1].includes(p)); return { p, g: shown || (g ? g[0] : 'קדירה') }; }
   return null;
 }
 const SL_TOP = g => SL_SUBS.includes(g) ? 'בקר' : g;
@@ -3608,7 +3614,8 @@ function slRepDays(weeks) {
 function slByProduct(weeks) {
   const out = {};
   weeks.forEach(w => (slWeeks[w].items || []).forEach(it => { const m = slProductOf(it); if (!m) return;
-    const o = out[m.p] = out[m.p] || { g: m.g, d: {} }; o.d[w] = o.d[w] || [0, 0, 0, 0, 0, 0];
+    const pg = SL_BEEF.find(x => x[1].includes(m.p));
+    const o = out[m.p] = out[m.p] || { g: pg ? pg[0] : m.g, d: {} }; o.d[w] = o.d[w] || [0, 0, 0, 0, 0, 0];
     it.d.forEach((v, k) => { if (v != null) o.d[w][k] += v; }); }));
   return out;
 }
@@ -3690,7 +3697,7 @@ function slModel() {
 }
 // what is on the shelf: typed in on this screen, or for entrecote / shoulder the latest close from the weighings
 function slStockOf(p, stock, avg, sundayKg) {
-  const s = stock[p], key = { 'אנטריקוט': 'entrecote', 'צלי כתף': 'shoulder', 'סטייק עין': 'eye' }[p];
+  const s = stock[p], key = { 'אנטריקוט': 'entrecote', 'צלי כתף': 'shoulder', 'סטייק עין': 'eye', 'רוסטביף': 'oven' }[p]; // roast beef is weighed as אנטריקוט לתנור
   let fromClose = null;
   let dd = null;
   if (key) { try { dd = buildDays()[key] || {}; const last = Object.keys(dd).filter(d => dd[d].hasClose).sort().pop();
@@ -3820,12 +3827,26 @@ function slRenderLearn(A) {
     <div class="sl-dots">${SL_WD.map((w, k) => `<div class="${A.days[k] ? 'ok' : ''}"><i>${A.days[k] ? '✓' : ''}</i>${w}</div>`).join('')}</div></div>`;
 }
 // ---- upload
+// A CSV is turned into text first. Given raw bytes, XLSX.read guesses the encoding, and a Hebrew UTF-8 file without
+// a BOM comes out as gibberish, so the columns aren't found. UTF-8 first; bytes that aren't valid UTF-8 are Hebrew
+// Windows (1255), which is what Excel on a Hebrew computer saves as "CSV". raw: the values stay as text, so a date
+// like 01/11/2026 isn't turned into January 11 (slNum and slFindWeek read the text themselves).
+async function slReadBook(f) {
+  const buf = await f.arrayBuffer(), b = new Uint8Array(buf);
+  const csv = /\.csv$/i.test(f.name || '') || /csv/i.test(f.type || '');
+  const zip = b[0] === 0x50 && b[1] === 0x4B; // an Excel file renamed to .csv is still read as Excel
+  if (!csv || zip) return XLSX.read(buf, { type: 'array', cellDates: true });
+  let text;
+  try { text = new TextDecoder('utf-8', { fatal: true }).decode(b); }
+  catch (e) { text = new TextDecoder('windows-1255').decode(b); }
+  return XLSX.read(text.replace(/^\uFEFF/, ''), { type: 'string', raw: true });
+}
 async function slFile(input) {
   const f = input.files && input.files[0]; input.value = '';
   if (!f) return;
   if (typeof XLSX === 'undefined') { alert('לקריאת אקסל צריך אינטרנט בפעם הראשונה. נסו שוב כשיש חיבור.'); return; }
   try {
-    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+    const wb = await slReadBook(f);
     let res = null;
     for (const name of wb.SheetNames) { const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: '' }); const r = slParse(rows, f.name); if (!r.error) { res = r; break; } res = res || r; }
     if (res.error) { alert(res.error); return; }
