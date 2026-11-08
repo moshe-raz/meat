@@ -3780,6 +3780,8 @@ function slIt(w) {
 }
 function slConvOpen() {
   const names = mcReportItems(), today = ymd(new Date());
+  // only the last 7 days: a conversion is written while it is fresh, and older sales stay as they were
+  const minDay = (() => { const x = new Date(); x.setDate(x.getDate() - 7); return ymd(x); })();
   const list = slConvs().filter(c => c.d >= slAddDays(slSun(new Date()), -56));
   const stTxt = { ok: '', wait: 'ממתין לדוח של היום הזה', missing: 'בדוח של היום הזה אין מכר של המוצר שנרשם בקופה' };
   const box = mgrDlg(`<h3>🔄 המרות</h3>
@@ -3787,7 +3789,7 @@ function slConvOpen() {
     <div class="cv-form">
       <label>מה נמכר בפועל<input type="text" id="cvFrom" list="cvNames" placeholder="למשל קוקטייל" autocomplete="off"></label>
       <label>איך זה נרשם בקופה<input type="text" id="cvTo" list="cvNames" placeholder="למשל שוקיים" autocomplete="off"></label>
-      <label>באיזה יום<input type="date" id="cvDate" value="${today}" max="${today}"></label>
+      <label>באיזה יום (עד 7 ימים אחורה)<input type="date" id="cvDate" value="${today}" min="${minDay}" max="${today}"></label>
       <label>משקל (ק״ג) · כל משקל מתווסף, עד "סיימתי"<span class="cv-add"><input type="text" id="cvKg" inputmode="decimal" placeholder="למשל 12.5" enterkeyhint="done"><button type="button" id="cvPlus">➕ הוסף</button></span></label>
       <div class="cv-parts" id="cvParts"></div>
       <datalist id="cvNames">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
@@ -3795,7 +3797,7 @@ function slConvOpen() {
     <div class="ab-err" id="cvErr"></div>
     <div class="jd-btns"><button type="button" class="btn" id="cvSave" style="background:#2e7d32">✓ סיימתי</button><button type="button" class="btn jd-close" id="cvClose">סגירה</button></div>
     ${list.length ? `<h4 style="margin:14px 0 4px">המרות אחרונות</h4><div class="cv-list">${list.map(c => { const st = slConvState(c);
-      return `<div class="cv-item${st !== 'ok' ? ' wait' : ''}"><span><b>${r1(c.kg)} ק״ג ${esc(c.from)}</b> בתור ${esc(c.to)}<small>${SL_DN[slConvDay(c.d)] ? 'יום ' + SL_DN[slConvDay(c.d)] + ' ' : ''}${dm(c.d)}${c.by ? ' · ' + esc(c.by) : ''}${stTxt[st] ? ' · ' + stTxt[st] : ''}</small></span><button type="button" aria-label="מחיקה" onclick="slConvDel('${c.id}')">✕</button></div>`; }).join('')}</div>` : ''}`);
+      return `<div class="cv-item${st !== 'ok' ? ' wait' : ''}"><span><b>${r1(c.kg)} ק״ג ${esc(c.from)}</b> בתור ${esc(c.to)}<small>${SL_DN[slConvDay(c.d)] ? 'יום ' + SL_DN[slConvDay(c.d)] + ' ' : ''}${dm(c.d)}${c.by ? ' · ' + esc(c.by) : ''}${stTxt[st] ? ' · ' + stTxt[st] : ''}</small></span>${c.d >= minDay ? `<button type="button" aria-label="מחיקה" onclick="slConvDel('${c.id}')">✕</button>` : ''}</div>`; }).join('')}</div>` : ''}`);
   document.getElementById('cvClose').onclick = () => { box.hidden = true; };
   // the weights add up, like in the weighing: a number (or a few with spaces), ➕ / Enter, and again
   const parts = [], kgIn = document.getElementById('cvKg');
@@ -3832,6 +3834,7 @@ function slConvOpen() {
     if (!(kg > 0)) { err.textContent = 'צריך להוסיף משקל'; return; }
     if (kg > 3000) { err.textContent = 'יותר מ־3,000 ק״ג? בדקו את המשקלים'; return; }
     if (!d || d > today) { err.textContent = 'צריך לבחור יום, לא בעתיד'; return; }
+    if (d < minDay) { err.textContent = 'אפשר להמיר רק עד 7 ימים אחורה'; return; }
     if (slConvDay(d) === 6) { err.textContent = 'בשבת אין דוח מכר'; return; }
     // the day is already in the report: no more than what was rung up as that item (less what other conversions took)
     const wk = slWeeks[weekStartOf(d)], k = slConvDay(d), rawTo = wk && (wk.items || []).find(x => x.n === to);
