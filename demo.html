@@ -3722,6 +3722,8 @@ function slProductOf(it) {
   if (pg === 'עוף' && /פרגיות/.test(it.n)) return { p: 'ירך ללא עצם', g: 'עוף' };
   // כנפית / שוקית are sometimes cut from the wings → ordered as wings
   if (pg === 'עוף' && /כנפית|שוקית/.test(it.n)) return { p: 'כנפיים עוף טרי', g: 'עוף' };
+  // red (ground) turkey is made from female turkey: the boneless leg, ordered as שוק מפורק טרי
+  if (pg === 'הודו' && /אדום/.test(it.n)) return { p: 'שוק מפורק טרי', g: 'הודו' };
   // ground turkey is made from turkey breast / turkey pieces
   if (pg === 'הודו' && /חזה|טחון/.test(it.n)) return { p: 'חזה הודו', g: 'הודו' };
   // specific turkey items that don't contain the word הודו
