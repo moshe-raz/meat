@@ -1897,15 +1897,60 @@ function waText(sel) {
     if (t.hasClose) tot += t.close; else missing++;
   });
   if (!any) return null;
-  lines.push('', '📦 *נשאר בכללי: ' + f2(tot) + ' ק״ג*' + (missing ? ' (בלי ' + missing + ' שעוד לא נשקלו)' : ''));
   return lines.join('\n');
 }
-function sendWhatsApp() {
+// the day as a picture of a table, like the paper sheet: product · preps · left (close), and a total row
+function waRows(sel) {
+  const days = buildDays(), rows = []; let tot = 0, missing = 0;
+  cardDefs.forEach(([k, n]) => {
+    const t = days[k][sel]; if (!t || (!t.prep && !t.hasClose)) return;
+    rows.push([n, f2(t.prep), t.hasClose ? f2(t.close) : 'לא נשקל']);
+    if (t.hasClose) tot += t.close; else missing++;
+  });
+  return rows.length ? { rows, tot, missing } : null;
+}
+function waImage(sel, d) {
+  const bi = shownBranch(), W = 1080, pad = 48, rowH = 112, headH = 200, colH = 96;
+  const H = headH + colH + rowH * d.rows.length + pad;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'); x.direction = 'rtl'; x.textBaseline = 'middle';
+  const F = (w, z) => w + ' ' + z + 'px "Segoe UI", Arial, sans-serif';
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#7a1f24'; x.fillRect(0, 0, W, headH - 24);
+  x.fillStyle = '#fff'; x.textAlign = 'center';
+  x.font = F(800, 58); x.fillText(bi.name || 'שקילות', W / 2, 66);
+  x.font = F(500, 40); x.fillText('יום ' + shortDate(sel), W / 2, 130);
+  // columns (right to left): product · preps · left
+  const cols = [[W - pad, 'right', 'מוצר'], [440, 'center', 'הכנות'], [180, 'center', 'נשאר']];
+  let y = headH;
+  x.fillStyle = '#f3ece6'; x.fillRect(pad, y, W - 2 * pad, colH);
+  x.fillStyle = '#5b4a40'; x.font = F(700, 40);
+  cols.forEach(([cx, al, t]) => { x.textAlign = al; x.fillText(t, al === 'right' ? cx - 24 : cx, y + colH / 2); });
+  y += colH;
+  d.rows.forEach((r, i) => {
+    if (i % 2) { x.fillStyle = '#faf7f4'; x.fillRect(pad, y, W - 2 * pad, rowH); }
+    x.fillStyle = '#2b211c';
+    r.forEach((v, j) => { const [cx, al] = cols[j]; x.textAlign = al; x.font = j ? F(700, v === 'לא נשקל' ? 34 : 48) : F(600, 44); if (v === 'לא נשקל') x.fillStyle = '#b26b00'; x.fillText(v, al === 'right' ? cx - 24 : cx, y + rowH / 2); x.fillStyle = '#2b211c'; });
+    x.strokeStyle = '#e4dad2'; x.lineWidth = 2; x.beginPath(); x.moveTo(pad, y + rowH); x.lineTo(W - pad, y + rowH); x.stroke();
+    y += rowH;
+  });
+  return c;
+}
+async function sendWhatsApp() {
   const sel = document.getElementById('dateInput').value;
   if (!sel) { alert('בחרו יום'); return; }
+  const d = waRows(sel);
+  if (!d) { alert('אין הכנות או סגירה ביום ' + shortDate(sel)); return; }
+  const c = waImage(sel, d), name = 'שקילות_' + branchFilePart() + sel + '.png';
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const file = blob && new File([blob], name, { type: 'image/png' });
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  // the phone can't share a picture from here: save it, and open WhatsApp with the text instead
+  if (blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
   const txt = waText(sel);
-  if (!txt) { alert('אין הכנות או סגירה ביום ' + shortDate(sel)); return; }
-  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+  if (await ask({ title: 'התמונה נשמרה בהורדות', text: 'אפשר לצרף אותה בוואטסאפ. לשלוח במקום זה את המספרים כהודעה?', ok: 'שליחה כהודעה', cancel: 'לא' })) window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
 }
 
 function exportToExcel() {
