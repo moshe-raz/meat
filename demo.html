@@ -476,9 +476,9 @@ select:focus, input:focus { outline: 2px solid var(--pri); outline-offset: 0; bo
 #soldNote, #workerLine, #page-weigh .controls > div { width: 100%; text-align: center; }
 button.btn { border-radius: 12px; font-weight: 700; padding: 12px 16px; background: var(--pri); font-family: inherit; box-shadow: none; }
 button[onclick="addWeight()"] { width: 100%; font-size: 18px; padding: 14px; }
-button[onclick="deleteLast()"], button[onclick="exportToExcel()"], button[onclick="resetAll()"], button[onclick="exportInventory()"], button[onclick="calcClear()"], button[onclick="calcUndo()"] {
+button[onclick="deleteLast()"], button[onclick="exportToExcel()"], button[onclick="sendWhatsApp()"], button[onclick="resetAll()"], button[onclick="exportInventory()"], button[onclick="calcClear()"], button[onclick="calcUndo()"] {
   background: var(--card) !important; color: var(--ink); border: 1px solid var(--line); flex: 1; font-size: 14px; padding: 10px 8px; }
-button[onclick="exportToExcel()"], button[onclick="exportInventory()"] { color: #1d7a3e; }
+button[onclick="exportToExcel()"], button[onclick="exportInventory()"], button[onclick="sendWhatsApp()"] { color: #1d7a3e; }
 button[onclick="resetAll()"] { color: #c62828; }
 .meat-card { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); border: 1px solid var(--line); margin-bottom: 14px; }
 .meat-header { background: var(--head); color: var(--head-ink); text-align: right; padding: 12px 16px; font-size: 17px; font-weight: 800; }
@@ -1058,6 +1058,7 @@ var demoLS = (function () {
     <div id="workerLine" class="entry-only" style="font-size:13px;color:#555;margin:4px 0"></div>
     <button class="btn entry-only" style="background:#6c757d" onclick="deleteLast()">מחק אחרון</button>
     <button class="btn" style="background:#28a745" onclick="exportToExcel()">ייצא לאקסל</button>
+    <button class="btn" style="background:#1fa855" onclick="sendWhatsApp()">לוואטסאפ</button>
   </div>
 
   <div id="prodTabs" class="prod-tabs"></div>
@@ -1977,6 +1978,29 @@ async function resetAll() {
   if (!await ask({ title: 'לאפס את הנתונים בטלפון הזה?', text: branch.url ? 'השקילות שבגיליון של החברה לא נמחקות, והן יחזרו בסנכרון הבא.' : 'כל השקילות בטלפון יימחקו.', ok: 'איפוס', cancel: 'ביטול', danger: true, icon: 'warn' })) return;
   history = [];
   updateDisplay(); renderHistory(); saveData();
+}
+
+// WhatsApp: the day on screen — preps and close per product, plus everything left. The phone's own WhatsApp opens with the text ready; the person picks who and presses send.
+function waText(sel) {
+  const days = buildDays(), bi = shownBranch(), lines = [];
+  let tot = 0, missing = 0, any = false;
+  lines.push('🥩 ' + (bi.name || 'שקילות') + ' · יום ' + shortDate(sel));
+  cardDefs.forEach(([k, n]) => {
+    const t = days[k][sel]; if (!t || (!t.prep && !t.hasClose)) return;
+    any = true;
+    lines.push('', '*' + n + '*', 'הכנות: ' + f2(t.prep) + ' · נשאר: ' + (t.hasClose ? f2(t.close) : 'עוד לא נשקל'));
+    if (t.hasClose) tot += t.close; else missing++;
+  });
+  if (!any) return null;
+  lines.push('', '📦 *נשאר בכללי: ' + f2(tot) + ' ק״ג*' + (missing ? ' (בלי ' + missing + ' שעוד לא נשקלו)' : ''));
+  return lines.join('\n');
+}
+function sendWhatsApp() {
+  const sel = document.getElementById('dateInput').value;
+  if (!sel) { alert('בחרו יום'); return; }
+  const txt = waText(sel);
+  if (!txt) { alert('אין הכנות או סגירה ביום ' + shortDate(sel)); return; }
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
 }
 
 function exportToExcel() {
