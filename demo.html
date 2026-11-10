@@ -1992,7 +1992,6 @@ function waText(sel) {
     if (t.hasClose) tot += t.close; else missing++;
   });
   if (!any) return null;
-  lines.push('', '📦 *נשאר בכללי: ' + f2(tot) + ' ק״ג*' + (missing ? ' (בלי ' + missing + ' שעוד לא נשקלו)' : ''));
   return lines.join('\n');
 }
 // the day as a picture of a table, like the paper sheet: product · preps · left (close), and a total row
@@ -2007,7 +2006,7 @@ function waRows(sel) {
 }
 function waImage(sel, d) {
   const bi = shownBranch(), W = 1080, pad = 48, rowH = 112, headH = 200, colH = 96;
-  const H = headH + colH + rowH * (d.rows.length + 1) + pad + (d.missing ? 56 : 0);
+  const H = headH + colH + rowH * d.rows.length + pad;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d'); x.direction = 'rtl'; x.textBaseline = 'middle';
   const F = (w, z) => w + ' ' + z + 'px "Segoe UI", Arial, sans-serif';
@@ -2030,11 +2029,6 @@ function waImage(sel, d) {
     x.strokeStyle = '#e4dad2'; x.lineWidth = 2; x.beginPath(); x.moveTo(pad, y + rowH); x.lineTo(W - pad, y + rowH); x.stroke();
     y += rowH;
   });
-  x.fillStyle = '#e8f3ec'; x.fillRect(pad, y, W - 2 * pad, rowH);
-  x.fillStyle = '#1d5e36'; x.textAlign = 'right'; x.font = F(800, 46); x.fillText('נשאר בכללי (ק״ג)', W - pad - 24, y + rowH / 2);
-  x.textAlign = 'center'; x.font = F(800, 52); x.fillText(f2(d.tot), 180, y + rowH / 2);
-  y += rowH;
-  if (d.missing) { x.fillStyle = '#b26b00'; x.textAlign = 'right'; x.font = F(500, 32); x.fillText('בלי ' + (d.missing === 1 ? 'מוצר אחד' : d.missing + ' מוצרים') + ' שעוד לא נשקלו', W - pad - 24, y + 34); }
   return c;
 }
 async function sendWhatsApp() {
